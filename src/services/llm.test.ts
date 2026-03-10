@@ -117,6 +117,35 @@ describe('LLMService.buildSystemPrompt', () => {
     expect(prompt).toContain('export function login()');
   });
 
+  it('keeps PR metadata and file summaries when large diffs are omitted', () => {
+    const smallPatchA = '@@ -0,0 +1,1 @@\n+const a = 1;';
+    const hugePatch = `@@ -0,0 +1,1 @@\n+${'x'.repeat(40_000)}`;
+    const smallPatchB = '@@ -0,0 +1,1 @@\n+const c = 3;';
+
+    const files: PRFile[] = [
+      { ...mockFile, filename: 'src/a.ts', patch: smallPatchA },
+      { ...mockFile, filename: 'src/b.ts', patch: hugePatch },
+      { ...mockFile, filename: 'src/c.ts', patch: smallPatchB },
+    ];
+
+    const prompt = svc.buildSystemPrompt({ ...mockContext, files });
+
+    expect(prompt).toContain('## Pull Request: #42 - feat: Add JWT auth');
+    expect(prompt).toContain('- src/a.ts');
+    expect(prompt).toContain('- src/b.ts');
+    expect(prompt).toContain('- src/c.ts');
+
+    expect(prompt).toContain('const a = 1;');
+    expect(prompt).toContain('const c = 3;');
+    expect(prompt).not.toContain(hugePatch);
+    expect(prompt).toContain('[Context budget] Omitted 1 diff(s): src/b.ts');
+  });
+
+  it('does not add omission message when all diffs fit in budget', () => {
+    const prompt = svc.buildSystemPrompt(mockContext);
+    expect(prompt).not.toContain('[Context budget] Omitted');
+  });
+
   it('includes PR comments', () => {
     const prompt = svc.buildSystemPrompt(mockContext);
     expect(prompt).toContain('Looks good!');
