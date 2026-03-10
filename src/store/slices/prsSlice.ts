@@ -81,6 +81,19 @@ export const fetchPRReviews = createAsyncThunk<
   }
 });
 
+export const fetchPullRequest = createAsyncThunk<
+  PullRequest,
+  PRRequestArgs,
+  { state: RootState; rejectValue: GitHubApiErrorData }
+>('prs/fetchPullRequest', async ({ owner, repo, prNumber }, { getState, rejectWithValue }) => {
+  const service = createGitHubService(getState().config.config);
+  try {
+    return await service.getPullRequest(owner, repo, prNumber);
+  } catch (error) {
+    return rejectWithValue(toRejectedError(error));
+  }
+});
+
 interface PRsState {
   selectedPR: PullRequest | null;
   files: PRFile[];
@@ -90,12 +103,14 @@ interface PRsState {
   isLoading: boolean;
   error: string | null;
   loadingByResource: {
+    metadata: boolean;
     files: boolean;
     comments: boolean;
     reviewComments: boolean;
     reviews: boolean;
   };
   errorByResource: {
+    metadata: string | null;
     files: string | null;
     comments: string | null;
     reviewComments: string | null;
@@ -112,12 +127,14 @@ const initialState: PRsState = {
   isLoading: false,
   error: null,
   loadingByResource: {
+    metadata: false,
     files: false,
     comments: false,
     reviewComments: false,
     reviews: false,
   },
   errorByResource: {
+    metadata: null,
     files: null,
     comments: null,
     reviewComments: null,
@@ -131,6 +148,7 @@ function updateAggregateLoading(state: PRsState): void {
 
 function updateAggregateError(state: PRsState): void {
   state.error =
+    state.errorByResource.metadata ||
     state.errorByResource.files ||
     state.errorByResource.comments ||
     state.errorByResource.reviewComments ||
@@ -151,6 +169,7 @@ const prsSlice = createSlice({
         state.reviewComments = [];
         state.reviews = [];
         state.errorByResource = {
+          metadata: null,
           files: null,
           comments: null,
           reviewComments: null,
@@ -181,6 +200,23 @@ const prsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      .addCase(fetchPullRequest.pending, (state) => {
+        state.loadingByResource.metadata = true;
+        state.errorByResource.metadata = null;
+        updateAggregateLoading(state);
+        updateAggregateError(state);
+      })
+      .addCase(fetchPullRequest.fulfilled, (state, action) => {
+        state.selectedPR = action.payload;
+        state.loadingByResource.metadata = false;
+        updateAggregateLoading(state);
+      })
+      .addCase(fetchPullRequest.rejected, (state, action) => {
+        state.loadingByResource.metadata = false;
+        state.errorByResource.metadata = action.payload?.userMessage || action.error.message || 'Failed to load pull request metadata';
+        updateAggregateLoading(state);
+        updateAggregateError(state);
+      })
       .addCase(fetchPRFiles.pending, (state) => {
         state.loadingByResource.files = true;
         state.errorByResource.files = null;

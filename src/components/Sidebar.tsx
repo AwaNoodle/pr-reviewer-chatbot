@@ -1,11 +1,40 @@
-import { useEffect } from 'react';
-import { GitPullRequest, RefreshCw, FlaskConical } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { GitPullRequest, RefreshCw, FlaskConical, Loader2, AlertCircle } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { setSelectedPR, setPRFiles, setPRComments, setPRReviewComments, setPRReviews } from '../store/slices/prsSlice';
+import {
+  setSelectedPR,
+  setPRFiles,
+  setPRComments,
+  setPRReviewComments,
+  setPRReviews,
+  fetchPullRequest,
+  fetchPRFiles,
+  fetchPRComments,
+  fetchPRReviewComments,
+  fetchPRReviews,
+} from '../store/slices/prsSlice';
 import { setDemoMode } from '../store/slices/configSlice';
 import { dummyPR, dummyFiles, dummyComments, dummyReviewComments, dummyReviews } from '../services/dummyData';
 import { cn, formatDate } from '../lib/utils';
 import type { PullRequest } from '../types';
+
+interface PRFormValues {
+  owner: string;
+  repo: string;
+  prNumber: number;
+}
+
+function parseRepository(value: string): { owner: string; repo: string } | null {
+  const match = value.trim().match(/^([A-Za-z0-9_.-]+)\/([A-Za-z0-9_.-]+)$/);
+  if (!match) {
+    return null;
+  }
+
+  return {
+    owner: match[1],
+    repo: match[2],
+  };
+}
 
 function PRItem({ pr, isSelected, onClick }: { pr: PullRequest; isSelected: boolean; onClick: () => void }) {
   return (
@@ -39,6 +68,12 @@ export function Sidebar() {
   const dispatch = useAppDispatch();
   const config = useAppSelector((state) => state.config.config);
   const selectedPR = useAppSelector((state) => state.prs.selectedPR);
+  const isLoading = useAppSelector((state) => state.prs.isLoading);
+  const prsError = useAppSelector((state) => state.prs.error);
+  const [repositoryInput, setRepositoryInput] = useState('');
+  const [prNumberInput, setPrNumberInput] = useState('');
+  const [repositoryError, setRepositoryError] = useState<string | null>(null);
+  const [prNumberError, setPrNumberError] = useState<string | null>(null);
 
   // Load demo PR on mount if in demo mode
   useEffect(() => {
@@ -72,6 +107,81 @@ export function Sidebar() {
       // Switching to GitHub mode - clear selection
       dispatch(setSelectedPR(null));
     }
+  };
+
+  const validateInputs = (): PRFormValues | null => {
+    const repository = parseRepository(repositoryInput);
+    const parsedPRNumber = Number(prNumberInput.trim());
+    let hasError = false;
+
+    if (!repository) {
+      setRepositoryError('Enter repository as owner/repo.');
+      hasError = true;
+    } else {
+      setRepositoryError(null);
+    }
+
+    if (!Number.isInteger(parsedPRNumber) || parsedPRNumber <= 0) {
+      setPrNumberError('Enter a valid PR number (positive integer).');
+      hasError = true;
+    } else {
+      setPrNumberError(null);
+    }
+
+    if (hasError || !repository) {
+      return null;
+    }
+
+    return {
+      owner: repository.owner,
+      repo: repository.repo,
+      prNumber: parsedPRNumber,
+    };
+  };
+
+  const loadPullRequestContext = async (values: PRFormValues) => {
+    const metadataAction = await dispatch(fetchPullRequest(values));
+    if (fetchPullRequest.rejected.match(metadataAction)) {
+      return;
+    }
+
+    await Promise.all([
+      dispatch(fetchPRFiles(values)),
+      dispatch(fetchPRComments(values)),
+      dispatch(fetchPRReviewComments(values)),
+      dispatch(fetchPRReviews(values)),
+    ]);
+  };
+
+  const handleLoadPR = () => {
+    const values = validateInputs();
+    if (!values) {
+      return;
+    }
+    void loadPullRequestContext(values);
+  };
+
+  const handleRefresh = () => {
+    if (!selectedPR || config.demoMode) {
+      return;
+    }
+
+    const repoFullName = selectedPR.base.repo?.full_name || selectedPR.head.repo?.full_name || repositoryInput;
+    const repository = parseRepository(repoFullName);
+    if (!repository) {
+      return;
+    }
+
+    setRepositoryInput(`${repository.owner}/${repository.repo}`);
+    setPrNumberInput(String(selectedPR.number));
+    setRepositoryError(null);
+    setPrNumberError(null);
+
+    void loadPullRequestContext({
+      owner: repository.owner,
+      repo: repository.repo,
+      prNumber: selectedPR.number,
+    });
   };
 
   return (
@@ -109,10 +219,12 @@ export function Sidebar() {
             </span>
             {!config.demoMode && (
               <button
+                onClick={handleRefresh}
+                disabled={isLoading || !selectedPR}
                 className="text-muted-foreground hover:text-foreground transition-colors"
                 title="Refresh"
               >
-                <RefreshCw className="h-3.5 w-3.5" />
+                <RefreshCw className={cn('h-3.5 w-3.5', isLoading && 'animate-spin')} />
               </button>
             )}
           </div>
@@ -124,11 +236,84 @@ export function Sidebar() {
               onClick={handleSelectDemoPR}
             />
           ) : (
-            <div className="text-center py-6 space-y-2">
-              <GitPullRequest className="h-8 w-8 text-muted-foreground mx-auto" />
-              <p className="text-xs text-muted-foreground">
-                Configure GitHub credentials in Settings to browse PRs
-              </p>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-xs font-medium text-foreground mb-1" htmlFor="sidebar-repository">
+                  Repository
+                </label>
+                <input
+                  id="sidebar-repository"
+                  type="text"
+                  value={repositoryInput}
+                  onChange={(e) => setRepositoryInput(e.target.value)}
+                  placeholder="owner/repo"
+                  disabled={isLoading}
+                  className={cn(
+                    'w-full rounded-md border bg-background px-2.5 py-1.5 text-xs',
+                    'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1',
+                    'disabled:opacity-50',
+                    repositoryError ? 'border-destructive' : 'border-input'
+                  )}
+                />
+                {repositoryError && <p className="mt-1 text-xs text-destructive">{repositoryError}</p>}
+              </div>
+
+              <div>
+                <label className="block text-xs font-medium text-foreground mb-1" htmlFor="sidebar-pr-number">
+                  PR Number
+                </label>
+                <input
+                  id="sidebar-pr-number"
+                  type="number"
+                  min={1}
+                  value={prNumberInput}
+                  onChange={(e) => setPrNumberInput(e.target.value)}
+                  placeholder="123"
+                  disabled={isLoading}
+                  className={cn(
+                    'w-full rounded-md border bg-background px-2.5 py-1.5 text-xs',
+                    'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1',
+                    'disabled:opacity-50',
+                    prNumberError ? 'border-destructive' : 'border-input'
+                  )}
+                />
+                {prNumberError && <p className="mt-1 text-xs text-destructive">{prNumberError}</p>}
+              </div>
+
+              <button
+                onClick={handleLoadPR}
+                disabled={isLoading}
+                className={cn(
+                  'w-full flex items-center justify-center gap-2 rounded-md px-3 py-2 text-xs font-medium',
+                  'bg-primary text-primary-foreground hover:bg-primary/90',
+                  'transition-colors disabled:opacity-50 disabled:cursor-not-allowed'
+                )}
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    <span>Loading PR...</span>
+                  </>
+                ) : (
+                  <>
+                    <GitPullRequest className="h-3.5 w-3.5" />
+                    <span>Load PR</span>
+                  </>
+                )}
+              </button>
+
+              {prsError && (
+                <div className="flex items-start gap-2 rounded-md border border-destructive/30 bg-destructive/10 px-2.5 py-2">
+                  <AlertCircle className="h-3.5 w-3.5 text-destructive mt-0.5 flex-shrink-0" />
+                  <p className="text-xs text-destructive">{prsError}</p>
+                </div>
+              )}
+
+              {!selectedPR && !isLoading && !prsError && (
+                <p className="text-xs text-muted-foreground text-center py-2">
+                  Enter owner/repo and PR number to load pull request details.
+                </p>
+              )}
             </div>
           )}
         </div>
