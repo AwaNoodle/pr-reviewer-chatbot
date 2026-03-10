@@ -80,14 +80,12 @@
 - [x] Methods: `listRepositories`, `searchRepositories`, `listPullRequests`, `getPullRequest`, `getPRFiles`, `getPRComments`, `getPRReviewComments`, `getPRReviews`, `validateToken`
 - [x] Token validation method
 
-> **Note**: GitHub mode UI (browsing repos/PRs) is not yet wired up in the sidebar. Currently requires demo mode. Full GitHub browsing UI is a future enhancement.
-
-### ⏳ Phase 7: Polish (PENDING)
-- [ ] Add loading states and loading indicators for GitHub API calls
-- [ ] Add error handling for GitHub API failures (rate limiting, 404, auth errors)
-- [ ] Polish UI/UX (animations, transitions)
-- [ ] GitHub mode UI — allow entering repo/PR manually
-- [ ] Context window management for very large PRs
+### ✅ Phase 7: Polish (COMPLETED)
+- [x] Add loading states and loading indicators for GitHub API calls
+- [x] Add error handling for GitHub API failures (rate limiting, 404, auth errors)
+- [x] Polish UI/UX (animations, transitions)
+- [x] GitHub mode UI — allow entering repo/PR manually
+- [x] Context window management for very large PRs
 
 ---
 
