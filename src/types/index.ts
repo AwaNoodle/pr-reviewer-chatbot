@@ -97,6 +97,25 @@ export interface PRReview {
   html_url: string;
 }
 
+export type GitHubApiErrorCode =
+  | 'AUTHENTICATION_ERROR'
+  | 'RATE_LIMITED'
+  | 'NOT_FOUND'
+  | 'FORBIDDEN'
+  | 'VALIDATION_ERROR'
+  | 'NETWORK_ERROR'
+  | 'UNKNOWN_ERROR';
+
+export interface GitHubApiErrorData {
+  code: GitHubApiErrorCode;
+  status: number | null;
+  message: string;
+  userMessage: string;
+  documentationUrl?: string;
+  retryAfterSeconds?: number;
+  rateLimitResetAt?: string;
+}
+
 // Chat Types
 export interface ChatMessage {
   id: string;

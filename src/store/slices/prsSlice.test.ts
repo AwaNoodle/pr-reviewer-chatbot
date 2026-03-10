@@ -1,4 +1,5 @@
-import { describe, it, expect } from 'vitest';
+import { configureStore } from '@reduxjs/toolkit';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import prsReducer, {
   setSelectedPR,
   setPRFiles,
@@ -7,8 +8,13 @@ import prsReducer, {
   setPRReviews,
   setLoading,
   setError,
+  fetchPRFiles,
+  fetchPRComments,
 } from './prsSlice';
+import configReducer from './configSlice';
+import chatReducer from './chatSlice';
 import type { PullRequest, PRFile, PRComment, PRReviewComment, PRReview } from '../../types';
+import * as githubService from '../../services/github';
 
 // ---------------------------------------------------------------------------
 // Minimal fixtures
@@ -91,13 +97,78 @@ const emptyState = {
   reviews: [],
   isLoading: false,
   error: null,
+  loadingByResource: {
+    files: false,
+    comments: false,
+    reviewComments: false,
+    reviews: false,
+  },
+  errorByResource: {
+    files: null,
+    comments: null,
+    reviewComments: null,
+    reviews: null,
+  },
 };
+
+type MockGitHubService = {
+  getPRFiles: ReturnType<typeof vi.fn>;
+  getPRComments: ReturnType<typeof vi.fn>;
+  getPRReviewComments: ReturnType<typeof vi.fn>;
+  getPRReviews: ReturnType<typeof vi.fn>;
+};
+
+function makeStore() {
+  return configureStore({
+    reducer: {
+      config: configReducer,
+      chat: chatReducer,
+      prs: prsReducer,
+    },
+    preloadedState: {
+      config: {
+        config: {
+          githubPat: 'ghp_test',
+          llmApiKey: 'test-key',
+          githubInstance: 'github.com',
+          llmBackend: 'openai' as const,
+          llmEndpoint: 'https://api.openai.com/v1',
+          llmModel: 'gpt-4o',
+          demoMode: false,
+        },
+      },
+      chat: {
+        messages: [],
+        isStreaming: false,
+        streamingMessageId: null,
+        error: null,
+      },
+    },
+  });
+}
+
+function setupMockService(): MockGitHubService {
+  const service = {
+    getPRFiles: vi.fn(),
+    getPRComments: vi.fn(),
+    getPRReviewComments: vi.fn(),
+    getPRReviews: vi.fn(),
+  };
+  vi.spyOn(githubService, 'createGitHubService').mockReturnValue(
+    service as unknown as ReturnType<typeof githubService.createGitHubService>
+  );
+  return service;
+}
 
 // ---------------------------------------------------------------------------
 // Tests
 // ---------------------------------------------------------------------------
 
 describe('prsSlice', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
   describe('setSelectedPR', () => {
     it('sets the selected PR', () => {
       const next = prsReducer(emptyState, setSelectedPR(mockPR));
@@ -195,6 +266,77 @@ describe('prsSlice', () => {
       const state = { ...emptyState, error: 'old error' };
       const next = prsReducer(state, setError(null));
       expect(next.error).toBeNull();
+    });
+  });
+
+  describe('async thunks', () => {
+    it('loads files and updates granular loading state', async () => {
+      const store = makeStore();
+      const service = setupMockService();
+      service.getPRFiles.mockResolvedValueOnce([mockFile]);
+
+      const actionPromise = store.dispatch(fetchPRFiles({ owner: 'org', repo: 'repo', prNumber: 42 }));
+
+      expect(store.getState().prs.loadingByResource.files).toBe(true);
+      expect(store.getState().prs.isLoading).toBe(true);
+
+      await actionPromise;
+
+      expect(store.getState().prs.files).toEqual([mockFile]);
+      expect(store.getState().prs.loadingByResource.files).toBe(false);
+      expect(store.getState().prs.errorByResource.files).toBeNull();
+      expect(store.getState().prs.isLoading).toBe(false);
+    });
+
+    it('stores user-friendly error when file load fails', async () => {
+      const store = makeStore();
+      const service = setupMockService();
+      service.getPRFiles.mockRejectedValueOnce(
+        new githubService.GitHubApiError({
+          code: 'RATE_LIMITED',
+          status: 403,
+          message: 'API rate limit exceeded',
+          userMessage: 'GitHub rate limit reached. Wait and retry.',
+        })
+      );
+
+      await store.dispatch(fetchPRFiles({ owner: 'org', repo: 'repo', prNumber: 42 }));
+
+      expect(store.getState().prs.errorByResource.files).toBe('GitHub rate limit reached. Wait and retry.');
+      expect(store.getState().prs.error).toBe('GitHub rate limit reached. Wait and retry.');
+      expect(store.getState().prs.loadingByResource.files).toBe(false);
+      expect(store.getState().prs.isLoading).toBe(false);
+    });
+
+    it('keeps aggregate loading true while another request is pending', async () => {
+      const store = makeStore();
+      const service = setupMockService();
+
+      let resolveFiles: ((value: PRFile[]) => void) | null = null;
+      service.getPRFiles.mockImplementationOnce(
+        () =>
+          new Promise<PRFile[]>((resolve) => {
+            resolveFiles = resolve;
+          })
+      );
+      service.getPRComments.mockResolvedValueOnce([mockComment]);
+
+      const filesPromise = store.dispatch(fetchPRFiles({ owner: 'org', repo: 'repo', prNumber: 42 }));
+      await store.dispatch(fetchPRComments({ owner: 'org', repo: 'repo', prNumber: 42 }));
+
+      expect(store.getState().prs.loadingByResource.files).toBe(true);
+      expect(store.getState().prs.loadingByResource.comments).toBe(false);
+      expect(store.getState().prs.isLoading).toBe(true);
+
+      if (!resolveFiles) {
+        throw new Error('Expected files resolver to be assigned');
+      }
+      const resolve = resolveFiles as (value: PRFile[]) => void;
+      resolve([mockFile]);
+      await filesPromise;
+
+      expect(store.getState().prs.loadingByResource.files).toBe(false);
+      expect(store.getState().prs.isLoading).toBe(false);
     });
   });
 });
