@@ -1,4 +1,4 @@
-import axios, { type AxiosInstance } from 'axios';
+import axios, { type AxiosInstance, type AxiosRequestConfig } from 'axios';
 import type {
   GitHubRepository,
   PullRequest,
@@ -7,7 +7,147 @@ import type {
   PRReviewComment,
   PRReview,
   AppConfig,
+  GitHubApiErrorCode,
+  GitHubApiErrorData,
 } from '../types';
+
+type GitHubErrorResponse = {
+  message?: string;
+  documentation_url?: string;
+};
+
+export class GitHubApiError extends Error {
+  readonly code: GitHubApiErrorCode;
+  readonly status: number | null;
+  readonly userMessage: string;
+  readonly documentationUrl?: string;
+  readonly retryAfterSeconds?: number;
+  readonly rateLimitResetAt?: string;
+
+  constructor(data: GitHubApiErrorData) {
+    super(data.message);
+    this.name = 'GitHubApiError';
+    this.code = data.code;
+    this.status = data.status;
+    this.userMessage = data.userMessage;
+    this.documentationUrl = data.documentationUrl;
+    this.retryAfterSeconds = data.retryAfterSeconds;
+    this.rateLimitResetAt = data.rateLimitResetAt;
+  }
+
+  toJSON(): GitHubApiErrorData {
+    return {
+      code: this.code,
+      status: this.status,
+      message: this.message,
+      userMessage: this.userMessage,
+      documentationUrl: this.documentationUrl,
+      retryAfterSeconds: this.retryAfterSeconds,
+      rateLimitResetAt: this.rateLimitResetAt,
+    };
+  }
+}
+
+export function parseGitHubError(error: unknown): GitHubApiError {
+  if (!axios.isAxiosError(error)) {
+    return new GitHubApiError({
+      code: 'UNKNOWN_ERROR',
+      status: null,
+      message: error instanceof Error ? error.message : 'Unexpected GitHub API error',
+      userMessage: 'Something went wrong while talking to GitHub. Please try again.',
+    });
+  }
+
+  if (!error.response) {
+    return new GitHubApiError({
+      code: 'NETWORK_ERROR',
+      status: null,
+      message: error.message,
+      userMessage:
+        'Unable to reach GitHub. Check your network connection and GitHub instance setting.',
+    });
+  }
+
+  const status = error.response.status;
+  const responseData = error.response.data as GitHubErrorResponse | undefined;
+  const message = responseData?.message || error.message;
+  const documentationUrl = responseData?.documentation_url;
+
+  if (status === 401) {
+    return new GitHubApiError({
+      code: 'AUTHENTICATION_ERROR',
+      status,
+      message,
+      userMessage: 'GitHub authentication failed. Update your Personal Access Token in Settings.',
+      documentationUrl,
+    });
+  }
+
+  const rateLimitRemaining = error.response.headers['x-ratelimit-remaining'];
+  const rateLimitReset = error.response.headers['x-ratelimit-reset'];
+  const retryAfter = error.response.headers['retry-after'];
+  const isRateLimited =
+    status === 429 ||
+    (status === 403 && rateLimitRemaining === '0') ||
+    (status === 403 && message.toLowerCase().includes('rate limit'));
+
+  if (isRateLimited) {
+    const resetEpoch = Number(rateLimitReset);
+    const rateLimitResetAt = Number.isFinite(resetEpoch)
+      ? new Date(resetEpoch * 1000).toISOString()
+      : undefined;
+    const retryAfterSeconds = retryAfter ? Number(retryAfter) : undefined;
+
+    return new GitHubApiError({
+      code: 'RATE_LIMITED',
+      status,
+      message,
+      userMessage:
+        'GitHub rate limit reached. Wait a bit before retrying, or use an authenticated token.',
+      documentationUrl,
+      retryAfterSeconds: Number.isFinite(retryAfterSeconds) ? retryAfterSeconds : undefined,
+      rateLimitResetAt,
+    });
+  }
+
+  if (status === 404) {
+    return new GitHubApiError({
+      code: 'NOT_FOUND',
+      status,
+      message,
+      userMessage: 'The requested GitHub resource was not found. Check owner, repo, and PR number.',
+      documentationUrl,
+    });
+  }
+
+  if (status === 403) {
+    return new GitHubApiError({
+      code: 'FORBIDDEN',
+      status,
+      message,
+      userMessage: 'Access to this GitHub resource is forbidden. Confirm token scopes and permissions.',
+      documentationUrl,
+    });
+  }
+
+  if (status === 422) {
+    return new GitHubApiError({
+      code: 'VALIDATION_ERROR',
+      status,
+      message,
+      userMessage: 'GitHub rejected this request. Check that the request parameters are valid.',
+      documentationUrl,
+    });
+  }
+
+  return new GitHubApiError({
+    code: 'UNKNOWN_ERROR',
+    status,
+    message,
+    userMessage: 'GitHub request failed. Please retry in a moment.',
+    documentationUrl,
+  });
+}
 
 export class GitHubService {
   private client: AxiosInstance;
@@ -53,19 +193,27 @@ export class GitHubService {
     return `https://${host}/api/v3`;
   }
 
+  private async get<T>(url: string, config?: AxiosRequestConfig): Promise<T> {
+    try {
+      const response = await this.client.get<T>(url, config);
+      return response.data;
+    } catch (error) {
+      throw parseGitHubError(error);
+    }
+  }
+
   async listRepositories(page = 1, perPage = 30): Promise<GitHubRepository[]> {
-    const response = await this.client.get<GitHubRepository[]>('/user/repos', {
+    return this.get<GitHubRepository[]>('/user/repos', {
       params: {
         sort: 'updated',
         per_page: perPage,
         page,
       },
     });
-    return response.data;
   }
 
   async searchRepositories(query: string, page = 1): Promise<GitHubRepository[]> {
-    const response = await this.client.get<{ items: GitHubRepository[] }>(
+    const data = await this.get<{ items: GitHubRepository[] }>(
       '/search/repositories',
       {
         params: {
@@ -76,7 +224,7 @@ export class GitHubService {
         },
       }
     );
-    return response.data.items;
+    return data.items;
   }
 
   async listPullRequests(
@@ -86,7 +234,7 @@ export class GitHubService {
     page = 1,
     perPage = 30
   ): Promise<PullRequest[]> {
-    const response = await this.client.get<PullRequest[]>(
+    return this.get<PullRequest[]>(
       `/repos/${owner}/${repo}/pulls`,
       {
         params: {
@@ -98,34 +246,30 @@ export class GitHubService {
         },
       }
     );
-    return response.data;
   }
 
   async getPullRequest(owner: string, repo: string, prNumber: number): Promise<PullRequest> {
-    const response = await this.client.get<PullRequest>(
+    return this.get<PullRequest>(
       `/repos/${owner}/${repo}/pulls/${prNumber}`
     );
-    return response.data;
   }
 
   async getPRFiles(owner: string, repo: string, prNumber: number): Promise<PRFile[]> {
-    const response = await this.client.get<PRFile[]>(
+    return this.get<PRFile[]>(
       `/repos/${owner}/${repo}/pulls/${prNumber}/files`,
       {
         params: { per_page: 100 },
       }
     );
-    return response.data;
   }
 
   async getPRComments(owner: string, repo: string, prNumber: number): Promise<PRComment[]> {
-    const response = await this.client.get<PRComment[]>(
+    return this.get<PRComment[]>(
       `/repos/${owner}/${repo}/issues/${prNumber}/comments`,
       {
         params: { per_page: 100 },
       }
     );
-    return response.data;
   }
 
   async getPRReviewComments(
@@ -133,20 +277,18 @@ export class GitHubService {
     repo: string,
     prNumber: number
   ): Promise<PRReviewComment[]> {
-    const response = await this.client.get<PRReviewComment[]>(
+    return this.get<PRReviewComment[]>(
       `/repos/${owner}/${repo}/pulls/${prNumber}/comments`,
       {
         params: { per_page: 100 },
       }
     );
-    return response.data;
   }
 
   async getPRReviews(owner: string, repo: string, prNumber: number): Promise<PRReview[]> {
-    const response = await this.client.get<PRReview[]>(
+    return this.get<PRReview[]>(
       `/repos/${owner}/${repo}/pulls/${prNumber}/reviews`
     );
-    return response.data;
   }
 
   async validateToken(): Promise<boolean> {

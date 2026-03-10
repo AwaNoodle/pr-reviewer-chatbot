@@ -1,5 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { GitHubService } from './github';
+import { AxiosError, AxiosHeaders } from 'axios';
+import { GitHubService, parseGitHubError, GitHubApiError } from './github';
 import type { AppConfig } from '../types';
 
 // ---------------------------------------------------------------------------
@@ -124,5 +125,64 @@ describe('GitHubService — validateToken', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.spyOn((svc as any).client, 'get').mockRejectedValueOnce(new Error('401'));
     expect(await svc.validateToken()).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Error parsing tests
+// ---------------------------------------------------------------------------
+
+function makeAxiosError(
+  status: number,
+  data: Record<string, unknown>,
+  headers: Record<string, string> = {}
+): AxiosError {
+  return new AxiosError('Request failed', 'ERR_BAD_REQUEST', undefined, undefined, {
+    data,
+    status,
+    statusText: String(status),
+    headers: AxiosHeaders.from(headers),
+    config: {
+      headers: AxiosHeaders.from({}),
+    },
+  });
+}
+
+describe('parseGitHubError', () => {
+  it('maps authentication failures to a typed auth error', () => {
+    const error = makeAxiosError(401, { message: 'Bad credentials' });
+    const parsed = parseGitHubError(error);
+
+    expect(parsed).toBeInstanceOf(GitHubApiError);
+    expect(parsed.code).toBe('AUTHENTICATION_ERROR');
+    expect(parsed.status).toBe(401);
+    expect(parsed.userMessage).toContain('Personal Access Token');
+  });
+
+  it('maps rate limiting failures and extracts reset metadata', () => {
+    const error = makeAxiosError(
+      403,
+      { message: 'API rate limit exceeded' },
+      {
+        'x-ratelimit-remaining': '0',
+        'x-ratelimit-reset': '1735689600',
+        'retry-after': '60',
+      }
+    );
+
+    const parsed = parseGitHubError(error);
+
+    expect(parsed.code).toBe('RATE_LIMITED');
+    expect(parsed.retryAfterSeconds).toBe(60);
+    expect(parsed.rateLimitResetAt).toBe('2025-01-01T00:00:00.000Z');
+  });
+
+  it('maps network errors when no response is present', () => {
+    const error = new AxiosError('Network Error', 'ERR_NETWORK');
+    const parsed = parseGitHubError(error);
+
+    expect(parsed.code).toBe('NETWORK_ERROR');
+    expect(parsed.status).toBeNull();
+    expect(parsed.userMessage).toContain('Unable to reach GitHub');
   });
 });
