@@ -26,7 +26,7 @@ function App() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setSidebarOpen(!sidebarOpen)}
-            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200 active:scale-95"
             title={sidebarOpen ? 'Hide sidebar' : 'Show sidebar'}
           >
             {sidebarOpen ? (
@@ -45,7 +45,7 @@ function App() {
           <button
             onClick={() => setPrViewerOpen(!prViewerOpen)}
             className={cn(
-              'px-3 py-1.5 rounded-md text-xs font-medium transition-colors',
+              'px-3 py-1.5 rounded-md text-xs font-medium transition-all duration-200 active:scale-95',
               prViewerOpen
                 ? 'bg-accent text-accent-foreground'
                 : 'text-muted-foreground hover:text-foreground hover:bg-accent'
@@ -56,7 +56,7 @@ function App() {
           <SettingsDialog />
           <button
             onClick={toggleDarkMode}
-            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-colors"
+            className="p-1.5 rounded-md text-muted-foreground hover:text-foreground hover:bg-accent transition-all duration-200 active:scale-95"
             title={darkMode ? 'Light mode' : 'Dark mode'}
           >
             {darkMode ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
@@ -67,11 +67,19 @@ function App() {
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
         {/* Sidebar */}
-        {sidebarOpen && (
-          <aside className="w-64 flex-shrink-0 border-r border-border bg-background overflow-hidden">
+        <aside
+          className={cn(
+            'flex-shrink-0 bg-background overflow-hidden transition-[width,opacity,transform,border-color] duration-300 ease-out',
+            sidebarOpen
+              ? 'w-64 opacity-100 translate-x-0 border-r border-border'
+              : 'w-0 opacity-0 -translate-x-2 border-r border-transparent pointer-events-none'
+          )}
+          aria-hidden={!sidebarOpen}
+        >
+          <div className="h-full w-64">
             <Sidebar />
-          </aside>
-        )}
+          </div>
+        </aside>
 
         {/* Chat Window */}
         <main className="flex-1 overflow-hidden">
@@ -79,11 +87,19 @@ function App() {
         </main>
 
         {/* PR Viewer */}
-        {prViewerOpen && (
-          <aside className="w-96 flex-shrink-0 border-l border-border bg-background overflow-hidden">
+        <aside
+          className={cn(
+            'flex-shrink-0 bg-background overflow-hidden transition-[width,opacity,transform,border-color] duration-300 ease-out',
+            prViewerOpen
+              ? 'w-96 opacity-100 translate-x-0 border-l border-border'
+              : 'w-0 opacity-0 translate-x-2 border-l border-transparent pointer-events-none'
+          )}
+          aria-hidden={!prViewerOpen}
+        >
+          <div className="h-full w-96">
             <PRViewer />
-          </aside>
-        )}
+          </div>
+        </aside>
       </div>
     </div>
   );
