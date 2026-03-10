@@ -8,6 +8,8 @@ import type {
 } from '../types';
 
 export class LLMService {
+  private static readonly MAX_SYSTEM_PROMPT_CHARS = 24_000;
+
   private config: AppConfig;
 
   constructor(config: AppConfig) {
@@ -129,11 +131,6 @@ export class LLMService {
       )
       .join('\n');
 
-    const diffContent = files
-      .filter((f) => f.patch)
-      .map((f) => `### ${f.filename}\n\`\`\`diff\n${f.patch}\n\`\`\``)
-      .join('\n\n');
-
     const commentsContent = comments
       .map((c) => `**${c.user.login}**: ${c.body}`)
       .join('\n\n');
@@ -149,7 +146,12 @@ export class LLMService {
       )
       .join('\n\n');
 
-    return `You are an expert code reviewer assistant helping to analyze a GitHub Pull Request.
+    const commentsSection = comments.length > 0 ? `### PR Comments\n${commentsContent}` : '';
+    const reviewsSection = reviews.length > 0 ? `### Reviews\n${reviewsContent}` : '';
+    const inlineCommentsSection =
+      reviewComments.length > 0 ? `### Inline Review Comments\n${reviewCommentsContent}` : '';
+
+    const promptPreamble = `You are an expert code reviewer assistant helping to analyze a GitHub Pull Request.
 
 ## Pull Request: #${pr.number} - ${pr.title}
 
@@ -164,18 +166,57 @@ ${pr.body ?? '(no description)'}
 ### Changed Files
 ${filesSummary}
 
-### Diffs
-${diffContent}
+### Diffs`;
 
-${comments.length > 0 ? `### PR Comments\n${commentsContent}` : ''}
+    const promptPostamble = `${commentsSection ? `\n\n${commentsSection}` : ''}
 
-${reviews.length > 0 ? `### Reviews\n${reviewsContent}` : ''}
+${reviewsSection ? `\n\n${reviewsSection}` : ''}
 
-${reviewComments.length > 0 ? `### Inline Review Comments\n${reviewCommentsContent}` : ''}
+${inlineCommentsSection ? `\n\n${inlineCommentsSection}` : ''}
 
 ---
 
-You have full context of this PR. Answer questions about the code changes, provide code review feedback, explain what the changes do, identify potential issues, suggest improvements, and help the user understand the PR. Be specific and reference actual code from the diff when relevant.`;
+You have full context of this PR metadata and file summaries. Included diffs may be truncated by context budget. Answer questions about the code changes, provide code review feedback, explain what the changes do, identify potential issues, suggest improvements, and help the user understand the PR. Be specific and reference actual code from the included diff when relevant.`;
+
+    const maxDiffBudget = Math.max(
+      0,
+      LLMService.MAX_SYSTEM_PROMPT_CHARS - promptPreamble.length - promptPostamble.length - 2
+    );
+
+    const diffSections = files
+      .filter((f) => Boolean(f.patch))
+      .map((f) => ({
+        filename: f.filename,
+        content: `### ${f.filename}\n\`\`\`diff\n${f.patch}\n\`\`\``,
+      }));
+
+    const includedDiffs: string[] = [];
+    const omittedDiffFilenames: string[] = [];
+    let usedDiffChars = 0;
+
+    for (const diff of diffSections) {
+      const separator = includedDiffs.length > 0 ? '\n\n' : '\n';
+      const nextSize = usedDiffChars + separator.length + diff.content.length;
+
+      if (nextSize <= maxDiffBudget) {
+        includedDiffs.push(diff.content);
+        usedDiffChars = nextSize;
+      } else {
+        omittedDiffFilenames.push(diff.filename);
+      }
+    }
+
+    const omissionSummary =
+      omittedDiffFilenames.length > 0
+        ? `\n\n[Context budget] Omitted ${omittedDiffFilenames.length} diff(s): ${omittedDiffFilenames.join(', ')}`
+        : '';
+
+    const diffContent =
+      includedDiffs.length > 0
+        ? `\n${includedDiffs.join('\n\n')}${omissionSummary}`
+        : `${omissionSummary || '\n(No textual diffs available)'}`;
+
+    return `${promptPreamble}${diffContent}${promptPostamble}`;
   }
 }
 
