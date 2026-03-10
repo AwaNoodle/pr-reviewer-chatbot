@@ -217,7 +217,16 @@ Example questions to try:
 
 1. Disable Demo Mode in the sidebar or Settings
 2. Configure your GitHub PAT and instance in Settings
-3. *(GitHub PR browsing UI coming soon — currently requires demo mode)*
+3. In the sidebar, enter a repository as `owner/repo` (for example, `octocat/Hello-World`)
+4. Enter the PR number and click **Load PR**
+5. Use the refresh button in the Pull Requests header to reload the currently selected PR
+
+GitHub mode behavior:
+- While data is loading, the **Load PR** button shows a spinner and inputs are disabled to prevent duplicate requests.
+- Auth failures (401) prompt you to update your GitHub PAT in Settings.
+- Not found errors (404) tell you to verify `owner/repo` and PR number.
+- Rate limit errors (403/429) show a retry message so you can wait and refresh.
+- Refresh re-fetches metadata, files, comments, review comments, and reviews for the selected PR.
 
 ### Settings Dialog
 
@@ -284,6 +293,8 @@ You need to set an LLM API key. Click ⚙️ Settings and fill in the **API Key*
 - Verify your PAT has the correct scopes (`repo` or `public_repo`)
 - For GHES, ensure the hostname is correct (no `https://` prefix)
 - Check that your PAT hasn't expired
+- If you get a 404, confirm the `owner/repo` and PR number are correct
+- If you hit rate limits, wait briefly, then use the sidebar refresh button
 
 ### CORS errors with LiteLLM
 If you see CORS errors when using a local LiteLLM proxy, add CORS headers to your proxy configuration or use a browser extension to disable CORS for development.
