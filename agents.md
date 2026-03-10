@@ -35,8 +35,7 @@ src/
 │   ├── github.ts              # GitHub API service (github.com + GHES)
 │   └── dummyData.ts           # Sample PR data for demo mode
 ├── components/
-│   ├── App.tsx                # Main layout (sidebar + chat + PR viewer)
-│   ├── Sidebar.tsx            # PR navigation + demo mode toggle
+│   ├── Sidebar.tsx            # Demo toggle + GitHub owner/repo + PR loader
 │   ├── ChatWindow.tsx         # Chat interface with streaming
 │   ├── PRViewer.tsx           # PR details, diffs, comments, reviews
 │   └── SettingsDialog.tsx     # Runtime configuration override
@@ -62,7 +61,10 @@ src/
 - PAT (Personal Access Token) authentication
 - Supports **github.com** and **GitHub Enterprise Server (GHES)**
 - GHES base URL: `https://<host>/api/v3`
+- Manual GitHub mode input in sidebar: `owner/repo` + PR number
 - Fetches: PR metadata, file diffs, issue comments, review comments, reviews
+- Refresh action re-fetches currently selected PR
+- User-friendly GitHub API errors (auth, not found, rate limit, network)
 
 ### Settings
 - Runtime override of all configuration
@@ -86,6 +88,7 @@ VITE_DEMO_MODE=true
 ```bash
 npm install       # Install dependencies
 npm run dev       # Start dev server (http://localhost:5173)
+npm run lint      # Run ESLint (flat config in eslint.config.js)
 npm run build     # TypeScript check + production build
 npm run preview   # Preview production build
 ```
@@ -106,10 +109,21 @@ npm run preview   # Preview production build
 ### Modifying the LLM system prompt
 - Edit `buildSystemPrompt()` in [`src/services/llm.ts`](src/services/llm.ts)
 - The method receives a `PRContext` object with `pr`, `files`, `comments`, `reviewComments`, `reviews`
+- Prompt construction uses a deterministic character budget for very large PRs and emits an omission summary when some diffs are excluded
 
 ### Adding GitHub API endpoints
 - Add methods to the `GitHubService` class in [`src/services/github.ts`](src/services/github.ts)
 - The service automatically handles github.com vs GHES URL routing
+- Prefer using the centralized GitHub error parsing (`parseGitHubError`) and `GitHubApiError` for consistent UI-friendly failures
+
+### GitHub data loading flow
+- `prsSlice` includes async thunks for PR metadata and per-resource loading:
+  - `fetchPullRequest`
+  - `fetchPRFiles`
+  - `fetchPRComments`
+  - `fetchPRReviewComments`
+  - `fetchPRReviews`
+- Use `loadingByResource` and `errorByResource` for UI state; legacy aggregate `isLoading` and `error` are still populated for compatibility
 
 ### Modifying dummy data
 - Edit [`src/services/dummyData.ts`](src/services/dummyData.ts)
@@ -140,8 +154,6 @@ localStorage override > environment variable > hardcoded default
 
 ## Known Limitations / Future Work
 
-- GitHub mode (non-demo) requires manual PR URL entry (not yet implemented in UI)
 - No pagination for PR lists
 - No OAuth flow (PAT only)
-- Context window management (very large PRs may exceed LLM context limits)
 - No conversation persistence across page reloads
