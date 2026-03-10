@@ -8,6 +8,7 @@ import prsReducer, {
   setPRReviews,
   setLoading,
   setError,
+  fetchPullRequest,
   fetchPRFiles,
   fetchPRComments,
 } from './prsSlice';
@@ -98,12 +99,14 @@ const emptyState = {
   isLoading: false,
   error: null,
   loadingByResource: {
+    metadata: false,
     files: false,
     comments: false,
     reviewComments: false,
     reviews: false,
   },
   errorByResource: {
+    metadata: null,
     files: null,
     comments: null,
     reviewComments: null,
@@ -112,6 +115,7 @@ const emptyState = {
 };
 
 type MockGitHubService = {
+  getPullRequest: ReturnType<typeof vi.fn>;
   getPRFiles: ReturnType<typeof vi.fn>;
   getPRComments: ReturnType<typeof vi.fn>;
   getPRReviewComments: ReturnType<typeof vi.fn>;
@@ -149,6 +153,7 @@ function makeStore() {
 
 function setupMockService(): MockGitHubService {
   const service = {
+    getPullRequest: vi.fn(),
     getPRFiles: vi.fn(),
     getPRComments: vi.fn(),
     getPRReviewComments: vi.fn(),
@@ -270,6 +275,24 @@ describe('prsSlice', () => {
   });
 
   describe('async thunks', () => {
+    it('loads PR metadata and updates selected PR', async () => {
+      const store = makeStore();
+      const service = setupMockService();
+      service.getPullRequest.mockResolvedValueOnce(mockPR);
+
+      const actionPromise = store.dispatch(fetchPullRequest({ owner: 'org', repo: 'repo', prNumber: 42 }));
+
+      expect(store.getState().prs.loadingByResource.metadata).toBe(true);
+      expect(store.getState().prs.isLoading).toBe(true);
+
+      await actionPromise;
+
+      expect(store.getState().prs.selectedPR).toEqual(mockPR);
+      expect(store.getState().prs.loadingByResource.metadata).toBe(false);
+      expect(store.getState().prs.errorByResource.metadata).toBeNull();
+      expect(store.getState().prs.isLoading).toBe(false);
+    });
+
     it('loads files and updates granular loading state', async () => {
       const store = makeStore();
       const service = setupMockService();
