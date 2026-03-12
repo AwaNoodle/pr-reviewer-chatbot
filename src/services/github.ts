@@ -255,12 +255,35 @@ export class GitHubService {
   }
 
   async getPRFiles(owner: string, repo: string, prNumber: number): Promise<PRFile[]> {
-    return this.get<PRFile[]>(
-      `/repos/${owner}/${repo}/pulls/${prNumber}/files`,
-      {
-        params: { per_page: 100 },
+    const perPage = 100;
+    const maxPages = 20;
+    const files: PRFile[] = [];
+
+    for (let page = 1; page <= maxPages; page += 1) {
+      const pageFiles = await this.get<PRFile[]>(
+        `/repos/${owner}/${repo}/pulls/${prNumber}/files`,
+        {
+          params: {
+            per_page: perPage,
+            page,
+          },
+        }
+      );
+
+      files.push(...pageFiles);
+
+      if (pageFiles.length < perPage) {
+        return files;
       }
-    );
+    }
+
+    throw new GitHubApiError({
+      code: 'UNKNOWN_ERROR',
+      status: null,
+      message: 'Exceeded maximum pagination depth while fetching pull request files',
+      userMessage:
+        'Could not load all pull request files because the result set is unusually large. Please narrow scope and retry.',
+    });
   }
 
   async getPRComments(owner: string, repo: string, prNumber: number): Promise<PRComment[]> {

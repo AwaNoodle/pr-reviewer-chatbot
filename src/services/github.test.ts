@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { AxiosError, AxiosHeaders } from 'axios';
 import { GitHubService, parseGitHubError, GitHubApiError } from './github';
-import type { AppConfig } from '../types';
+import type { AppConfig, PRFile } from '../types';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -125,6 +125,65 @@ describe('GitHubService — validateToken', () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     vi.spyOn((svc as any).client, 'get').mockRejectedValueOnce(new Error('401'));
     expect(await svc.validateToken()).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// PR file pagination tests
+// ---------------------------------------------------------------------------
+
+describe('GitHubService — getPRFiles pagination', () => {
+  beforeEach(() => {
+    vi.stubEnv('VITE_USE_PROXY', '');
+  });
+
+  function buildFile(index: number): PRFile {
+    return {
+      sha: `sha-${index}`,
+      filename: `src/file-${index}.ts`,
+      status: 'modified',
+      additions: 1,
+      deletions: 1,
+      changes: 2,
+      contents_url: `https://example.test/${index}`,
+    };
+  }
+
+  it('fetches all pages when a pull request has more than 100 files', async () => {
+    const svc = new GitHubService(makeConfig());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const getSpy = vi.spyOn((svc as any).client, 'get');
+
+    const pageOne = Array.from({ length: 100 }, (_, i) => buildFile(i + 1));
+    const pageTwo = Array.from({ length: 100 }, (_, i) => buildFile(i + 101));
+    const pageThree = Array.from({ length: 2 }, (_, i) => buildFile(i + 201));
+
+    getSpy
+      .mockResolvedValueOnce({ data: pageOne })
+      .mockResolvedValueOnce({ data: pageTwo })
+      .mockResolvedValueOnce({ data: pageThree });
+
+    const files = await svc.getPRFiles('org', 'repo', 123);
+
+    expect(files).toHaveLength(202);
+    expect(files[0].filename).toBe('src/file-1.ts');
+    expect(files[201].filename).toBe('src/file-202.ts');
+    expect(getSpy).toHaveBeenCalledTimes(3);
+    expect(getSpy).toHaveBeenNthCalledWith(
+      1,
+      '/repos/org/repo/pulls/123/files',
+      expect.objectContaining({ params: expect.objectContaining({ per_page: 100, page: 1 }) })
+    );
+    expect(getSpy).toHaveBeenNthCalledWith(
+      2,
+      '/repos/org/repo/pulls/123/files',
+      expect.objectContaining({ params: expect.objectContaining({ per_page: 100, page: 2 }) })
+    );
+    expect(getSpy).toHaveBeenNthCalledWith(
+      3,
+      '/repos/org/repo/pulls/123/files',
+      expect.objectContaining({ params: expect.objectContaining({ per_page: 100, page: 3 }) })
+    );
   });
 });
 
