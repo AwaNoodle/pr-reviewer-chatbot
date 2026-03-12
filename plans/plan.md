@@ -229,7 +229,7 @@ Identified during initial code review. These are non-blocking improvements to ad
 - [x] **Stable React keys in `DiffView`** (`src/components/PRViewer.tsx:41`) — Diff lines currently use array index as `key`. Replace with a content-based key (e.g. `` `${i}-${line.slice(0, 8)}` ``) to prevent React reusing DOM nodes incorrectly when switching between files.
 
 #### UX
-- [ ] **Persist dark mode preference** (`src/App.tsx:10`) — Dark mode state resets on every page reload. Initialise from `localStorage` and respect the OS `prefers-color-scheme` media query:
+- [x] **Persist dark mode preference** (`src/App.tsx:10`) — Dark mode state resets on every page reload. Initialise from `localStorage` and respect the OS `prefers-color-scheme` media query:
   ```ts
   const [darkMode, setDarkMode] = useState(
     () => localStorage.getItem('darkMode') === 'true'

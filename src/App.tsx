@@ -6,8 +6,28 @@ import { PRViewer } from './components/PRViewer';
 import { SettingsDialog } from './components/SettingsDialog';
 import { cn } from './lib/utils';
 
+function getInitialDarkMode(): boolean {
+  if (typeof window === 'undefined') {
+    return false;
+  }
+
+  try {
+    const storedPreference = window.localStorage.getItem('darkMode');
+    if (storedPreference === 'true') {
+      return true;
+    }
+    if (storedPreference === 'false') {
+      return false;
+    }
+  } catch {
+    // Ignore storage errors and fall back to OS preference.
+  }
+
+  return window.matchMedia('(prefers-color-scheme: dark)').matches;
+}
+
 function App() {
-  const [darkMode, setDarkMode] = useState(false);
+  const [darkMode, setDarkMode] = useState(getInitialDarkMode);
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [prViewerOpen, setPrViewerOpen] = useState(true);
 
@@ -15,8 +35,16 @@ function App() {
     document.documentElement.classList.toggle('dark', darkMode);
   }, [darkMode]);
 
+  useEffect(() => {
+    try {
+      window.localStorage.setItem('darkMode', String(darkMode));
+    } catch {
+      // Ignore storage errors.
+    }
+  }, [darkMode]);
+
   const toggleDarkMode = () => {
-    setDarkMode(!darkMode);
+    setDarkMode((previousValue) => !previousValue);
   };
 
   return (
