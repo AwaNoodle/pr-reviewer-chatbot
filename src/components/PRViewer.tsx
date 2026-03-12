@@ -3,6 +3,7 @@ import { ChevronRight, FileCode, FilePlus, FileMinus, FileEdit, Loader2, AlertCi
 import { useAppSelector } from '../store/hooks';
 import { cn, formatDate } from '../lib/utils';
 import type { PRFile } from '../types';
+import { buildDiffLineKeys } from './prViewerUtils';
 
 function getFileIcon(status: PRFile['status']) {
   switch (status) {
@@ -36,6 +37,7 @@ function getStatusBadge(status: PRFile['status']) {
 
 function DiffView({ patch }: { patch: string }) {
   const lines = patch.split('\n');
+  const lineKeys = buildDiffLineKeys(lines);
   return (
     <div className="font-mono text-xs overflow-x-auto">
       {lines.map((line, i) => {
@@ -45,7 +47,7 @@ function DiffView({ patch }: { patch: string }) {
         else if (line.startsWith('@@')) lineClass = 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30';
 
         return (
-          <div key={i} className={cn('px-3 py-0.5 whitespace-pre', lineClass)}>
+          <div key={lineKeys[i]} className={cn('px-3 py-0.5 whitespace-pre', lineClass)}>
             {line || ' '}
           </div>
         );
