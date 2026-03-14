@@ -39,9 +39,23 @@ The system SHALL allow optional additional summary commands configured by the us
 ### Requirement: Summary Output Contract
 The generated summary SHALL follow a structured response contract suitable for reviewer orientation.
 
-#### Scenario: Required sections and style are requested
+#### Scenario: Orientation-first summary format
 - **WHEN** summary instructions are sent to the LLM
-- **THEN** the instructions SHALL require output sections named `PR Context` and `Focus Areas`, request bolded topics/areas of interest, use emoticons to indicate focus severity, ignore non-text files, and ask the reviewer if deeper detail is needed after the output.
+- **THEN** the instructions SHALL require a concise orientation section of 2-4 lines.
+
+#### Scenario: Adaptive focus areas with cap
+- **WHEN** summary instructions are sent to the LLM
+- **THEN** the instructions SHALL allow adaptive `Focus Areas` inclusion based on meaningful risk/complexity/churn signals
+- **AND** the number of focus areas SHALL be capped at 4.
+
+#### Scenario: No focus areas for simple PRs
+- **WHEN** the PR is simple and no meaningful risk/complexity/churn signals are detected
+- **THEN** the summary MAY omit `Focus Areas`
+- **AND** this SHALL be considered a valid successful summary outcome.
+
+#### Scenario: Focus area content shape
+- **WHEN** one or more focus areas are emitted
+- **THEN** each focus area SHALL include: where to review, why it matters, and what to verify.
 
 ### Requirement: Summary Is Separate from Chat History
 Summary content SHALL be isolated from chat history and SHALL NOT be included in subsequent LLM chat context.

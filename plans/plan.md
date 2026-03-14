@@ -238,3 +238,10 @@ Identified during initial code review. These are non-blocking improvements to ad
   ```
   Also persist the toggle: `localStorage.setItem('darkMode', String(!darkMode))` inside `toggleDarkMode`.
 - [x] **Wire up the Refresh button** (`src/components/Sidebar.tsx:111`) — The refresh `<button>` in the sidebar is rendered in GitHub mode but has no `onClick` handler. Either connect it to a `fetchPullRequests` thunk (part of Phase 7 GitHub UI work) or hide it with `{false && ...}` until that feature is ready, to avoid confusing users with a dead control.
+
+---
+
+## OpenSpec Alignment Notes (2026-03-14)
+
+- `openspec/changes/add-pr-summary-tab/tasks.md` was updated to capture quick-orientation behavior decisions from explore mode.
+- Summary behavior target: 2-4 line orientation section, adaptive `Focus Areas` with bounds `0..4`, and valid success output when focus areas are omitted for simple PRs.

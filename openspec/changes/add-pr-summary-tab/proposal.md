@@ -6,6 +6,8 @@ Reviewers currently have to manually scan PR metadata, file diffs, and comments 
 
 - Add an optional, auto-generated PR summary flow that runs when a PR is selected and is enabled by default.
 - Add a new `Summary` tab in the right-hand PR viewer pane with loading, success, empty, and failure states.
+- Refine summary output for quick reviewer orientation: a concise 2-4 line top summary plus adaptive `Focus Areas` when meaningful complexity/risk signals exist.
+- Allow `Focus Areas` to be omitted for simple PRs and cap focus areas at 4 when present.
 - Make the summary prompt user-editable in Settings, persist it between sessions, and provide a reset action that restores the default prompt only.
 - Allow optional additional summary commands from Settings and append them to the summary prompt.
 - Keep summary output separate from chat history and exclude it from subsequent LLM chat context.

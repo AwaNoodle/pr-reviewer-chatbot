@@ -125,6 +125,14 @@ npm run preview   # Preview production build
   - `fetchPRReviews`
 - Use `loadingByResource` and `errorByResource` for UI state; legacy aggregate `isLoading` and `error` are still populated for compatibility
 
+### Active OpenSpec context
+- Active change: `openspec/changes/add-pr-summary-tab`
+- Summary product behavior target:
+  - orientation-first output (2-4 lines)
+  - adaptive `Focus Areas` with bounds `0..4`
+  - valid success output when no focus areas are emitted for simple PRs
+- Keep summary content isolated from chat history/context
+
 ### Modifying dummy data
 - Edit [`src/services/dummyData.ts`](src/services/dummyData.ts)
 - The `dummyPRContext` export is used by `ChatWindow` and `Sidebar` in demo mode

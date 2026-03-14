@@ -9,6 +9,8 @@ This change spans multiple modules (settings, PR state, GitHub service, LLM prom
 **Goals:**
 - Provide an optional auto-generated PR summary, enabled by default, immediately after PR selection.
 - Render summaries in a dedicated `Summary` tab in the right-hand PR pane, not in chat history.
+- Prioritize quick orientation: generate a concise 2-4 line top summary before any deeper detail.
+- Emit adaptive `Focus Areas` only when meaningful risk/complexity signals are present, with a hard cap of 4 and no minimum.
 - Keep summary generation aligned with existing LLM configuration and API path.
 - Make the summary prompt editable/persisted with a reset-to-default action.
 - Enforce safe fallback states (`Empty PR`, `Unable to generate summary`) and avoid runaway generation via per-PR rate limits.
@@ -42,23 +44,30 @@ This change spans multiple modules (settings, PR state, GitHub service, LLM prom
      - PR-only key without prompt fingerprint (rejected: would return mismatched cached summaries after prompt customization).
 
 4. **Summary prompt model**
-   - **Decision:** Use a persisted `summaryPrompt` defaulted to the product-provided baseline prompt; append optional `summaryCommands`; enforce section contract (`PR Context`, `Focus Areas`) and stylistic constraints in summary instruction payload.
-   - **Rationale:** Preserves user control while maintaining stable output contract for UI expectations.
+   - **Decision:** Use a persisted `summaryPrompt` defaulted to the product-provided baseline prompt; append optional `summaryCommands`; enforce an orientation-first contract (2-4 lines) and adaptive `Focus Areas` contract (`0..4` items).
+   - **Rationale:** Preserves user control while maintaining stable, scan-friendly output for rapid reviewer orientation.
    - **Alternatives considered:**
-     - Fixed prompt only (rejected: conflicts with editability requirement).
-     - Free-form output with no section contract (rejected: weak consistency).
+      - Fixed prompt only (rejected: conflicts with editability requirement).
+      - Free-form output with no section contract (rejected: weak consistency).
 
-5. **Use existing LLM config and transport**
+5. **Focus area shape and inclusion rules**
+   - **Decision:** Include focus areas only when warranted by risk/complexity/churn signals. Each emitted focus area must include `where`, `why it matters`, and `what to verify` guidance.
+   - **Rationale:** Keeps summary useful for triage without forcing noisy or low-signal bullets on simple PRs.
+   - **Alternatives considered:**
+      - Always include at least one focus area (rejected: simple PRs can legitimately have none).
+      - Allow unlimited focus areas (rejected: undermines quick orientation).
+
+6. **Use existing LLM config and transport**
    - **Decision:** Summary generation uses the same `LLMService` instance/config already used for chat.
    - **Rationale:** Simpler operations model, no duplicated configuration surface, consistent provider behavior.
    - **Alternatives considered:**
-     - Separate summary model/backend settings (rejected by requirement and would add UX complexity).
+      - Separate summary model/backend settings (rejected by requirement and would add UX complexity).
 
-6. **Commit messages become first-class summary context**
+7. **Commit messages become first-class summary context**
    - **Decision:** Extend GitHub service/store flows to fetch PR commits and make commit messages available to summary prompt building.
    - **Rationale:** Required by default prompt and improves orientation fidelity.
    - **Alternatives considered:**
-     - Deriving commit context only from PR title/body (rejected: misses important intent details).
+      - Deriving commit context only from PR title/body (rejected: misses important intent details).
 
 ## Risks / Trade-offs
 

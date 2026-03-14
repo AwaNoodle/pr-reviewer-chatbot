@@ -16,6 +16,17 @@ A standalone web application that lets you review and ask questions about GitHub
 - ⚙️ **Runtime configuration** — Override all settings via the Settings dialog (persisted to localStorage)
 - 🌙 **Dark mode** — Toggle between light and dark themes
 
+## Active OpenSpec Change
+
+The repository currently has an in-progress change: `add-pr-summary-tab`.
+
+Planned summary behavior:
+- Auto-generate a PR summary when a PR is selected (enabled by default)
+- Show output in a dedicated `Summary` tab (separate from chat history/context)
+- Favor quick orientation: a 2-4 line overview first
+- Add adaptive `Focus Areas` only when warranted, with a hard cap of 4 and no minimum
+- Treat summary output with no focus areas as valid for simple PRs
+
 ---
 
 ## Quick Start (Demo Mode)
