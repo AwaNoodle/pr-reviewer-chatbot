@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.5.0",
+  "checkpoint_id": "54bdf6986a8b",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "openspec/changes/repository-watcher/.openspec.yaml",
+    "openspec/changes/repository-watcher/design.md",
+    "openspec/changes/repository-watcher/proposal.md",
+    "openspec/changes/repository-watcher/specs/repo-pr-list/spec.md",
+    "openspec/changes/repository-watcher/specs/watched-repos/spec.md",
+    "openspec/changes/repository-watcher/tasks.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/54/bdf6986a8b/0/metadata.json",
+      "transcript": "/54/bdf6986a8b/0/full.jsonl",
+      "content_hash": "/54/bdf6986a8b/0/content_hash.txt",
+      "prompt": ""
+    }
+  ]
+}
