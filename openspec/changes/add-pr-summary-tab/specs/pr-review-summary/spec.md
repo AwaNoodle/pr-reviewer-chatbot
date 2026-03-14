@@ -1,0 +1,84 @@
+## ADDED Requirements
+
+### Requirement: Automatic Summary Generation on PR Selection
+The system SHALL generate a reviewer-orientation summary when a pull request is selected and summary generation is enabled.
+
+#### Scenario: Summary generated for selected PR
+- **WHEN** a user selects a PR and summary generation is enabled
+- **THEN** the system SHALL request a summary using PR description, PR commit messages, and textual code changes as context.
+
+#### Scenario: Summary generation disabled
+- **WHEN** a user selects a PR and summary generation is disabled
+- **THEN** the system SHALL not request or refresh summary content.
+
+### Requirement: Summary Uses Existing LLM Configuration
+The system SHALL use the existing LLM backend configuration for summary generation.
+
+#### Scenario: Summary request uses configured LLM settings
+- **WHEN** a summary request is issued
+- **THEN** the request SHALL use the currently configured `llmBackend`, `llmEndpoint`, `llmApiKey`, and `llmModel` values.
+
+### Requirement: Summary Prompt Is Configurable and Persisted
+The system SHALL allow users to edit the summary prompt, persist it across sessions, and reset only the prompt to the default value.
+
+#### Scenario: Prompt edits persist
+- **WHEN** a user saves changes to the summary prompt in Settings
+- **THEN** the system SHALL persist the updated prompt and reuse it for future summary generation.
+
+#### Scenario: Reset restores default prompt only
+- **WHEN** a user chooses Reset Prompt in Settings
+- **THEN** the system SHALL restore only the summary prompt to the default text and SHALL NOT modify additional summary commands.
+
+### Requirement: Additional Summary Commands Are Supported
+The system SHALL allow optional additional summary commands configured by the user and append them to summary-generation instructions.
+
+#### Scenario: Commands appended to summary prompt
+- **WHEN** one or more summary commands are configured
+- **THEN** the system SHALL append those commands to summary-generation instructions for the selected PR.
+
+### Requirement: Summary Output Contract
+The generated summary SHALL follow a structured response contract suitable for reviewer orientation.
+
+#### Scenario: Required sections and style are requested
+- **WHEN** summary instructions are sent to the LLM
+- **THEN** the instructions SHALL require output sections named `PR Context` and `Focus Areas`, request bolded topics/areas of interest, use emoticons to indicate focus severity, ignore non-text files, and ask the reviewer if deeper detail is needed after the output.
+
+### Requirement: Summary Is Separate from Chat History
+Summary content SHALL be isolated from chat history and SHALL NOT be included in subsequent LLM chat context.
+
+#### Scenario: Summary excluded from chat context
+- **WHEN** a user sends a chat message after summary generation
+- **THEN** the outbound chat context SHALL NOT include summary content as a prior message or system/context segment.
+
+### Requirement: Summary Presentation in PR Viewer
+The PR viewer SHALL provide a dedicated Summary tab with loading and metadata display.
+
+#### Scenario: Summary tab displays loading spinner
+- **WHEN** summary generation is in progress
+- **THEN** the Summary tab SHALL display a spinner indicator and loading state text.
+
+#### Scenario: Summary tab displays generated timestamp
+- **WHEN** summary generation succeeds
+- **THEN** the Summary tab SHALL display the summary content and a generation-time timestamp at the bottom of the pane.
+
+### Requirement: Empty and Failure Fallback States
+The system SHALL provide explicit fallback states when summary generation is not possible.
+
+#### Scenario: Empty PR state
+- **WHEN** a selected PR has no textual content to summarize
+- **THEN** the system SHALL skip summary generation and display `Empty PR` in the Summary tab.
+
+#### Scenario: LLM request failure state
+- **WHEN** the system cannot reach the LLM or summary generation fails
+- **THEN** the system SHALL display `Unable to generate summary` in the Summary tab.
+
+### Requirement: Per-PR Rate Limiting and Session Cache
+The system SHALL limit summary generation to one request per minute per PR and cache generated summaries in session storage.
+
+#### Scenario: Per-PR one-minute generation limit
+- **WHEN** a summary was generated for a PR less than one minute ago
+- **THEN** the system SHALL NOT issue another summary generation request for that same PR during the one-minute window.
+
+#### Scenario: Cached summary reuse
+- **WHEN** a cached summary exists in session storage for the current PR and summary prompt fingerprint
+- **THEN** the system SHALL reuse the cached summary content and generated timestamp instead of issuing a new summary request.
