@@ -1,0 +1,31 @@
+{
+  "cli_version": "0.5.0",
+  "checkpoint_id": "29bf620c0c9e",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 8,
+  "files_touched": [
+    "README.md",
+    "agents.md",
+    "openspec/changes/add-pr-summary-tab/design.md",
+    "openspec/changes/add-pr-summary-tab/proposal.md",
+    "openspec/changes/add-pr-summary-tab/specs/pr-review-summary/spec.md",
+    "openspec/changes/add-pr-summary-tab/tasks.md",
+    "plans/plan.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/29/bf620c0c9e/0/metadata.json",
+      "transcript": "/29/bf620c0c9e/0/full.jsonl",
+      "content_hash": "/29/bf620c0c9e/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 17840,
+    "cache_creation_tokens": 179252,
+    "cache_read_tokens": 630090,
+    "output_tokens": 9214,
+    "api_call_count": 28
+  }
+}
