@@ -80,7 +80,7 @@ The system SHALL provide explicit fallback states when summary generation is not
 
 #### Scenario: Empty PR state
 - **WHEN** a selected PR has no textual content to summarize
-- **THEN** the system SHALL skip summary generation and display `Empty PR` in the Summary tab.
+- **THEN** the system SHALL skip summary generation and display `Nothing to Summarize` in the Summary tab.
 
 #### Scenario: LLM request failure state
 - **WHEN** the system cannot reach the LLM or summary generation fails
