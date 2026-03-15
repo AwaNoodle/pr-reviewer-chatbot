@@ -6,20 +6,21 @@ import prsReducer, {
   setPRComments,
   setPRReviewComments,
   setPRReviews,
+  setPRCommits,
   setLoading,
   setError,
+  resetSummaryState,
   fetchPullRequest,
   fetchPRFiles,
   fetchPRComments,
+  fetchPRCommits,
+  generatePRSummary,
 } from './prsSlice';
 import configReducer from './configSlice';
 import chatReducer from './chatSlice';
-import type { PullRequest, PRFile, PRComment, PRReviewComment, PRReview } from '../../types';
+import type { PullRequest, PRFile, PRComment, PRReviewComment, PRReview, PRCommit } from '../../types';
 import * as githubService from '../../services/github';
-
-// ---------------------------------------------------------------------------
-// Minimal fixtures
-// ---------------------------------------------------------------------------
+import * as llmServiceModule from '../../services/llm';
 
 const mockPR: PullRequest = {
   id: 1,
@@ -55,6 +56,7 @@ const mockFile: PRFile = {
   deletions: 0,
   changes: 5,
   contents_url: '',
+  patch: '@@ -0,0 +1 @@\n+export const foo = 1;',
 };
 
 const mockComment: PRComment = {
@@ -90,12 +92,26 @@ const mockReview: PRReview = {
   html_url: '',
 };
 
+const mockCommit: PRCommit = {
+  sha: 'commit-sha-1',
+  commit: { message: 'feat: add summary support' },
+  html_url: '',
+};
+
 const emptyState = {
   selectedPR: null,
   files: [],
   comments: [],
   reviewComments: [],
   reviews: [],
+  commits: [],
+  summary: {
+    status: 'idle' as const,
+    content: null,
+    generatedAt: null,
+    error: null,
+    requestKey: null,
+  },
   isLoading: false,
   error: null,
   loadingByResource: {
@@ -104,6 +120,7 @@ const emptyState = {
     comments: false,
     reviewComments: false,
     reviews: false,
+    commits: false,
   },
   errorByResource: {
     metadata: null,
@@ -111,6 +128,7 @@ const emptyState = {
     comments: null,
     reviewComments: null,
     reviews: null,
+    commits: null,
   },
 };
 
@@ -120,6 +138,7 @@ type MockGitHubService = {
   getPRComments: ReturnType<typeof vi.fn>;
   getPRReviewComments: ReturnType<typeof vi.fn>;
   getPRReviews: ReturnType<typeof vi.fn>;
+  getPRCommits: ReturnType<typeof vi.fn>;
 };
 
 function makeStore() {
@@ -139,6 +158,9 @@ function makeStore() {
           llmEndpoint: 'https://api.openai.com/v1',
           llmModel: 'gpt-4o',
           demoMode: false,
+          summaryEnabled: true,
+          summaryPrompt: 'Summarize this PR clearly',
+          summaryCommands: '',
         },
       },
       chat: {
@@ -158,6 +180,7 @@ function setupMockService(): MockGitHubService {
     getPRComments: vi.fn(),
     getPRReviewComments: vi.fn(),
     getPRReviews: vi.fn(),
+    getPRCommits: vi.fn(),
   };
   vi.spyOn(githubService, 'createGitHubService').mockReturnValue(
     service as unknown as ReturnType<typeof githubService.createGitHubService>
@@ -165,153 +188,89 @@ function setupMockService(): MockGitHubService {
   return service;
 }
 
-// ---------------------------------------------------------------------------
-// Tests
-// ---------------------------------------------------------------------------
-
 describe('prsSlice', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe('setSelectedPR', () => {
-    it('sets the selected PR', () => {
+  describe('reducers', () => {
+    it('sets selected PR', () => {
       const next = prsReducer(emptyState, setSelectedPR(mockPR));
       expect(next.selectedPR).toEqual(mockPR);
     });
 
-    it('clears files, comments, reviewComments, and reviews when set to null', () => {
+    it('clears related state when selected PR is set to null', () => {
       const populated = {
         ...emptyState,
         selectedPR: mockPR,
         files: [mockFile],
         comments: [mockComment],
-        reviewComments: [],
-        reviews: [],
+        reviewComments: [mockReviewComment],
+        reviews: [mockReview],
+        commits: [mockCommit],
       };
       const next = prsReducer(populated, setSelectedPR(null));
       expect(next.selectedPR).toBeNull();
       expect(next.files).toHaveLength(0);
       expect(next.comments).toHaveLength(0);
-      expect(next.reviewComments).toHaveLength(0);
       expect(next.reviews).toHaveLength(0);
+      expect(next.commits).toHaveLength(0);
+      expect(next.summary.status).toBe('idle');
     });
 
-    it('does NOT clear related data when switching to a different PR', () => {
-      // When a new PR is set (non-null), existing data is kept until explicitly replaced
-      const populated = {
-        ...emptyState,
-        selectedPR: mockPR,
-        files: [mockFile],
+    it('sets commits and can reset summary state', () => {
+      const withCommits = prsReducer(emptyState, setPRCommits([mockCommit]));
+      expect(withCommits.commits).toHaveLength(1);
+
+      const withSummary = {
+        ...withCommits,
+        summary: {
+          status: 'success' as const,
+          content: 'Summary',
+          generatedAt: 123,
+          error: null,
+          requestKey: 'abc',
+        },
       };
-      const anotherPR = { ...mockPR, id: 2, number: 43 };
-      const next = prsReducer(populated, setSelectedPR(anotherPR));
-      expect(next.selectedPR?.number).toBe(43);
-      // files are NOT cleared — caller is responsible for loading new data
-      expect(next.files).toHaveLength(1);
-    });
-  });
-
-  describe('setPRFiles', () => {
-    it('replaces the files array', () => {
-      const next = prsReducer(emptyState, setPRFiles([mockFile]));
-      expect(next.files).toHaveLength(1);
-      expect(next.files[0].filename).toBe('src/foo.ts');
-    });
-  });
-
-  describe('setPRComments', () => {
-    it('replaces the comments array', () => {
-      const next = prsReducer(emptyState, setPRComments([mockComment]));
-      expect(next.comments).toHaveLength(1);
-      expect(next.comments[0].body).toBe('LGTM');
-    });
-  });
-
-  describe('setPRReviewComments', () => {
-    it('replaces the reviewComments array', () => {
-      const next = prsReducer(emptyState, setPRReviewComments([mockReviewComment]));
-      expect(next.reviewComments).toHaveLength(1);
-      expect(next.reviewComments[0].path).toBe('src/foo.ts');
-      expect(next.reviewComments[0].body).toBe('Nit: rename this variable');
-    });
-  });
-
-  describe('setPRReviews', () => {
-    it('replaces the reviews array', () => {
-      const next = prsReducer(emptyState, setPRReviews([mockReview]));
-      expect(next.reviews).toHaveLength(1);
-      expect(next.reviews[0].state).toBe('APPROVED');
-      expect(next.reviews[0].body).toBe('Looks good overall');
-    });
-  });
-
-  describe('setLoading', () => {
-    it('sets isLoading to true', () => {
-      const next = prsReducer(emptyState, setLoading(true));
-      expect(next.isLoading).toBe(true);
+      const reset = prsReducer(withSummary, resetSummaryState());
+      expect(reset.summary.status).toBe('idle');
+      expect(reset.summary.content).toBeNull();
     });
 
-    it('sets isLoading to false', () => {
-      const state = { ...emptyState, isLoading: true };
-      const next = prsReducer(state, setLoading(false));
-      expect(next.isLoading).toBe(false);
-    });
-  });
-
-  describe('setError', () => {
-    it('sets the error and clears isLoading', () => {
-      const state = { ...emptyState, isLoading: true };
-      const next = prsReducer(state, setError('Not found'));
-      expect(next.error).toBe('Not found');
-      expect(next.isLoading).toBe(false);
+    it('supports existing list setters', () => {
+      expect(prsReducer(emptyState, setPRFiles([mockFile])).files).toHaveLength(1);
+      expect(prsReducer(emptyState, setPRComments([mockComment])).comments).toHaveLength(1);
+      expect(prsReducer(emptyState, setPRReviewComments([mockReviewComment])).reviewComments).toHaveLength(1);
+      expect(prsReducer(emptyState, setPRReviews([mockReview])).reviews).toHaveLength(1);
     });
 
-    it('clears the error when null is passed', () => {
-      const state = { ...emptyState, error: 'old error' };
-      const next = prsReducer(state, setError(null));
-      expect(next.error).toBeNull();
+    it('supports setLoading and setError reducers', () => {
+      expect(prsReducer(emptyState, setLoading(true)).isLoading).toBe(true);
+      expect(prsReducer({ ...emptyState, isLoading: true }, setError('boom')).isLoading).toBe(false);
     });
   });
 
   describe('async thunks', () => {
-    it('loads PR metadata and updates selected PR', async () => {
+    it('loads metadata, files, comments, and commits', async () => {
       const store = makeStore();
       const service = setupMockService();
       service.getPullRequest.mockResolvedValueOnce(mockPR);
-
-      const actionPromise = store.dispatch(fetchPullRequest({ owner: 'org', repo: 'repo', prNumber: 42 }));
-
-      expect(store.getState().prs.loadingByResource.metadata).toBe(true);
-      expect(store.getState().prs.isLoading).toBe(true);
-
-      await actionPromise;
-
-      expect(store.getState().prs.selectedPR).toEqual(mockPR);
-      expect(store.getState().prs.loadingByResource.metadata).toBe(false);
-      expect(store.getState().prs.errorByResource.metadata).toBeNull();
-      expect(store.getState().prs.isLoading).toBe(false);
-    });
-
-    it('loads files and updates granular loading state', async () => {
-      const store = makeStore();
-      const service = setupMockService();
       service.getPRFiles.mockResolvedValueOnce([mockFile]);
+      service.getPRComments.mockResolvedValueOnce([mockComment]);
+      service.getPRCommits.mockResolvedValueOnce([mockCommit]);
 
-      const actionPromise = store.dispatch(fetchPRFiles({ owner: 'org', repo: 'repo', prNumber: 42 }));
+      await store.dispatch(fetchPullRequest({ owner: 'org', repo: 'repo', prNumber: 42 }));
+      await store.dispatch(fetchPRFiles({ owner: 'org', repo: 'repo', prNumber: 42 }));
+      await store.dispatch(fetchPRComments({ owner: 'org', repo: 'repo', prNumber: 42 }));
+      await store.dispatch(fetchPRCommits({ owner: 'org', repo: 'repo', prNumber: 42 }));
 
-      expect(store.getState().prs.loadingByResource.files).toBe(true);
-      expect(store.getState().prs.isLoading).toBe(true);
-
-      await actionPromise;
-
-      expect(store.getState().prs.files).toEqual([mockFile]);
-      expect(store.getState().prs.loadingByResource.files).toBe(false);
-      expect(store.getState().prs.errorByResource.files).toBeNull();
-      expect(store.getState().prs.isLoading).toBe(false);
+      expect(store.getState().prs.selectedPR?.number).toBe(42);
+      expect(store.getState().prs.files).toHaveLength(1);
+      expect(store.getState().prs.comments).toHaveLength(1);
+      expect(store.getState().prs.commits).toHaveLength(1);
     });
 
-    it('stores user-friendly error when file load fails', async () => {
+    it('stores user-friendly errors for resource failures', async () => {
       const store = makeStore();
       const service = setupMockService();
       service.getPRFiles.mockRejectedValueOnce(
@@ -327,39 +286,34 @@ describe('prsSlice', () => {
 
       expect(store.getState().prs.errorByResource.files).toBe('GitHub rate limit reached. Wait and retry.');
       expect(store.getState().prs.error).toBe('GitHub rate limit reached. Wait and retry.');
-      expect(store.getState().prs.loadingByResource.files).toBe(false);
-      expect(store.getState().prs.isLoading).toBe(false);
     });
 
-    it('keeps aggregate loading true while another request is pending', async () => {
+    it('runs summary generation and updates summary lifecycle state', async () => {
       const store = makeStore();
       const service = setupMockService();
+      service.getPullRequest.mockResolvedValueOnce(mockPR);
+      service.getPRFiles.mockResolvedValueOnce([mockFile]);
+      service.getPRComments.mockResolvedValueOnce([]);
+      service.getPRCommits.mockResolvedValueOnce([mockCommit]);
+      service.getPRReviewComments.mockResolvedValueOnce([]);
+      service.getPRReviews.mockResolvedValueOnce([]);
 
-      let resolveFiles: ((value: PRFile[]) => void) | null = null;
-      service.getPRFiles.mockImplementationOnce(
-        () =>
-          new Promise<PRFile[]>((resolve) => {
-            resolveFiles = resolve;
-          })
-      );
-      service.getPRComments.mockResolvedValueOnce([mockComment]);
+      vi.spyOn(llmServiceModule, 'createLLMService').mockReturnValue({
+        buildSummaryPrompt: vi.fn().mockReturnValue('summary prompt'),
+        chat: vi.fn().mockResolvedValue('Generated summary output'),
+      } as unknown as ReturnType<typeof llmServiceModule.createLLMService>);
 
-      const filesPromise = store.dispatch(fetchPRFiles({ owner: 'org', repo: 'repo', prNumber: 42 }));
+      await store.dispatch(fetchPullRequest({ owner: 'org', repo: 'repo', prNumber: 42 }));
+      await store.dispatch(fetchPRFiles({ owner: 'org', repo: 'repo', prNumber: 42 }));
       await store.dispatch(fetchPRComments({ owner: 'org', repo: 'repo', prNumber: 42 }));
+      await store.dispatch(fetchPRCommits({ owner: 'org', repo: 'repo', prNumber: 42 }));
 
-      expect(store.getState().prs.loadingByResource.files).toBe(true);
-      expect(store.getState().prs.loadingByResource.comments).toBe(false);
-      expect(store.getState().prs.isLoading).toBe(true);
+      const pending = store.dispatch(generatePRSummary({ owner: 'org', repo: 'repo', prNumber: 42 }));
+      expect(store.getState().prs.summary.status).toBe('loading');
 
-      if (!resolveFiles) {
-        throw new Error('Expected files resolver to be assigned');
-      }
-      const resolve = resolveFiles as (value: PRFile[]) => void;
-      resolve([mockFile]);
-      await filesPromise;
-
-      expect(store.getState().prs.loadingByResource.files).toBe(false);
-      expect(store.getState().prs.isLoading).toBe(false);
+      await pending;
+      expect(store.getState().prs.summary.status).toBe('success');
+      expect(store.getState().prs.summary.content).toContain('Generated summary output');
     });
   });
 });

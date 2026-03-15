@@ -6,6 +6,7 @@ import type {
   PRComment,
   PRReviewComment,
   PRReview,
+  PRCommit,
   AppConfig,
   GitHubApiErrorCode,
   GitHubApiErrorData,
@@ -312,6 +313,38 @@ export class GitHubService {
     return this.get<PRReview[]>(
       `/repos/${owner}/${repo}/pulls/${prNumber}/reviews`
     );
+  }
+
+  async getPRCommits(owner: string, repo: string, prNumber: number): Promise<PRCommit[]> {
+    const perPage = 100;
+    const maxPages = 10;
+    const commits: PRCommit[] = [];
+
+    for (let page = 1; page <= maxPages; page += 1) {
+      const pageCommits = await this.get<PRCommit[]>(
+        `/repos/${owner}/${repo}/pulls/${prNumber}/commits`,
+        {
+          params: {
+            per_page: perPage,
+            page,
+          },
+        }
+      );
+
+      commits.push(...pageCommits);
+
+      if (pageCommits.length < perPage) {
+        return commits;
+      }
+    }
+
+    throw new GitHubApiError({
+      code: 'UNKNOWN_ERROR',
+      status: null,
+      message: 'Exceeded maximum pagination depth while fetching pull request commits',
+      userMessage:
+        'Could not load all pull request commits because the result set is unusually large. Please narrow scope and retry.',
+    });
   }
 
   async validateToken(): Promise<boolean> {

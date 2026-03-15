@@ -4,6 +4,7 @@ import type {
   LLMChatResponse,
   LLMStreamChunk,
   PRContext,
+  PRCommit,
   AppConfig,
 } from '../types';
 
@@ -217,6 +218,53 @@ You have full context of this PR metadata and file summaries. Included diffs may
         : `${omissionSummary || '\n(No textual diffs available)'}`;
 
     return `${promptPreamble}${diffContent}${promptPostamble}`;
+  }
+
+  buildSummaryPrompt(
+    context: PRContext,
+    summaryPrompt: string,
+    summaryCommands: string
+  ): string {
+    const commitMessages = (context.commits ?? [])
+      .map((commit: PRCommit) => `- ${commit.commit.message.split('\n')[0]}`)
+      .join('\n');
+
+    const diffFiles = context.files
+      .filter((file) => Boolean(file.patch))
+      .map((file) => `- ${file.filename}`)
+      .join('\n');
+
+    const commandsSection = summaryCommands.trim()
+      ? `\nAdditional commands:\n${summaryCommands.trim()}`
+      : '';
+
+    return `${summaryPrompt.trim()}${commandsSection}
+
+PR metadata:
+- Number: #${context.pr.number}
+- Title: ${context.pr.title}
+- Author: ${context.pr.user.login}
+- Branch: ${context.pr.head.ref} -> ${context.pr.base.ref}
+- Diff stats: +${context.pr.additions}/-${context.pr.deletions}, ${context.pr.changed_files} files
+
+PR description:
+${context.pr.body ?? '(no description)'}
+
+Commit messages:
+${commitMessages || '(no commit messages available)'}
+
+Changed files with textual diffs:
+${diffFiles || '(no textual diffs available)'}
+
+Response contract (required):
+- Start with an orientation section of exactly 2-4 lines.
+- Add a "Focus Areas" section only when meaningful risk, complexity, or churn signals exist.
+- Focus Areas count must stay within 0-4 items.
+- If Focus Areas are present, each item must include:
+  - where to review
+  - why it matters
+  - what to verify
+- Keep language concise and reviewer-oriented.`;
   }
 }
 

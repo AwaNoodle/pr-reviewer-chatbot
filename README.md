@@ -13,6 +13,7 @@ A standalone web application that lets you review and ask questions about GitHub
 - 🎭 **Demo mode** — Try the app immediately with a sample PR, no credentials needed
 - 🐙 **GitHub integration** — Works with github.com and GitHub Enterprise Server (GHES)
 - 🔍 **PR context** — Injects PR metadata, file diffs, comments, and reviews into the LLM context
+- 🧭 **Summary tab** — Auto-generates a PR kickoff summary in a dedicated tab (separate from chat)
 - ⚙️ **Runtime configuration** — Override all settings via the Settings dialog (persisted to localStorage)
 - 🌙 **Dark mode** — Toggle between light and dark themes
 
@@ -26,6 +27,8 @@ Planned summary behavior:
 - Favor quick orientation: a 2-4 line overview first
 - Add adaptive `Focus Areas` only when warranted, with a hard cap of 4 and no minimum
 - Treat summary output with no focus areas as valid for simple PRs
+- Include commit messages as first-class summary context
+- Reuse session cache per PR/prompt fingerprint and rate-limit generation to one request per minute per PR head SHA
 
 ---
 
@@ -104,6 +107,12 @@ VITE_LLM_MODEL=gpt-4o
 # Start in demo mode (true/false)
 # Demo mode uses a pre-loaded sample PR — no GitHub credentials needed
 VITE_DEMO_MODE=true
+
+# Enable PR summary auto-generation by default (true/false)
+VITE_SUMMARY_ENABLED=true
+
+# Optional additional summary commands appended to summary prompt
+VITE_SUMMARY_COMMANDS=
 ```
 
 ---
@@ -232,6 +241,14 @@ Example questions to try:
 4. Enter the PR number and click **Load PR**
 5. Use the refresh button in the Pull Requests header to reload the currently selected PR
 
+Summary behavior in GitHub mode:
+- A summary request is triggered after PR metadata/files/comments/reviews/commits load
+- Summary output is rendered in the `Summary` tab and is not inserted into chat history/context
+- Empty textual diffs skip LLM generation and show `Nothing to Summarize`
+- LLM failures show `Unable to generate summary`
+- Cache is session-scoped and keyed by PR identity + head SHA + prompt/commands fingerprint
+- Generation is limited to one request per minute for each PR head SHA
+
 GitHub mode behavior:
 - While data is loading, the **Load PR** button shows a spinner and inputs are disabled to prevent duplicate requests.
 - Auth failures (401) prompt you to update your GitHub PAT in Settings.
@@ -252,6 +269,9 @@ Click the **⚙️ Settings** button in the top bar to configure:
 | LLM Endpoint | Base URL for the LLM API |
 | LLM API Key | Your API key |
 | LLM Model | Model name (e.g., `gpt-4o`, `claude-3-5-sonnet`) |
+| Summary Enabled | Toggle auto-generation for PR summaries |
+| Summary Prompt | Editable base prompt for summary generation |
+| Additional Summary Commands | Optional appended instructions for summaries |
 
 ---
 
@@ -299,6 +319,11 @@ You need to set an LLM API key. Click ⚙️ Settings and fill in the **API Key*
 - Verify the endpoint URL (should not end with `/chat/completions`)
 - Ensure the model name is correct for your provider
 - Check browser console for detailed error messages
+
+### Summary output expectations
+- Successful summaries should start with a concise 2-4 line orientation section
+- `Focus Areas` are adaptive and optional for simple PRs
+- When present, `Focus Areas` should remain within 1-4 items and include where/why/what-to-verify guidance
 
 ### GitHub API errors
 - Verify your PAT has the correct scopes (`repo` or `public_repo`)

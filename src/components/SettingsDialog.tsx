@@ -2,7 +2,7 @@ import { useState } from 'react';
 import * as Dialog from '@radix-ui/react-dialog';
 import { Settings, X } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
-import { updateConfig } from '../store/slices/configSlice';
+import { DEFAULT_SUMMARY_PROMPT, updateConfig } from '../store/slices/configSlice';
 import type { AppConfig } from '../types';
 import { cn } from '../lib/utils';
 
@@ -14,6 +14,16 @@ interface FieldProps {
   onChange: (value: string) => void;
   placeholder?: string;
   description?: string;
+}
+
+interface TextareaFieldProps {
+  label: string;
+  id: string;
+  value: string;
+  onChange: (value: string) => void;
+  placeholder?: string;
+  description?: string;
+  rows?: number;
 }
 
 function Field({ label, id, type = 'text', value, onChange, placeholder, description }: FieldProps) {
@@ -42,6 +52,30 @@ function Field({ label, id, type = 'text', value, onChange, placeholder, descrip
   );
 }
 
+function TextareaField({ label, id, value, onChange, placeholder, description, rows = 4 }: TextareaFieldProps) {
+  return (
+    <div className="space-y-1.5">
+      <label htmlFor={id} className="text-sm font-medium text-foreground">
+        {label}
+      </label>
+      <textarea
+        id={id}
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        placeholder={placeholder}
+        rows={rows}
+        className={cn(
+          'w-full rounded-md border border-input bg-background px-3 py-2 text-sm',
+          'placeholder:text-muted-foreground',
+          'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1',
+          'transition-colors resize-y'
+        )}
+      />
+      {description && <p className="text-xs text-muted-foreground">{description}</p>}
+    </div>
+  );
+}
+
 export function SettingsDialog() {
   const dispatch = useAppDispatch();
   const config = useAppSelector((state) => state.config.config);
@@ -65,6 +99,10 @@ export function SettingsDialog() {
 
   const updateField = (field: keyof AppConfig) => (value: string | boolean) => {
     setForm((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleResetSummaryPrompt = () => {
+    setForm((prev) => ({ ...prev, summaryPrompt: DEFAULT_SUMMARY_PROMPT }));
   };
 
   return (
@@ -216,6 +254,69 @@ export function SettingsDialog() {
                 placeholder="gpt-4o"
                 description="The model to use for chat completions"
               />
+            </div>
+
+            {/* Summary Section */}
+            <div className="space-y-4">
+              <h3 className="text-sm font-semibold text-foreground border-b border-border pb-2">
+                PR Summary
+              </h3>
+
+              <div className="flex items-center justify-between rounded-lg border border-border p-4">
+                <div>
+                  <p className="text-sm font-medium text-foreground">Enable Summary Generation</p>
+                  <p className="text-xs text-muted-foreground mt-0.5">
+                    Automatically generate a kickoff summary when loading a pull request
+                  </p>
+                </div>
+                <button
+                  role="switch"
+                  aria-checked={form.summaryEnabled}
+                  onClick={() => updateField('summaryEnabled')(!form.summaryEnabled)}
+                  className={cn(
+                    'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',
+                    form.summaryEnabled ? 'bg-primary' : 'bg-muted'
+                  )}
+                >
+                  <span
+                    className={cn(
+                      'inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform',
+                      form.summaryEnabled ? 'translate-x-6' : 'translate-x-1'
+                    )}
+                  />
+                </button>
+              </div>
+
+              <TextareaField
+                label="Summary Prompt"
+                id="summary-prompt"
+                value={form.summaryPrompt}
+                onChange={updateField('summaryPrompt')}
+                rows={10}
+                description="Editable base prompt used to generate PR kickoff summaries."
+              />
+
+              <TextareaField
+                label="Additional Summary Commands"
+                id="summary-commands"
+                value={form.summaryCommands}
+                onChange={updateField('summaryCommands')}
+                rows={4}
+                placeholder="Optional per-team guidance appended to summary generation"
+                description="Optional extra instructions appended after the summary prompt."
+              />
+
+              <button
+                onClick={handleResetSummaryPrompt}
+                type="button"
+                className={cn(
+                  'rounded-md px-3 py-2 text-xs font-medium',
+                  'border border-input bg-background text-foreground',
+                  'hover:bg-accent hover:text-accent-foreground transition-colors'
+                )}
+              >
+                Reset Summary Prompt
+              </button>
             </div>
           </div>
 

@@ -16,6 +16,9 @@ function makeConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     llmEndpoint: 'https://api.openai.com/v1',
     llmModel: 'gpt-4o',
     demoMode: false,
+    summaryEnabled: true,
+    summaryPrompt: 'default summary prompt',
+    summaryCommands: '',
     ...overrides,
   };
 }
@@ -183,6 +186,37 @@ describe('GitHubService — getPRFiles pagination', () => {
       3,
       '/repos/org/repo/pulls/123/files',
       expect.objectContaining({ params: expect.objectContaining({ per_page: 100, page: 3 }) })
+    );
+  });
+});
+
+describe('GitHubService — getPRCommits', () => {
+  beforeEach(() => {
+    vi.stubEnv('VITE_USE_PROXY', '');
+  });
+
+  it('fetches commit messages for a pull request', async () => {
+    const svc = new GitHubService(makeConfig());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const getSpy = vi.spyOn((svc as any).client, 'get');
+
+    getSpy.mockResolvedValueOnce({
+      data: [
+        {
+          sha: 'abc123',
+          commit: { message: 'feat: add summary tab' },
+          html_url: 'https://github.com/org/repo/commit/abc123',
+        },
+      ],
+    });
+
+    const commits = await svc.getPRCommits('org', 'repo', 123);
+
+    expect(commits).toHaveLength(1);
+    expect(commits[0].commit.message).toBe('feat: add summary tab');
+    expect(getSpy).toHaveBeenCalledWith(
+      '/repos/org/repo/pulls/123/commits',
+      expect.objectContaining({ params: expect.objectContaining({ per_page: 100, page: 1 }) })
     );
   });
 });

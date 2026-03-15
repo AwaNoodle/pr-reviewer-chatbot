@@ -55,6 +55,9 @@ function renderSidebar(options?: {
           llmEndpoint: 'https://api.openai.com/v1',
           llmModel: 'gpt-4o',
           demoMode: options?.demoMode ?? false,
+          summaryEnabled: true,
+          summaryPrompt: 'default summary prompt',
+          summaryCommands: '',
         },
       },
       prs: {
@@ -63,6 +66,14 @@ function renderSidebar(options?: {
         comments: [],
         reviewComments: [],
         reviews: [],
+        commits: [],
+        summary: {
+          status: 'idle' as const,
+          content: null,
+          generatedAt: null,
+          error: null,
+          requestKey: null,
+        },
         isLoading: options?.isLoading ?? false,
         error: null,
         loadingByResource: {
@@ -71,6 +82,7 @@ function renderSidebar(options?: {
           comments: false,
           reviewComments: false,
           reviews: false,
+          commits: false,
         },
         errorByResource: {
           metadata: null,
@@ -78,6 +90,7 @@ function renderSidebar(options?: {
           comments: null,
           reviewComments: null,
           reviews: null,
+          commits: null,
         },
       },
       chat: {

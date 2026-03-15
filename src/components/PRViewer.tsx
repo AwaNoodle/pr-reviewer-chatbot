@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { ChevronRight, FileCode, FilePlus, FileMinus, FileEdit, Loader2, AlertCircle, Inbox } from 'lucide-react';
+import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { useAppSelector } from '../store/hooks';
 import { cn, formatDate } from '../lib/utils';
 import type { PRFile } from '../types';
@@ -139,11 +141,88 @@ function EmptyState({ message }: { message: string }) {
   );
 }
 
+interface SummaryPanels {
+  orientation: string;
+  focusAreas: string[];
+}
+
+function parseSummaryPanels(content: string): SummaryPanels {
+  const normalized = content.replace(/\r\n/g, '\n').trim();
+  const focusHeadingMatch = /^#{1,6}\s+Focus Areas\s*$/im.exec(normalized);
+
+  if (!focusHeadingMatch || focusHeadingMatch.index === undefined) {
+    return {
+      orientation: normalized,
+      focusAreas: [],
+    };
+  }
+
+  const headingStart = focusHeadingMatch.index;
+  const headingText = focusHeadingMatch[0] ?? '';
+  const headingEnd = headingStart + headingText.length;
+  const orientation = normalized.slice(0, headingStart).trim();
+  const focusAreaBlock = normalized.slice(headingEnd).trim();
+
+  if (!focusAreaBlock) {
+    return {
+      orientation,
+      focusAreas: [],
+    };
+  }
+
+  const focusAreas: string[] = [];
+  const lines = focusAreaBlock.split('\n');
+  let current: string[] = [];
+
+  for (const line of lines) {
+    if (/^\s*-\s+/.test(line)) {
+      if (current.length > 0) {
+        focusAreas.push(current.join('\n').trim());
+      }
+      current = [line.replace(/^\s*-\s+/, '')];
+      continue;
+    }
+
+    if (current.length > 0) {
+      current.push(line);
+    }
+  }
+
+  if (current.length > 0) {
+    focusAreas.push(current.join('\n').trim());
+  }
+
+  return {
+    orientation,
+    focusAreas,
+  };
+}
+
+function SummaryPanel({
+  title,
+  titleClassName,
+  content,
+}: {
+  title: string;
+  titleClassName: string;
+  content: string;
+}) {
+  return (
+    <div className="rounded-md border border-border p-3 sm:p-4 space-y-2 bg-muted/10">
+      <div className={cn('text-xs font-semibold uppercase tracking-wide', titleClassName)}>{title}</div>
+      <div className="prose prose-sm dark:prose-invert max-w-none text-foreground prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-code:text-xs">
+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
+      </div>
+    </div>
+  );
+}
+
 export function PRViewer() {
-  const { selectedPR, files, comments, reviews, loadingByResource, errorByResource } = useAppSelector(
+  const { selectedPR, files, comments, reviews, summary, loadingByResource, errorByResource } = useAppSelector(
     (state) => state.prs
   );
-  const [activeTab, setActiveTab] = useState<'files' | 'comments' | 'reviews'>('files');
+  const summaryEnabled = useAppSelector((state) => state.config.config.summaryEnabled);
+  const [activeTab, setActiveTab] = useState<'summary' | 'files' | 'comments' | 'reviews'>('summary');
 
   if (!selectedPR) {
     if (loadingByResource.metadata) {
@@ -170,6 +249,7 @@ export function PRViewer() {
   }
 
   const tabs = [
+    { id: 'summary' as const, label: 'Summary' },
     { id: 'files' as const, label: `Files (${files.length})` },
     { id: 'comments' as const, label: `Comments (${comments.length})` },
     { id: 'reviews' as const, label: `Reviews (${reviews.length})` },
@@ -237,6 +317,51 @@ export function PRViewer() {
 
       {/* Tab Content */}
       <div className="flex-1 overflow-y-auto p-3">
+        {activeTab === 'summary' && (
+          <div className="space-y-2 animate-fade-slide-in">
+            {!summaryEnabled ? (
+              <EmptyState message="Summary generation is disabled in Settings." />
+            ) : summary.status === 'loading' ? (
+              <LoadingState label="Generating summary..." />
+            ) : summary.status === 'error' ? (
+              <ErrorState message={summary.error || 'Unable to generate summary'} />
+            ) : summary.status === 'empty' ? (
+              <EmptyState message={summary.content || 'Nothing to Summarize'} />
+            ) : summary.status === 'success' && summary.content ? (
+              <div className="space-y-3">
+                {(() => {
+                  const panels = parseSummaryPanels(summary.content);
+
+                  return (
+                    <div className="space-y-2">
+                      <SummaryPanel
+                        title="Orientation"
+                        titleClassName="text-blue-700 dark:text-blue-300"
+                        content={panels.orientation || summary.content}
+                      />
+                      {panels.focusAreas.map((focusArea, index) => (
+                        <SummaryPanel
+                          key={`${focusArea.slice(0, 40)}::${index}`}
+                          title={`Focus Area ${index + 1}`}
+                          titleClassName="text-yellow-700 dark:text-yellow-300"
+                          content={focusArea}
+                        />
+                      ))}
+                    </div>
+                  );
+                })()}
+                {summary.generatedAt && (
+                  <div className="text-xs text-muted-foreground text-right">
+                    Generated {formatDate(new Date(summary.generatedAt).toISOString())}
+                  </div>
+                )}
+              </div>
+            ) : (
+              <EmptyState message="Summary will appear after PR data loads." />
+            )}
+          </div>
+        )}
+
         {activeTab === 'files' && (
           <div className="space-y-2 animate-fade-slide-in">
             {loadingByResource.files ? (

@@ -3,6 +3,8 @@ import configReducer, {
   updateConfig,
   resetConfig,
   setDemoMode,
+  resetSummaryPrompt,
+  DEFAULT_SUMMARY_PROMPT,
 } from './configSlice';
 import type { AppConfig } from '../../types';
 
@@ -19,6 +21,9 @@ function makeConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     llmEndpoint: 'https://api.openai.com/v1',
     llmModel: 'gpt-4o',
     demoMode: true,
+    summaryEnabled: true,
+    summaryPrompt: DEFAULT_SUMMARY_PROMPT,
+    summaryCommands: '',
     ...overrides,
   };
 }
@@ -68,6 +73,17 @@ describe('configSlice reducers', () => {
 
     const withDemoOn = configReducer(withDemo, setDemoMode(true));
     expect(withDemoOn.config.demoMode).toBe(true);
+  });
+
+  it('resetSummaryPrompt resets only summary prompt text', () => {
+    const modified = configReducer(
+      initialState,
+      updateConfig({ summaryPrompt: 'custom prompt', summaryCommands: 'Keep as-is' })
+    );
+
+    const reset = configReducer(modified, resetSummaryPrompt());
+    expect(reset.config.summaryPrompt).toBe(DEFAULT_SUMMARY_PROMPT);
+    expect(reset.config.summaryCommands).toBe('Keep as-is');
   });
 
   it('resetConfig restores env-var defaults', () => {
@@ -131,7 +147,14 @@ describe('configSlice localStorage — sensitive field stripping', () => {
   });
 
   it('persists non-sensitive fields to localStorage', () => {
-    const state = { config: makeConfig({ llmModel: 'gpt-4-turbo', demoMode: false }) };
+    const state = {
+      config: makeConfig({
+        llmModel: 'gpt-4-turbo',
+        demoMode: false,
+        summaryEnabled: false,
+        summaryCommands: 'Highlight security checks',
+      }),
+    };
     configReducer(state, updateConfig({ llmModel: 'gpt-4-turbo' }));
 
     const calls = localStorageMock.setItem.mock.calls;
@@ -140,5 +163,26 @@ describe('configSlice localStorage — sensitive field stripping', () => {
     expect(parsed.llmModel).toBe('gpt-4-turbo');
     expect(parsed.demoMode).toBe(false);
     expect(parsed.githubInstance).toBe('github.com');
+    expect(parsed.summaryEnabled).toBe(false);
+    expect(parsed.summaryCommands).toBe('Highlight security checks');
+  });
+
+  it('persists summary prompt and supports prompt-only reset in storage', () => {
+    const state = {
+      config: makeConfig({
+        summaryPrompt: 'Custom summary prompt',
+        summaryCommands: 'Keep commands intact',
+      }),
+    };
+
+    const updated = configReducer(state, updateConfig({ summaryPrompt: 'Another prompt version' }));
+    configReducer(updated, resetSummaryPrompt());
+
+    const calls = localStorageMock.setItem.mock.calls;
+    const [, storedValue] = calls[calls.length - 1];
+    const parsed = JSON.parse(storedValue as string);
+
+    expect(parsed.summaryPrompt).toBe(DEFAULT_SUMMARY_PROMPT);
+    expect(parsed.summaryCommands).toBe('Keep commands intact');
   });
 });

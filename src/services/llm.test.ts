@@ -15,6 +15,9 @@ function makeConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     llmEndpoint: 'https://api.openai.com/v1',
     llmModel: 'gpt-4o',
     demoMode: false,
+    summaryEnabled: true,
+    summaryPrompt: 'default summary prompt',
+    summaryCommands: '',
     ...overrides,
   };
 }
@@ -77,6 +80,13 @@ const mockContext: PRContext = {
       body: 'LGTM',
       state: 'APPROVED',
       submitted_at: '2024-01-01T00:00:00Z',
+      html_url: '',
+    },
+  ],
+  commits: [
+    {
+      sha: 'abc123',
+      commit: { message: 'feat: add JWT login flow\n\nIncludes middleware updates.' },
       html_url: '',
     },
   ],
@@ -180,6 +190,34 @@ describe('LLMService.buildSystemPrompt', () => {
     const ctx = { ...mockContext, pr: { ...mockPR, merged: true } };
     const prompt = svc.buildSystemPrompt(ctx);
     expect(prompt).toContain('(merged)');
+  });
+});
+
+describe('LLMService.buildSummaryPrompt', () => {
+  const svc = new LLMService(makeConfig());
+
+  it('includes user prompt, optional commands, commit messages, and format contract', () => {
+    const prompt = svc.buildSummaryPrompt(
+      mockContext,
+      'Use concise wording for summaries.',
+      '- Prioritize security changes\n- Mention migration risks'
+    );
+
+    expect(prompt).toContain('Use concise wording for summaries.');
+    expect(prompt).toContain('Additional commands:');
+    expect(prompt).toContain('Prioritize security changes');
+    expect(prompt).toContain('feat: add JWT login flow');
+    expect(prompt).toContain('orientation section of exactly 2-4 lines');
+    expect(prompt).toContain('Focus Areas count must stay within 0-4 items');
+    expect(prompt).toContain('where to review');
+    expect(prompt).toContain('why it matters');
+    expect(prompt).toContain('what to verify');
+  });
+
+  it('allows omitting additional commands and still enforces adaptive focus areas', () => {
+    const prompt = svc.buildSummaryPrompt(mockContext, 'Keep this short.', '');
+    expect(prompt).not.toContain('Additional commands:');
+    expect(prompt).toContain('Add a "Focus Areas" section only when meaningful risk');
   });
 });
 

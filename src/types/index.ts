@@ -97,6 +97,14 @@ export interface PRReview {
   html_url: string;
 }
 
+export interface PRCommit {
+  sha: string;
+  commit: {
+    message: string;
+  };
+  html_url: string;
+}
+
 export type GitHubApiErrorCode =
   | 'AUTHENTICATION_ERROR'
   | 'RATE_LIMITED'
@@ -135,6 +143,9 @@ export interface AppConfig {
   llmEndpoint: string;
   llmModel: string;
   demoMode: boolean;
+  summaryEnabled: boolean;
+  summaryPrompt: string;
+  summaryCommands: string;
 }
 
 // LLM Types
@@ -190,4 +201,5 @@ export interface PRContext {
   comments: PRComment[];
   reviewComments: PRReviewComment[];
   reviews: PRReview[];
+  commits?: PRCommit[];
 }

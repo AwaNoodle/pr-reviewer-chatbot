@@ -245,3 +245,35 @@ Identified during initial code review. These are non-blocking improvements to ad
 
 - `openspec/changes/add-pr-summary-tab/tasks.md` was updated to capture quick-orientation behavior decisions from explore mode.
 - Summary behavior target: 2-4 line orientation section, adaptive `Focus Areas` with bounds `0..4`, and valid success output when focus areas are omitted for simple PRs.
+- Synced delta spec `openspec/changes/add-pr-summary-tab/specs/pr-review-summary/spec.md` into new main spec `openspec/specs/pr-review-summary/spec.md`.
+- Added change scaffold `openspec/changes/update-pr-review-summary-ui-readability/` with completed proposal, design, spec delta, and tasks artifacts for summary UI readability improvements.
+- Refined `update-pr-review-summary-ui-readability` scope to panelized Summary display: Orientation and each Focus Area render as separate cards styled like Comments/Reviews, with blue/yellow title accents and no spec contract changes.
+
+---
+
+## ✅ Phase 9: PR Summary Tab (COMPLETED)
+
+- [x] Extend `AppConfig` with summary fields: `summaryEnabled`, `summaryPrompt`, `summaryCommands`
+- [x] Add/export `DEFAULT_SUMMARY_PROMPT` and keep reset behavior prompt-only
+- [x] Add PR commits API loading (`getPRCommits`) and Redux state wiring
+- [x] Add summary lifecycle state in `prsSlice` (`status`, `content`, `generatedAt`, `error`)
+- [x] Implement summary orchestration utilities:
+  - per-PR+head+prompt cache keying
+  - sessionStorage read/write cache
+  - one-per-minute per-PR-head rate limiting
+  - empty textual diff detection
+- [x] Extend LLM service with structured summary prompt assembly (orientation + adaptive focus areas)
+- [x] Add Summary tab UI in `PRViewer` with loading/success/empty/error states and timestamp footer
+- [x] Wire summary generation on PR selection/load and keep summary separate from chat history/context
+- [x] Add/expand tests for config, GitHub service, PR slice, summary utilities, LLM prompt, Settings UI, and Summary tab rendering
+- [x] Update README and agent guidance for summary behavior, fallback states, and output contract
+
+---
+
+## OpenSpec Implementation Updates (2026-03-14)
+
+- [x] Completed OpenSpec change `update-pr-review-summary-ui-readability` implementation tasks (8/8) for panelized Summary tab readability updates.
+- [x] Updated Summary success rendering in `src/components/PRViewer.tsx` to show an `Orientation` panel and per-item `Focus Area N` panels with blue/yellow title accents.
+- [x] Kept summary generation flow and fallback state semantics unchanged (loading/empty/error behavior preserved).
+- [x] Updated `src/components/PRViewer.summary.test.tsx` assertions for orientation-only and orientation+focus-area panelized rendering.
+- [x] Validation run completed with `npm run lint && npm run build && npm run test`.

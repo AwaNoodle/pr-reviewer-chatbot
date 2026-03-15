@@ -29,16 +29,17 @@ src/
 │   └── slices/
 │       ├── configSlice.ts     # App config (env vars + localStorage overrides)
 │       ├── chatSlice.ts       # Chat messages + streaming state
-│       └── prsSlice.ts        # Selected PR data (files, comments, reviews)
+│       └── prsSlice.ts        # Selected PR data + commits + summary lifecycle state
 ├── services/
 │   ├── llm.ts                 # LLM service (OpenAI v1 API + LiteLLM, streaming)
 │   ├── github.ts              # GitHub API service (github.com + GHES)
+│   ├── summary.ts             # Summary cache/rate-limit/empty-diff utilities
 │   └── dummyData.ts           # Sample PR data for demo mode
 ├── components/
 │   ├── Sidebar.tsx            # Demo toggle + GitHub owner/repo + PR loader
 │   ├── ChatWindow.tsx         # Chat interface with streaming
-│   ├── PRViewer.tsx           # PR details, diffs, comments, reviews
-│   └── SettingsDialog.tsx     # Runtime configuration override
+│   ├── PRViewer.tsx           # PR details, summary tab, diffs, comments, reviews
+│   └── SettingsDialog.tsx     # Runtime configuration override + summary controls
 └── lib/
     └── utils.ts               # cn(), formatDate(), generateId()
 ```
@@ -56,13 +57,14 @@ src/
 - Streaming responses via Server-Sent Events
 - PR context injected as system prompt (PR metadata, diffs, comments, reviews)
 - Configurable endpoint, model, and API key
+- Separate summary prompt assembly path (`buildSummaryPrompt`) for orientation-first PR kickoff summaries
 
 ### GitHub Integration
 - PAT (Personal Access Token) authentication
 - Supports **github.com** and **GitHub Enterprise Server (GHES)**
 - GHES base URL: `https://<host>/api/v3`
 - Manual GitHub mode input in sidebar: `owner/repo` + PR number
-- Fetches: PR metadata, file diffs, issue comments, review comments, reviews
+- Fetches: PR metadata, file diffs, issue comments, review comments, reviews, commit messages
 - Refresh action re-fetches currently selected PR
 - User-friendly GitHub API errors (auth, not found, rate limit, network)
 
@@ -70,6 +72,19 @@ src/
 - Runtime override of all configuration
 - Persisted to `localStorage`
 - Defaults from environment variables (`VITE_*`)
+- Includes summary controls (`summaryEnabled`, editable `summaryPrompt`, optional `summaryCommands`, reset prompt)
+
+### PR Summary Flow
+- Summary generation triggers on PR selection/load when `summaryEnabled` is true
+- Summary state is isolated from chat state (`prsSlice.summary`)
+- Fallback states:
+  - `Nothing to Summarize` when no textual diffs exist
+  - `Unable to generate summary` on generation failure
+- Uses session-scoped cache and one-per-minute per-PR-head rate limit
+- Summary output contract:
+  - 2-4 line orientation section
+  - adaptive `Focus Areas` (`0..4`)
+  - each focus area includes where/why/what-to-verify
 
 ## Environment Variables
 
@@ -81,6 +96,8 @@ VITE_LLM_BACKEND=openai   # "openai" or "litellm"
 VITE_LLM_ENDPOINT=https://api.openai.com/v1
 VITE_LLM_MODEL=gpt-4o
 VITE_DEMO_MODE=true
+VITE_SUMMARY_ENABLED=true
+VITE_SUMMARY_COMMANDS=
 ```
 
 ## Development
@@ -110,6 +127,12 @@ npm run preview   # Preview production build
 - Edit `buildSystemPrompt()` in [`src/services/llm.ts`](src/services/llm.ts)
 - The method receives a `PRContext` object with `pr`, `files`, `comments`, `reviewComments`, `reviews`
 - Prompt construction uses a deterministic character budget for very large PRs and emits an omission summary when some diffs are excluded
+
+### Modifying summary behavior
+- Summary orchestration policy lives in [`src/services/summary.ts`](src/services/summary.ts)
+- Summary state transitions and async generation thunk live in [`src/store/slices/prsSlice.ts`](src/store/slices/prsSlice.ts)
+- Summary prompt contract lives in `buildSummaryPrompt()` in [`src/services/llm.ts`](src/services/llm.ts)
+- Summary UI rendering lives in [`src/components/PRViewer.tsx`](src/components/PRViewer.tsx)
 
 ### Adding GitHub API endpoints
 - Add methods to the `GitHubService` class in [`src/services/github.ts`](src/services/github.ts)

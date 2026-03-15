@@ -3,6 +3,23 @@ import type { AppConfig } from '../../types';
 
 const STORAGE_KEY = 'pr-review-chatbot-config';
 
+export const DEFAULT_SUMMARY_PROMPT = `You are preparing a pull request review kickoff summary for an experienced engineer.
+
+Use the provided PR title, description, commit messages, and textual diffs.
+
+Write concise, concrete statements grounded in the actual changes.
+
+Output format:
+1) Start with an orientation section that is exactly 2-4 short lines.
+2) If there are meaningful risk, complexity, or churn signals, add a "Focus Areas" section.
+3) Focus Areas are optional for simple PRs. If included, include 1-4 items only.
+4) Every focus area item must include:
+   - where to review
+   - why it matters
+   - what to verify
+
+Do not invent code that is not present in the context.`;
+
 function getDefaultConfig(): AppConfig {
   return {
     githubPat: import.meta.env.VITE_GITHUB_PAT || '',
@@ -12,6 +29,9 @@ function getDefaultConfig(): AppConfig {
     llmEndpoint: import.meta.env.VITE_LLM_ENDPOINT || 'https://api.openai.com/v1',
     llmModel: import.meta.env.VITE_LLM_MODEL || 'gpt-4o',
     demoMode: import.meta.env.VITE_DEMO_MODE === 'true',
+    summaryEnabled: import.meta.env.VITE_SUMMARY_ENABLED !== 'false',
+    summaryPrompt: DEFAULT_SUMMARY_PROMPT,
+    summaryCommands: import.meta.env.VITE_SUMMARY_COMMANDS || '',
   };
 }
 
@@ -69,8 +89,12 @@ const configSlice = createSlice({
       state.config.demoMode = action.payload;
       saveConfigToStorage(state.config);
     },
+    resetSummaryPrompt(state) {
+      state.config.summaryPrompt = DEFAULT_SUMMARY_PROMPT;
+      saveConfigToStorage(state.config);
+    },
   },
 });
 
-export const { updateConfig, resetConfig, setDemoMode } = configSlice.actions;
+export const { updateConfig, resetConfig, setDemoMode, resetSummaryPrompt } = configSlice.actions;
 export default configSlice.reducer;

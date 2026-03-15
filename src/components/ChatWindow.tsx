@@ -109,6 +109,7 @@ export function ChatWindow() {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const previousSelectedPRIdRef = useRef<number | null>(null);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -117,6 +118,18 @@ export function ChatWindow() {
   useEffect(() => {
     scrollToBottom();
   }, [messages, scrollToBottom]);
+
+  useEffect(() => {
+    const currentPRId = selectedPR?.id ?? null;
+    if (
+      previousSelectedPRIdRef.current !== null &&
+      currentPRId !== null &&
+      previousSelectedPRIdRef.current !== currentPRId
+    ) {
+      dispatch(clearMessages());
+    }
+    previousSelectedPRIdRef.current = currentPRId;
+  }, [dispatch, selectedPR?.id]);
 
   const getPRContext = useCallback((): PRContext => {
     if (config.demoMode) {

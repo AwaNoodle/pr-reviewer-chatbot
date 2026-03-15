@@ -7,12 +7,17 @@ import {
   setPRComments,
   setPRReviewComments,
   setPRReviews,
+  setPRCommits,
+  resetSummaryState,
   fetchPullRequest,
   fetchPRFiles,
   fetchPRComments,
   fetchPRReviewComments,
   fetchPRReviews,
+  fetchPRCommits,
+  generatePRSummary,
 } from '../store/slices/prsSlice';
+import { clearMessages } from '../store/slices/chatSlice';
 import { setDemoMode } from '../store/slices/configSlice';
 import { dummyPR, dummyFiles, dummyComments, dummyReviewComments, dummyReviews } from '../services/dummyData';
 import { cn, formatDate } from '../lib/utils';
@@ -83,28 +88,45 @@ export function Sidebar() {
       dispatch(setPRComments(dummyComments));
       dispatch(setPRReviewComments(dummyReviewComments));
       dispatch(setPRReviews(dummyReviews));
+      dispatch(setPRCommits([]));
+      if (config.summaryEnabled) {
+        void dispatch(generatePRSummary({ owner: 'demo', repo: 'demo', prNumber: dummyPR.number }));
+      }
     }
-  }, [config.demoMode, selectedPR, dispatch]);
+  }, [config.demoMode, config.summaryEnabled, selectedPR, dispatch]);
 
   const handleSelectDemoPR = () => {
+    dispatch(clearMessages());
     dispatch(setSelectedPR(dummyPR));
     dispatch(setPRFiles(dummyFiles));
     dispatch(setPRComments(dummyComments));
     dispatch(setPRReviewComments(dummyReviewComments));
     dispatch(setPRReviews(dummyReviews));
+    dispatch(setPRCommits([]));
+    if (config.summaryEnabled) {
+      void dispatch(generatePRSummary({ owner: 'demo', repo: 'demo', prNumber: dummyPR.number }));
+    } else {
+      dispatch(resetSummaryState());
+    }
   };
 
   const handleToggleDemoMode = () => {
     dispatch(setDemoMode(!config.demoMode));
     if (!config.demoMode) {
       // Switching to demo mode - load dummy data
+      dispatch(clearMessages());
       dispatch(setSelectedPR(dummyPR));
       dispatch(setPRFiles(dummyFiles));
       dispatch(setPRComments(dummyComments));
       dispatch(setPRReviewComments(dummyReviewComments));
       dispatch(setPRReviews(dummyReviews));
+      dispatch(setPRCommits([]));
+      if (config.summaryEnabled) {
+        void dispatch(generatePRSummary({ owner: 'demo', repo: 'demo', prNumber: dummyPR.number }));
+      }
     } else {
       // Switching to GitHub mode - clear selection
+      dispatch(clearMessages());
       dispatch(setSelectedPR(null));
     }
   };
@@ -140,6 +162,7 @@ export function Sidebar() {
   };
 
   const loadPullRequestContext = async (values: PRFormValues) => {
+    dispatch(clearMessages());
     const metadataAction = await dispatch(fetchPullRequest(values));
     if (fetchPullRequest.rejected.match(metadataAction)) {
       return;
@@ -150,7 +173,14 @@ export function Sidebar() {
       dispatch(fetchPRComments(values)),
       dispatch(fetchPRReviewComments(values)),
       dispatch(fetchPRReviews(values)),
+      dispatch(fetchPRCommits(values)),
     ]);
+
+    if (config.summaryEnabled) {
+      await dispatch(generatePRSummary(values));
+    } else {
+      dispatch(resetSummaryState());
+    }
   };
 
   const handleLoadPR = () => {

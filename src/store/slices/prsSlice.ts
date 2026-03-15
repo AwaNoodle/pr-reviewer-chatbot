@@ -1,11 +1,22 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
 import { createGitHubService, GitHubApiError } from '../../services/github';
+import { createLLMService } from '../../services/llm';
+import {
+  buildSummaryCacheKey,
+  buildSummaryRateLimitKey,
+  canGenerateSummary,
+  hasTextualDiffContent,
+  markSummaryGenerated,
+  readSummaryCache,
+  writeSummaryCache,
+} from '../../services/summary';
 import type {
   PullRequest,
   PRFile,
   PRComment,
   PRReviewComment,
   PRReview,
+  PRCommit,
   GitHubApiErrorData,
 } from '../../types';
 import type { RootState } from '../index';
@@ -14,6 +25,24 @@ interface PRRequestArgs {
   owner: string;
   repo: string;
   prNumber: number;
+}
+
+type SummaryStatus = 'idle' | 'loading' | 'success' | 'empty' | 'error';
+
+interface SummaryState {
+  status: SummaryStatus;
+  content: string | null;
+  generatedAt: number | null;
+  error: string | null;
+  requestKey: string | null;
+}
+
+interface SummaryResult {
+  status: 'success' | 'empty' | 'error';
+  content: string | null;
+  generatedAt: number;
+  error: string | null;
+  requestKey: string;
 }
 
 function toRejectedError(error: unknown): GitHubApiErrorData {
@@ -81,6 +110,127 @@ export const fetchPRReviews = createAsyncThunk<
   }
 });
 
+export const fetchPRCommits = createAsyncThunk<
+  PRCommit[],
+  PRRequestArgs,
+  { state: RootState; rejectValue: GitHubApiErrorData }
+>('prs/fetchPRCommits', async ({ owner, repo, prNumber }, { getState, rejectWithValue }) => {
+  const service = createGitHubService(getState().config.config);
+  try {
+    return await service.getPRCommits(owner, repo, prNumber);
+  } catch (error) {
+    return rejectWithValue(toRejectedError(error));
+  }
+});
+
+export const generatePRSummary = createAsyncThunk<
+  SummaryResult,
+  PRRequestArgs,
+  { state: RootState; rejectValue: SummaryResult }
+>('prs/generatePRSummary', async ({ owner, repo, prNumber }, { getState, rejectWithValue, requestId }) => {
+  const state = getState();
+  const { selectedPR, files, comments, reviewComments, reviews, commits } = state.prs;
+  const { config } = state.config;
+
+  const requestKey = `${owner}/${repo}#${prNumber}@${selectedPR?.head.sha ?? 'unknown'}:${requestId}`;
+  const generatedAt = Date.now();
+
+  if (!config.summaryEnabled || !selectedPR) {
+    return rejectWithValue({
+      status: 'error',
+      content: null,
+      generatedAt,
+      error: 'Summary generation is disabled.',
+      requestKey,
+    });
+  }
+
+  const headSha = selectedPR.head.sha;
+  const cacheKey = buildSummaryCacheKey({
+    owner,
+    repo,
+    prNumber,
+    headSha,
+    summaryPrompt: config.summaryPrompt,
+    summaryCommands: config.summaryCommands,
+  });
+  const rateLimitKey = buildSummaryRateLimitKey(owner, repo, prNumber, headSha);
+
+  const cachedSummary = readSummaryCache(cacheKey);
+  if (cachedSummary) {
+    return {
+      status: 'success',
+      content: cachedSummary.content,
+      generatedAt: cachedSummary.generatedAt,
+      error: null,
+      requestKey,
+    };
+  }
+
+  if (!hasTextualDiffContent(files)) {
+    return {
+      status: 'empty',
+      content: 'Nothing to Summarize',
+      generatedAt,
+      error: null,
+      requestKey,
+    };
+  }
+
+  if (!canGenerateSummary(rateLimitKey, generatedAt)) {
+    return rejectWithValue({
+      status: 'error',
+      content: null,
+      generatedAt,
+      error: 'Summary was generated less than a minute ago. Please wait before retrying.',
+      requestKey,
+    });
+  }
+
+  try {
+    const llmService = createLLMService(config);
+    const summarySystemPrompt = llmService.buildSummaryPrompt(
+      {
+        pr: selectedPR,
+        files,
+        comments,
+        reviewComments,
+        reviews,
+        commits,
+      },
+      config.summaryPrompt,
+      config.summaryCommands
+    );
+
+    const summaryContent = await llmService.chat([
+      { role: 'system', content: summarySystemPrompt },
+      { role: 'user', content: 'Generate the pull request review summary now.' },
+    ]);
+
+    markSummaryGenerated(rateLimitKey, generatedAt);
+    writeSummaryCache(cacheKey, {
+      content: summaryContent,
+      generatedAt,
+    });
+
+    return {
+      status: 'success',
+      content: summaryContent,
+      generatedAt,
+      error: null,
+      requestKey,
+    };
+  } catch (error) {
+    return rejectWithValue({
+      status: 'error',
+      content: null,
+      generatedAt,
+      error: error instanceof Error ? error.message : 'Unable to generate summary',
+      requestKey,
+    });
+  }
+});
+
 export const fetchPullRequest = createAsyncThunk<
   PullRequest,
   PRRequestArgs,
@@ -100,6 +250,8 @@ interface PRsState {
   comments: PRComment[];
   reviewComments: PRReviewComment[];
   reviews: PRReview[];
+  commits: PRCommit[];
+  summary: SummaryState;
   isLoading: boolean;
   error: string | null;
   loadingByResource: {
@@ -108,6 +260,7 @@ interface PRsState {
     comments: boolean;
     reviewComments: boolean;
     reviews: boolean;
+    commits: boolean;
   };
   errorByResource: {
     metadata: string | null;
@@ -115,6 +268,7 @@ interface PRsState {
     comments: string | null;
     reviewComments: string | null;
     reviews: string | null;
+    commits: string | null;
   };
 }
 
@@ -124,6 +278,14 @@ const initialState: PRsState = {
   comments: [],
   reviewComments: [],
   reviews: [],
+  commits: [],
+  summary: {
+    status: 'idle',
+    content: null,
+    generatedAt: null,
+    error: null,
+    requestKey: null,
+  },
   isLoading: false,
   error: null,
   loadingByResource: {
@@ -132,6 +294,7 @@ const initialState: PRsState = {
     comments: false,
     reviewComments: false,
     reviews: false,
+    commits: false,
   },
   errorByResource: {
     metadata: null,
@@ -139,6 +302,7 @@ const initialState: PRsState = {
     comments: null,
     reviewComments: null,
     reviews: null,
+    commits: null,
   },
 };
 
@@ -153,6 +317,7 @@ function updateAggregateError(state: PRsState): void {
     state.errorByResource.comments ||
     state.errorByResource.reviewComments ||
     state.errorByResource.reviews ||
+    state.errorByResource.commits ||
     null;
 }
 
@@ -161,6 +326,7 @@ const prsSlice = createSlice({
   initialState,
   reducers: {
     setSelectedPR(state, action: PayloadAction<PullRequest | null>) {
+      const previousPRId = state.selectedPR?.id ?? null;
       state.selectedPR = action.payload;
       // Clear related data when PR changes
       if (!action.payload) {
@@ -168,14 +334,32 @@ const prsSlice = createSlice({
         state.comments = [];
         state.reviewComments = [];
         state.reviews = [];
+        state.commits = [];
+        state.summary = {
+          status: 'idle',
+          content: null,
+          generatedAt: null,
+          error: null,
+          requestKey: null,
+        };
         state.errorByResource = {
           metadata: null,
           files: null,
           comments: null,
           reviewComments: null,
           reviews: null,
+          commits: null,
         };
         updateAggregateError(state);
+      } else if (previousPRId !== action.payload.id) {
+        state.commits = [];
+        state.summary = {
+          status: 'idle',
+          content: null,
+          generatedAt: null,
+          error: null,
+          requestKey: null,
+        };
       }
     },
     setPRFiles(state, action: PayloadAction<PRFile[]>) {
@@ -190,12 +374,24 @@ const prsSlice = createSlice({
     setPRReviews(state, action: PayloadAction<PRReview[]>) {
       state.reviews = action.payload;
     },
+    setPRCommits(state, action: PayloadAction<PRCommit[]>) {
+      state.commits = action.payload;
+    },
     setLoading(state, action: PayloadAction<boolean>) {
       state.isLoading = action.payload;
     },
     setError(state, action: PayloadAction<string | null>) {
       state.error = action.payload;
       state.isLoading = false;
+    },
+    resetSummaryState(state) {
+      state.summary = {
+        status: 'idle',
+        content: null,
+        generatedAt: null,
+        error: null,
+        requestKey: null,
+      };
     },
   },
   extraReducers: (builder) => {
@@ -284,6 +480,48 @@ const prsSlice = createSlice({
         state.errorByResource.reviews = action.payload?.userMessage || action.error.message || 'Failed to load pull request reviews';
         updateAggregateLoading(state);
         updateAggregateError(state);
+      })
+      .addCase(fetchPRCommits.pending, (state) => {
+        state.loadingByResource.commits = true;
+        state.errorByResource.commits = null;
+        updateAggregateLoading(state);
+        updateAggregateError(state);
+      })
+      .addCase(fetchPRCommits.fulfilled, (state, action) => {
+        state.commits = action.payload;
+        state.loadingByResource.commits = false;
+        updateAggregateLoading(state);
+      })
+      .addCase(fetchPRCommits.rejected, (state, action) => {
+        state.loadingByResource.commits = false;
+        state.errorByResource.commits = action.payload?.userMessage || action.error.message || 'Failed to load pull request commits';
+        updateAggregateLoading(state);
+        updateAggregateError(state);
+      })
+      .addCase(generatePRSummary.pending, (state, action) => {
+        state.summary.status = 'loading';
+        state.summary.error = null;
+        state.summary.requestKey = action.meta.requestId;
+      })
+      .addCase(generatePRSummary.fulfilled, (state, action) => {
+        if (state.summary.requestKey !== action.meta.requestId) {
+          return;
+        }
+
+        state.summary.status = action.payload.status;
+        state.summary.content = action.payload.content;
+        state.summary.generatedAt = action.payload.generatedAt;
+        state.summary.error = action.payload.error;
+      })
+      .addCase(generatePRSummary.rejected, (state, action) => {
+        if (state.summary.requestKey !== action.meta.requestId) {
+          return;
+        }
+
+        state.summary.status = 'error';
+        state.summary.content = null;
+        state.summary.generatedAt = action.payload?.generatedAt ?? Date.now();
+        state.summary.error = action.payload?.error || action.error.message || 'Unable to generate summary';
       });
   },
 });
@@ -294,8 +532,10 @@ export const {
   setPRComments,
   setPRReviewComments,
   setPRReviews,
+  setPRCommits,
   setLoading,
   setError,
+  resetSummaryState,
 } = prsSlice.actions;
 
 export default prsSlice.reducer;
