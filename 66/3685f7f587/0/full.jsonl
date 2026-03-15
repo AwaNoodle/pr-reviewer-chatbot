@@ -1,0 +1,1011 @@
+{
+  "info": {
+    "id": "ses_311369ecbffepVNUWNy7OkBfgP",
+    "slug": "kind-engine",
+    "projectID": "348622467205f3a4969a26ec20f1654baed7f76d",
+    "directory": "/home/mark/sandbox/personal/pr-review-chatbot",
+    "title": "Opsx-verify: change implementation vs artifacts checklist",
+    "version": "1.2.25",
+    "summary": {
+      "additions": 0,
+      "deletions": 0,
+      "files": 0
+    },
+    "time": {
+      "created": 1773532700981,
+      "updated": 1773533203500
+    }
+  },
+  "messages": [
+    {
+      "info": {
+        "role": "user",
+        "time": {
+          "created": 1773532701019
+        },
+        "summary": {
+          "diffs": []
+        },
+        "agent": "build",
+        "model": {
+          "providerID": "opencode",
+          "modelID": "gpt-5.3-codex"
+        },
+        "id": "msg_ceec9613e001GjqVW7HpUWgfVR",
+        "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "Verify that an implementation matches the change artifacts (specs, tasks, design).\n\n**Input**: Optionally specify a change name after `/opsx-verify` (e.g., `/opsx-verify add-auth`). If omitted, check if it can be inferred from conversation context. If vague or ambiguous you MUST prompt for available changes.\n\n**Steps**\n\n1. **If no change name provided, prompt for selection**\n\n   Run `openspec list --json` to get available changes. Use the **AskUserQuestion tool** to let the user select.\n\n   Show changes that have implementation tasks (tasks artifact exists).\n   Include the schema used for each change if available.\n   Mark changes with incomplete tasks as \"(In Progress)\".\n\n   **IMPORTANT**: Do NOT guess or auto-select a change. Always let the user choose.\n\n2. **Check status to understand the schema**\n   ```bash\n   openspec status --change \"<name>\" --json\n   ```\n   Parse the JSON to understand:\n   - `schemaName`: The workflow being used (e.g., \"spec-driven\")\n   - Which artifacts exist for this change\n\n3. **Get the change directory and load artifacts**\n\n   ```bash\n   openspec instructions apply --change \"<name>\" --json\n   ```\n\n   This returns the change directory and context files. Read all available artifacts from `contextFiles`.\n\n4. **Initialize verification report structure**\n\n   Create a report structure with three dimensions:\n   - **Completeness**: Track tasks and spec coverage\n   - **Correctness**: Track requirement implementation and scenario coverage\n   - **Coherence**: Track design adherence and pattern consistency\n\n   Each dimension can have CRITICAL, WARNING, or SUGGESTION issues.\n\n5. **Verify Completeness**\n\n   **Task Completion**:\n   - If tasks.md exists in contextFiles, read it\n   - Parse checkboxes: `- [ ]` (incomplete) vs `- [x]` (complete)\n   - Count complete vs total tasks\n   - If incomplete tasks exist:\n     - Add CRITICAL issue for each incomplete task\n     - Recommendation: \"Complete task: <description>\" or \"Mark as done if already implemented\"\n\n   **Spec Coverage**:\n   - If delta specs exist in `openspec/changes/<name>/specs/`:\n     - Extract all requirements (marked with \"### Requirement:\")\n     - For each requirement:\n       - Search codebase for keywords related to the requirement\n       - Assess if implementation likely exists\n     - If requirements appear unimplemented:\n       - Add CRITICAL issue: \"Requirement not found: <requirement name>\"\n       - Recommendation: \"Implement requirement X: <description>\"\n\n6. **Verify Correctness**\n\n   **Requirement Implementation Mapping**:\n   - For each requirement from delta specs:\n     - Search codebase for implementation evidence\n     - If found, note file paths and line ranges\n     - Assess if implementation matches requirement intent\n     - If divergence detected:\n       - Add WARNING: \"Implementation may diverge from spec: <details>\"\n       - Recommendation: \"Review <file>:<lines> against requirement X\"\n\n   **Scenario Coverage**:\n   - For each scenario in delta specs (marked with \"#### Scenario:\"):\n     - Check if conditions are handled in code\n     - Check if tests exist covering the scenario\n     - If scenario appears uncovered:\n       - Add WARNING: \"Scenario not covered: <scenario name>\"\n       - Recommendation: \"Add test or implementation for scenario: <description>\"\n\n7. **Verify Coherence**\n\n   **Design Adherence**:\n   - If design.md exists in contextFiles:\n     - Extract key decisions (look for sections like \"Decision:\", \"Approach:\", \"Architecture:\")\n     - Verify implementation follows those decisions\n     - If contradiction detected:\n       - Add WARNING: \"Design decision not followed: <decision>\"\n       - Recommendation: \"Update implementation or revise design.md to match reality\"\n   - If no design.md: Skip design adherence check, note \"No design.md to verify against\"\n\n   **Code Pattern Consistency**:\n   - Review new code for consistency with project patterns\n   - Check file naming, directory structure, coding style\n   - If significant deviations found:\n     - Add SUGGESTION: \"Code pattern deviation: <details>\"\n     - Recommendation: \"Consider following project pattern: <example>\"\n\n8. **Generate Verification Report**\n\n   **Summary Scorecard**:\n   ```\n   ## Verification Report: <change-name>\n\n   ### Summary\n   | Dimension    | Status           |\n   |--------------|------------------|\n   | Completeness | X/Y tasks, N reqs|\n   | Correctness  | M/N reqs covered |\n   | Coherence    | Followed/Issues  |\n   ```\n\n   **Issues by Priority**:\n\n   1. **CRITICAL** (Must fix before archive):\n      - Incomplete tasks\n      - Missing requirement implementations\n      - Each with specific, actionable recommendation\n\n   2. **WARNING** (Should fix):\n      - Spec/design divergences\n      - Missing scenario coverage\n      - Each with specific recommendation\n\n   3. **SUGGESTION** (Nice to fix):\n      - Pattern inconsistencies\n      - Minor improvements\n      - Each with specific recommendation\n\n   **Final Assessment**:\n   - If CRITICAL issues: \"X critical issue(s) found. Fix before archiving.\"\n   - If only warnings: \"No critical issues. Y warning(s) to consider. Ready for archive (with noted improvements).\"\n   - If all clear: \"All checks passed. Ready for archive.\"\n\n**Verification Heuristics**\n\n- **Completeness**: Focus on objective checklist items (checkboxes, requirements list)\n- **Correctness**: Use keyword search, file path analysis, reasonable inference - don't require perfect certainty\n- **Coherence**: Look for glaring inconsistencies, don't nitpick style\n- **False Positives**: When uncertain, prefer SUGGESTION over WARNING, WARNING over CRITICAL\n- **Actionability**: Every issue must have a specific recommendation with file/line references where applicable\n\n**Graceful Degradation**\n\n- If only tasks.md exists: verify task completion only, skip spec/design checks\n- If tasks + specs exist: verify completeness and correctness, skip design\n- If full artifacts: verify all three dimensions\n- Always note which checks were skipped and why\n\n**Output Format**\n\nUse clear markdown with:\n- Table for summary scorecard\n- Grouped lists for issues (CRITICAL/WARNING/SUGGESTION)\n- Code references in format: `file.ts:123`\n- Specific, actionable recommendations\n- No vague suggestions like \"consider reviewing\"",
+          "id": "prt_ceec9615e001UPU8QpKLuID00k",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceec9613e001GjqVW7HpUWgfVR"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "assistant",
+        "time": {
+          "created": 1773532701059,
+          "completed": 1773532706859
+        },
+        "parentID": "msg_ceec9613e001GjqVW7HpUWgfVR",
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/home/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/home/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.027671,
+        "tokens": {
+          "total": 12799,
+          "input": 12580,
+          "output": 219,
+          "reasoning": 185,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        },
+        "finish": "tool-calls",
+        "id": "msg_ceec96183001w3GXyCVpSe5VI4",
+        "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP"
+      },
+      "parts": [
+        {
+          "type": "step-start",
+          "snapshot": "51173424e62a9b29d28a0ddbb973d4c5313951b0",
+          "id": "REDACTED",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceec96183001w3GXyCVpSe5VI4"
+        },
+        {
+          "type": "reasoning",
+          "text": "**Executing command to list artifacts**",
+          "metadata": {
+            "opencode": {
+              "itemId": "rs_0c43580820b309740169b5f61e22448197bc54b8deb9ed2342",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "time": {
+            "start": 1773532702255,
+            "end": 1773532705953
+          },
+          "id": "prt_ceec9662f001u8pEpwVf7tPhCY",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceec96183001w3GXyCVpSe5VI4"
+        },
+        {
+          "type": "tool",
+          "callID": "call_RnfnnJKsE5VagXcQ043aEFX8",
+          "tool": "bash",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "openspec list --json",
+              "description": "List available OpenSpec changes as JSON"
+            },
+            "output": "{\n  \"changes\": [\n    {\n      \"name\": \"repository-watcher\",\n      \"completedTasks\": 0,\n      \"totalTasks\": 26,\n      \"lastModified\": \"2026-03-14T20:17:49.944Z\",\n      \"status\": \"in-progress\"\n    }\n  ]\n}\n",
+            "title": "List available OpenSpec changes as JSON",
+            "metadata": {
+              "output": "{\n  \"changes\": [\n    {\n      \"name\": \"repository-watcher\",\n      \"completedTasks\": 0,\n      \"totalTasks\": 26,\n      \"lastModified\": \"2026-03-14T20:17:49.944Z\",\n      \"status\": \"in-progress\"\n    }\n  ]\n}\n",
+              "exit": 0,
+              "description": "List available OpenSpec changes as JSON",
+              "truncated": false
+            },
+            "time": {
+              "start": 1773532706081,
+              "end": 1773532706788
+            }
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "fc_0c43580820b309740169b5f621dfb4819791a46c52a26187d7"
+            }
+          },
+          "id": "prt_ceec974a7001Ba8K2cnnKOgR2s",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceec96183001w3GXyCVpSe5VI4"
+        },
+        {
+          "type": "step-finish",
+          "reason": "tool-calls",
+          "snapshot": "51173424e62a9b29d28a0ddbb973d4c5313951b0",
+          "cost": 0.027671,
+          "tokens": {
+            "total": 12799,
+            "input": 12580,
+            "output": 219,
+            "reasoning": 185,
+            "cache": {
+              "read": 0,
+              "write": 0
+            }
+          },
+          "id": "prt_ceec977ec001Sd5x5rs1xKgw9d",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceec96183001w3GXyCVpSe5VI4"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "assistant",
+        "time": {
+          "created": 1773532706865,
+          "completed": 1773532743671
+        },
+        "parentID": "msg_ceec9613e001GjqVW7HpUWgfVR",
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/home/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/home/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0056721,
+        "tokens": {
+          "total": 13028,
+          "input": 206,
+          "output": 150,
+          "reasoning": 71,
+          "cache": {
+            "read": 12672,
+            "write": 0
+          }
+        },
+        "finish": "tool-calls",
+        "id": "msg_ceec97831001E404qHEWKfyIH5",
+        "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP"
+      },
+      "parts": [
+        {
+          "type": "step-start",
+          "snapshot": "51173424e62a9b29d28a0ddbb973d4c5313951b0",
+          "id": "prt_ceec97b590019n2FEnsYHg2iGS",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceec97831001E404qHEWKfyIH5"
+        },
+        {
+          "type": "reasoning",
+          "text": "**Including schema in task listing**",
+          "metadata": {
+            "opencode": {
+              "itemId": "rs_06b0944e8fa0bcee0169b5f62476d0819bac55c9d1a18dcd19",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "time": {
+            "start": 1773532708673,
+            "end": 1773532710843
+          },
+          "id": "prt_ceec97f410010fIdsuTbNhH022",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceec97831001E404qHEWKfyIH5"
+        },
+        {
+          "type": "tool",
+          "callID": "call_vMZWI5O4eNDQ0THAjFUqc4lI",
+          "tool": "question",
+          "state": {
+            "status": "completed",
+            "input": {
+              "questions": [
+                {
+                  "header": "Select change",
+                  "question": "Which change should I verify? I found the following change(s) with implementation tasks.",
+                  "options": [
+                    {
+                      "label": "repository-watcher (Recommended)",
+                      "description": "Schema: unknown yet; status: In Progress (0/26 tasks complete)"
+                    }
+                  ],
+                  "multiple": false
+                }
+              ]
+            },
+            "output": "User has answered your questions: \"Which change should I verify? I found the following change(s) with implementation tasks.\"=\"pr-reviewer\". You can now continue with the user's answers in mind.",
+            "title": "Asked 1 question",
+            "metadata": {
+              "answers": [
+                [
+                  "pr-reviewer"
+                ]
+              ],
+              "truncated": false
+            },
+            "time": {
+              "start": 1773532711388,
+              "end": 1773532743595
+            }
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "fc_06b0944e8fa0bcee0169b5f6269c90819ba3554309b74e61c6"
+            }
+          },
+          "id": "prt_ceec987c1001QN5DMZxwnD7NjO",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceec97831001E404qHEWKfyIH5"
+        },
+        {
+          "type": "step-finish",
+          "reason": "tool-calls",
+          "snapshot": "51173424e62a9b29d28a0ddbb973d4c5313951b0",
+          "cost": 0.0056721,
+          "tokens": {
+            "total": 13028,
+            "input": 206,
+            "output": 150,
+            "reasoning": 71,
+            "cache": {
+              "read": 12672,
+              "write": 0
+            }
+          },
+          "id": "prt_ceeca07b0001W3aaR2KqikkNxj",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceec97831001E404qHEWKfyIH5"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "assistant",
+        "time": {
+          "created": 1773532743674,
+          "completed": 1773532745943
+        },
+        "parentID": "msg_ceec9613e001GjqVW7HpUWgfVR",
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/home/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/home/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0044429,
+        "tokens": {
+          "total": 13167,
+          "input": 150,
+          "output": 89,
+          "reasoning": 48,
+          "cache": {
+            "read": 12928,
+            "write": 0
+          }
+        },
+        "finish": "tool-calls",
+        "id": "msg_ceeca07fa001EUTgasPqcOyQ41",
+        "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP"
+      },
+      "parts": [
+        {
+          "type": "step-start",
+          "snapshot": "51173424e62a9b29d28a0ddbb973d4c5313951b0",
+          "id": "prt_ceeca0be7001wqCy5qYbBZY6Yi",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceeca07fa001EUTgasPqcOyQ41"
+        },
+        {
+          "type": "reasoning",
+          "text": "**Handling custom PR reviewers**",
+          "metadata": {
+            "opencode": {
+              "itemId": "rs_0fc255edb9d971510169b5f6484da8819994a6e788992cfd14",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "time": {
+            "start": 1773532744682,
+            "end": 1773532745499
+          },
+          "id": "prt_ceeca0bea001TTGd71BQIGbS2q",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceeca07fa001EUTgasPqcOyQ41"
+        },
+        {
+          "type": "tool",
+          "callID": "call_HlY9ZE5scDj7M6Had0zaMqLo",
+          "tool": "bash",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "openspec status --change \"pr-reviewer\" --json",
+              "description": "Get OpenSpec status for selected change"
+            },
+            "output": "- Loading change status...\n\n✖ Error: Change 'pr-reviewer' not found. Available changes:\n  repository-watcher\n",
+            "title": "Get OpenSpec status for selected change",
+            "metadata": {
+              "output": "- Loading change status...\n\n✖ Error: Change 'pr-reviewer' not found. Available changes:\n  repository-watcher\n",
+              "exit": 1,
+              "description": "Get OpenSpec status for selected change",
+              "truncated": false
+            },
+            "time": {
+              "start": 1773532745658,
+              "end": 1773532745881
+            }
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "fc_0fc255edb9d971510169b5f6494da88199972e3293b522c28d"
+            }
+          },
+          "id": "prt_ceeca0f20001IHsPe06nz72vXS",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceeca07fa001EUTgasPqcOyQ41"
+        },
+        {
+          "type": "step-finish",
+          "reason": "tool-calls",
+          "snapshot": "51173424e62a9b29d28a0ddbb973d4c5313951b0",
+          "cost": 0.0044429,
+          "tokens": {
+            "total": 13167,
+            "input": 150,
+            "output": 89,
+            "reasoning": 48,
+            "cache": {
+              "read": 12928,
+              "write": 0
+            }
+          },
+          "id": "prt_ceeca109d0010Gh1lzi5vKv2hM",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceeca07fa001EUTgasPqcOyQ41"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "assistant",
+        "time": {
+          "created": 1773532745956,
+          "completed": 1773532771153
+        },
+        "parentID": "msg_ceec9613e001GjqVW7HpUWgfVR",
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/home/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/home/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0040698,
+        "tokens": {
+          "total": 13295,
+          "input": 148,
+          "output": 91,
+          "reasoning": 18,
+          "cache": {
+            "read": 13056,
+            "write": 0
+          }
+        },
+        "finish": "tool-calls",
+        "id": "msg_ceeca10e40014UQVpxlqie3s0s",
+        "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP"
+      },
+      "parts": [
+        {
+          "type": "step-start",
+          "snapshot": "51173424e62a9b29d28a0ddbb973d4c5313951b0",
+          "id": "prt_ceeca1457001WHcEVA5Y6jqSsB",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceeca10e40014UQVpxlqie3s0s"
+        },
+        {
+          "type": "reasoning",
+          "text": "**Prompting user for selection**",
+          "metadata": {
+            "opencode": {
+              "itemId": "rs_04343fad828c79170169b5f64b2ad481908aa81e2a3ba6a4fe",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "time": {
+            "start": 1773532747414,
+            "end": 1773532747931
+          },
+          "id": "prt_ceeca1696001EDrC0cV4rMqHdQ",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceeca10e40014UQVpxlqie3s0s"
+        },
+        {
+          "type": "tool",
+          "callID": "REDACTED",
+          "tool": "question",
+          "state": {
+            "status": "completed",
+            "input": {
+              "questions": [
+                {
+                  "header": "Change not found",
+                  "question": "I couldn’t find `pr-reviewer`. Please pick one available change to verify.",
+                  "options": [
+                    {
+                      "label": "repository-watcher (Recommended)",
+                      "description": "In Progress (0/26 tasks complete)"
+                    }
+                  ],
+                  "multiple": false
+                }
+              ]
+            },
+            "output": "User has answered your questions: \"I couldn’t find `pr-reviewer`. Please pick one available change to verify.\"=\"pr-review-summary\". You can now continue with the user's answers in mind.",
+            "title": "Asked 1 question",
+            "metadata": {
+              "answers": [
+                [
+                  "pr-review-summary"
+                ]
+              ],
+              "truncated": false
+            },
+            "time": {
+              "start": 1773532748503,
+              "end": 1773532771105
+            }
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "fc_04343fad828c79170169b5f64bbcb48190abc6d25978fa8b15"
+            }
+          },
+          "id": "prt_ceeca189e001S1HyngMSPErmEb",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceeca10e40014UQVpxlqie3s0s"
+        },
+        {
+          "type": "step-finish",
+          "reason": "tool-calls",
+          "snapshot": "51173424e62a9b29d28a0ddbb973d4c5313951b0",
+          "cost": 0.0040698,
+          "tokens": {
+            "total": 13295,
+            "input": 148,
+            "output": 91,
+            "reasoning": 18,
+            "cache": {
+              "read": 13056,
+              "write": 0
+            }
+          },
+          "id": "REDACTED",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceeca10e40014UQVpxlqie3s0s"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "assistant",
+        "time": {
+          "created": 1773532771157,
+          "completed": 1773532782900
+        },
+        "parentID": "msg_ceec9613e001GjqVW7HpUWgfVR",
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/home/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/home/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.00947695,
+        "tokens": {
+          "total": 13636,
+          "input": 161,
+          "output": 291,
+          "reasoning": 201,
+          "cache": {
+            "read": 13184,
+            "write": 0
+          }
+        },
+        "finish": "tool-calls",
+        "id": "msg_ceeca7355001BJJBNMzJ2x2Hs1",
+        "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP"
+      },
+      "parts": [
+        {
+          "type": "step-start",
+          "snapshot": "51173424e62a9b29d28a0ddbb973d4c5313951b0",
+          "id": "prt_ceeca76aa001V7gUT7gRPiwecz",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceeca7355001BJJBNMzJ2x2Hs1"
+        },
+        {
+          "type": "reasoning",
+          "text": "**Planning strict option validation**",
+          "metadata": {
+            "opencode": {
+              "itemId": "rs_04060ffcf0c49fcb0169b5f663bc04819580200f5cb9761b8b",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "time": {
+            "start": 1773532772258,
+            "end": 1773532776298
+          },
+          "id": "prt_ceeca77a20011RM20Y2Pa6U7xx",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceeca7355001BJJBNMzJ2x2Hs1"
+        },
+        {
+          "type": "tool",
+          "callID": "call_UxoH1HoUx58mmrnEcvyCkNqa",
+          "tool": "question",
+          "state": {
+            "status": "error",
+            "input": {
+              "questions": [
+                {
+                  "header": "Need exact name",
+                  "question": "I’m blocked until I get an exact existing change name. The only available change right now is `repository-watcher`. Which exact change should I verify?",
+                  "options": [
+                    {
+                      "label": "repository-watcher (Recommended)",
+                      "description": "Only change returned by `openspec list --json`"
+                    }
+                  ],
+                  "multiple": false
+                }
+              ]
+            },
+            "error": "Error: The user dismissed this question",
+            "time": {
+              "start": 1773532776840,
+              "end": 1773532782818
+            }
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "fc_04060ffcf0c49fcb0169b5f66816208195882eb784147cbb33"
+            }
+          },
+          "id": "prt_ceeca87ca0015BChVUs1NErnqk",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceeca7355001BJJBNMzJ2x2Hs1"
+        },
+        {
+          "type": "step-finish",
+          "reason": "tool-calls",
+          "snapshot": "51173424e62a9b29d28a0ddbb973d4c5313951b0",
+          "cost": 0.00947695,
+          "tokens": {
+            "total": 13636,
+            "input": 161,
+            "output": 291,
+            "reasoning": 201,
+            "cache": {
+              "read": 13184,
+              "write": 0
+            }
+          },
+          "id": "prt_ceecaa0fd0014GY7BkQ6j8kw6T",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceeca7355001BJJBNMzJ2x2Hs1"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "user",
+        "time": {
+          "created": 1773533192947
+        },
+        "summary": {
+          "diffs": []
+        },
+        "agent": "build",
+        "model": {
+          "providerID": "opencode",
+          "modelID": "gpt-5.3-codex"
+        },
+        "id": "msg_ceed0e2dc001awZ3Z31WhTmHDJ",
+        "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "Create a commit message and commit the changes",
+          "id": "prt_ceed0e2dd001toZLvAR2wAvmKt",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceed0e2dc001awZ3Z31WhTmHDJ"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "assistant",
+        "time": {
+          "created": 1773533192986,
+          "completed": 1773533199455
+        },
+        "parentID": "msg_ceed0e2dc001awZ3Z31WhTmHDJ",
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/home/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/home/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.031003,
+        "tokens": {
+          "total": 13469,
+          "input": 13132,
+          "output": 337,
+          "reasoning": 236,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        },
+        "finish": "tool-calls",
+        "id": "msg_ceed0e31a001I3B8wjLYEenxDf",
+        "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP"
+      },
+      "parts": [
+        {
+          "type": "step-start",
+          "snapshot": "51173424e62a9b29d28a0ddbb973d4c5313951b0",
+          "id": "prt_ceed0e6ca001wd55oRI1MdQLoQ",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceed0e31a001I3B8wjLYEenxDf"
+        },
+        {
+          "type": "reasoning",
+          "text": "**Preparing git status and diffs**",
+          "metadata": {
+            "opencode": {
+              "itemId": "rs_074501efed72260d0169b5f80b131c819384970790075ebb2a",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "time": {
+            "start": 1773533195216,
+            "end": 1773533199309
+          },
+          "id": "prt_ceed0ebd0001N3Xx1sdTSVSQ0P",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceed0e31a001I3B8wjLYEenxDf"
+        },
+        {
+          "type": "tool",
+          "callID": "REDACTED",
+          "tool": "bash",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git status --short",
+              "description": "Shows concise working tree status"
+            },
+            "output": " M README.md\n M agents.md\n D openspec/changes/add-pr-summary-tab/.openspec.yaml\n D openspec/changes/add-pr-summary-tab/design.md\n D openspec/changes/add-pr-summary-tab/proposal.md\n D openspec/changes/add-pr-summary-tab/specs/pr-review-summary/spec.md\n D openspec/changes/add-pr-summary-tab/tasks.md\n M plans/plan.md\n M src/components/ChatWindow.tsx\n M src/components/PRViewer.tsx\n M src/components/SettingsDialog.tsx\n M src/components/Sidebar.test.tsx\n M src/components/Sidebar.tsx\n M src/services/github.test.ts\n M src/services/github.ts\n M src/services/llm.test.ts\n M src/services/llm.ts\n M src/store/slices/configSlice.test.ts\n M src/store/slices/configSlice.ts\n M src/store/slices/prsSlice.test.ts\n M src/store/slices/prsSlice.ts\n M src/types/index.ts\n?? openspec/changes/archive/2026-03-14-add-pr-summary-tab/design.md\n?? openspec/changes/archive/2026-03-14-add-pr-summary-tab/proposal.md\n?? openspec/changes/archive/2026-03-14-add-pr-summary-tab/specs/\n?? openspec/changes/archive/2026-03-14-add-pr-summary-tab/tasks.md\n?? openspec/changes/archive/2026-03-14-update-pr-review-summary-ui-readability/\n?? openspec/specs/\n?? src/components/PRViewer.summary.test.tsx\n?? src/components/SettingsDialog.test.tsx\n?? src/services/summary.test.ts\n?? src/services/summary.ts\n",
+            "title": "Shows concise working tree status",
+            "metadata": {
+              "output": " M README.md\n M agents.md\n D openspec/changes/add-pr-summary-tab/.openspec.yaml\n D openspec/changes/add-pr-summary-tab/design.md\n D openspec/changes/add-pr-summary-tab/proposal.md\n D openspec/changes/add-pr-summary-tab/specs/pr-review-summary/spec.md\n D openspec/changes/add-pr-summary-tab/tasks.md\n M plans/plan.md\n M src/components/ChatWindow.tsx\n M src/components/PRViewer.tsx\n M src/components/SettingsDialog.tsx\n M src/components/Sidebar.test.tsx\n M src/components/Sidebar.tsx\n M src/services/github.test.ts\n M src/services/github.ts\n M src/services/llm.test.ts\n M src/services/llm.ts\n M src/store/slices/configSlice.test.ts\n M src/store/slices/configSlice.ts\n M src/store/slices/prsSlice.test.ts\n M src/store/slices/prsSlice.ts\n M src/types/index.ts\n?? openspec/changes/archive/2026-03-14-add-pr-summary-tab/design.md\n?? openspec/changes/archive/2026-03-14-add-pr-summary-tab/proposal.md\n?? openspec/changes/archive/2026-03-14-add-pr-summary-tab/specs/\n?? openspec/changes/archive/2026-03-14-add-pr-summary-tab/tasks.md\n?? openspec/changes/archive/2026-03-14-update-pr-review-summary-ui-readability/\n?? openspec/specs/\n?? src/components/PRViewer.summary.test.tsx\n?? src/components/SettingsDialog.test.tsx\n?? src/services/summary.test.ts\n?? src/services/summary.ts\n",
+              "exit": 0,
+              "description": "Shows concise working tree status",
+              "truncated": false
+            },
+            "time": {
+              "start": 1773533199320,
+              "end": 1773533199333
+            }
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "fc_074501efed72260d0169b5f80f37c08193aa79d1499e0f9d95"
+            }
+          },
+          "id": "prt_ceed0fbd00010wK1SLC9eqxNmL",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceed0e31a001I3B8wjLYEenxDf"
+        },
+        {
+          "type": "tool",
+          "callID": "call_FsTRa0kLbYhlEHgqrxBVkMOE",
+          "tool": "bash",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git diff HEAD",
+              "description": "Shows all unstaged and staged changes"
+            },
+            "output": "diff --git a/README.md b/README.md\nindex c3a4986..c2105f7 100644\n--- a/README.md\n+++ b/README.md\n@@ -13,6 +13,7 @@ A standalone web application that lets you review and ask questions about GitHub\n - 🎭 **Demo mode** — Try the app immediately with a sample PR, no credentials needed\n - 🐙 **GitHub integration** — Works with github.com and GitHub Enterprise Server (GHES)\n - 🔍 **PR context** — Injects PR metadata, file diffs, comments, and reviews into the LLM context\n+- 🧭 **Summary tab** — Auto-generates a PR kickoff summary in a dedicated tab (separate from chat)\n - ⚙️ **Runtime configuration** — Override all settings via the Settings dialog (persisted to localStorage)\n - 🌙 **Dark mode** — Toggle between light and dark themes\n \n@@ -26,6 +27,8 @@ Planned summary behavior:\n - Favor quick orientation: a 2-4 line overview first\n - Add adaptive `Focus Areas` only when warranted, with a hard cap of 4 and no minimum\n - Treat summary output with no focus areas as valid for simple PRs\n+- Include commit messages as first-class summary context\n+- Reuse session cache per PR/prompt fingerprint and rate-limit generation to one request per minute per PR head SHA\n \n ---\n \n@@ -104,6 +107,12 @@ VITE_LLM_MODEL=gpt-4o\n # Start in demo mode (true/false)\n # Demo mode uses a pre-loaded sample PR — no GitHub credentials needed\n VITE_DEMO_MODE=true\n+\n+# Enable PR summary auto-generation by default (true/false)\n+VITE_SUMMARY_ENABLED=true\n+\n+# Optional additional summary commands appended to summary prompt\n+VITE_SUMMARY_COMMANDS=\n ```\n \n ---\n@@ -232,6 +241,14 @@ Example questions to try:\n 4. Enter the PR number and click **Load PR**\n 5. Use the refresh button in the Pull Requests header to reload the currently selected PR\n \n+Summary behavior in GitHub mode:\n+- A summary request is triggered after PR metadata/files/comments/reviews/commits load\n+- Summary output is rendered in the `Summary` tab and is not inserted into chat history/context\n+- Empty textual diffs skip LLM generation and show `Nothing to Summarize`\n+- LLM failures show `Unable to generate summary`\n+- Cache is session-scoped and keyed by PR identity + head SHA + prompt/commands fingerprint\n+- Generation is limited to one request per minute for each PR head SHA\n+\n GitHub mode behavior:\n - While data is loading, the **Load PR** button shows a spinner and inputs are disabled to prevent duplicate requests.\n - Auth failures (401) prompt you to update your GitHub PAT in Settings.\n@@ -252,6 +269,9 @@ Click the **⚙️ Settings** button in the top bar to configure:\n | LLM Endpoint | Base URL for the LLM API |\n | LLM API Key | Your API key |\n | LLM Model | Model name (e.g., `gpt-4o`, `claude-3-5-sonnet`) |\n+| Summary Enabled | Toggle auto-generation for PR summaries |\n+| Summary Prompt | Editable base prompt for summary generation |\n+| Additional Summary Commands | Optional appended instructions for summaries |\n \n ---\n \n@@ -300,6 +320,11 @@ You need to set an LLM API key. Click ⚙️ Settings and fill in the **API Key*\n - Ensure the model name is correct for your provider\n - Check browser console for detailed error messages\n \n+### Summary output expectations\n+- Successful summaries should start with a concise 2-4 line orientation section\n+- `Focus Areas` are adaptive and optional for simple PRs\n+- When present, `Focus Areas` should remain within 1-4 items and include where/why/what-to-verify guidance\n+\n ### GitHub API errors\n - Verify your PAT has the correct scopes (`repo` or `public_repo`)\n - For GHES, ensure the hostname is correct (no `https://` prefix)\ndiff --git a/agents.md b/agents.md\nindex bb31b88..d8a055d 100644\n--- a/agents.md\n+++ b/agents.md\n@@ -29,16 +29,17 @@ src/\n │   └── slices/\n │       ├── configSlice.ts     # App config (env vars + localStorage overrides)\n │       ├── chatSlice.ts       # Chat messages + streaming state\n-│       └── prsSlice.ts        # Selected PR data (files, comments, reviews)\n+│       └── prsSlice.ts        # Selected PR data + commits + summary lifecycle state\n ├── services/\n │   ├── llm.ts                 # LLM service (OpenAI v1 API + LiteLLM, streaming)\n │   ├── github.ts              # GitHub API service (github.com + GHES)\n+│   ├── summary.ts             # Summary cache/rate-limit/empty-diff utilities\n │   └── dummyData.ts           # Sample PR data for demo mode\n ├── components/\n │   ├── Sidebar.tsx            # Demo toggle + GitHub owner/repo + PR loader\n │   ├── ChatWindow.tsx         # Chat interface with streaming\n-│   ├── PRViewer.tsx           # PR details, diffs, comments, reviews\n-│   └── SettingsDialog.tsx     # Runtime configuration override\n+│   ├── PRViewer.tsx           # PR details, summary tab, diffs, comments, reviews\n+│   └── SettingsDialog.tsx     # Runtime configuration override + summary controls\n └── lib/\n     └── utils.ts               # cn(), formatDate(), generateId()\n ```\n@@ -56,13 +57,14 @@ src/\n - Streaming responses via Server-Sent Events\n - PR context injected as system prompt (PR metadata, diffs, comments, reviews)\n - Configurable endpoint, model, and API key\n+- Separate summary prompt assembly path (`buildSummaryPrompt`) for orientation-first PR kickoff summaries\n \n ### GitHub Integration\n - PAT (Personal Access Token) authentication\n - Supports **github.com** and **GitHub Enterprise Server (GHES)**\n - GHES base URL: `https://<host>/api/v3`\n - Manual GitHub mode input in sidebar: `owner/repo` + PR number\n-- Fetches: PR metadata, file diffs, issue comments, review comments, reviews\n+- Fetches: PR metadata, file diffs, issue comments, review comments, reviews, commit messages\n - Refresh action re-fetches currently selected PR\n - User-friendly GitHub API errors (auth, not found, rate limit, network)\n \n@@ -70,6 +72,19 @@ src/\n - Runtime override of all configuration\n - Persisted to `localStorage`\n - Defaults from environment variables (`VITE_*`)\n+- Includes summary controls (`summaryEnabled`, editable `summaryPrompt`, optional `summaryCommands`, reset prompt)\n+\n+### PR Summary Flow\n+- Summary generation triggers on PR selection/load when `summaryEnabled` is true\n+- Summary state is isolated from chat state (`prsSlice.summary`)\n+- Fallback states:\n+  - `Nothing to Summarize` when no textual diffs exist\n+  - `Unable to generate summary` on generation failure\n+- Uses session-scoped cache and one-per-minute per-PR-head rate limit\n+- Summary output contract:\n+  - 2-4 line orientation section\n+  - adaptive `Focus Areas` (`0..4`)\n+  - each focus area includes where/why/what-to-verify\n \n ## Environment Variables\n \n@@ -81,6 +96,8 @@ VITE_LLM_BACKEND=openai   # \"openai\" or \"litellm\"\n VITE_LLM_ENDPOINT=https://api.openai.com/v1\n VITE_LLM_MODEL=gpt-4o\n VITE_DEMO_MODE=true\n+VITE_SUMMARY_ENABLED=true\n+VITE_SUMMARY_COMMANDS=\n ```\n \n ## Development\n@@ -111,6 +128,12 @@ npm run preview   # Preview production build\n - The method receives a `PRContext` object with `pr`, `files`, `comments`, `reviewComments`, `reviews`\n - Prompt construction uses a deterministic character budget for very large PRs and emits an omission summary when some diffs are excluded\n \n+### Modifying summary behavior\n+- Summary orchestration policy lives in [`src/services/summary.ts`](src/services/summary.ts)\n+- Summary state transitions and async generation thunk live in [`src/store/slices/prsSlice.ts`](src/store/slices/prsSlice.ts)\n+- Summary prompt contract lives in `buildSummaryPrompt()` in [`src/services/llm.ts`](src/services/llm.ts)\n+- Summary UI rendering lives in [`src/components/PRViewer.tsx`](src/components/PRViewer.tsx)\n+\n ### Adding GitHub API endpoints\n - Add methods to the `GitHubService` class in [`src/services/github.ts`](src/services/github.ts)\n - The service automatically handles github.com vs GHES URL routing\ndiff --git a/openspec/changes/add-pr-summary-tab/.openspec.yaml b/openspec/changes/add-pr-summary-tab/.openspec.yaml\ndeleted file mode 100644\nindex 49ccc67..0000000\n--- a/openspec/changes/add-pr-summary-tab/.openspec.yaml\n+++ /dev/null\n@@ -1,2 +0,0 @@\n-schema: spec-driven\n-created: 2026-03-14\ndiff --git a/openspec/changes/add-pr-summary-tab/design.md b/openspec/changes/add-pr-summary-tab/design.md\ndeleted file mode 100644\nindex 7696a40..0000000\n--- a/openspec/changes/add-pr-summary-tab/design.md\n+++ /dev/null\n@@ -1,94 +0,0 @@\n-## Context\n-\n-The current reviewer workflow starts with raw PR metadata and diffs, then relies on free-form chat questions for orientation. This increases time-to-context, especially for large or complex pull requests. The application already has stable GitHub data-loading flows, an LLM service abstraction, and a right-pane PR viewer with tabbed detail views, which makes a summary-first reviewer experience a natural extension.\n-\n-This change spans multiple modules (settings, PR state, GitHub service, LLM prompt assembly, and PR viewer UI), includes new persistence behavior (sessionStorage cache + localStorage config), and adds request-guard behavior (per-PR one-per-minute rate limiting). It also introduces stricter output-shape requirements for generated content.\n-\n-## Goals / Non-Goals\n-\n-**Goals:**\n-- Provide an optional auto-generated PR summary, enabled by default, immediately after PR selection.\n-- Render summaries in a dedicated `Summary` tab in the right-hand PR pane, not in chat history.\n-- Prioritize quick orientation: generate a concise 2-4 line top summary before any deeper detail.\n-- Emit adaptive `Focus Areas` only when meaningful risk/complexity signals are present, with a hard cap of 4 and no minimum.\n-- Keep summary generation aligned with existing LLM configuration and API path.\n-- Make the summary prompt editable/persisted with a reset-to-default action.\n-- Enforce safe fallback states (`Empty PR`, `Unable to generate summary`) and avoid runaway generation via per-PR rate limits.\n-- Cache generated summaries in sessionStorage and display generation timestamp.\n-\n-**Non-Goals:**\n-- Creating a separate LLM provider or model configuration for summaries.\n-- Persisting summaries across browser sessions (cache is session-scoped by design).\n-- Replacing existing chat interactions or auto-answering reviewer follow-up questions.\n-\n-## Decisions\n-\n-1. **Summary state lives in PR domain state, not chat state**\n-   - **Decision:** Add summary-specific fields under `prsSlice` (status, content, generated timestamp, and error state), and render them in `PRViewer`.\n-   - **Rationale:** Summary is PR metadata context, not conversational history. Keeping it out of `chatSlice` ensures it cannot accidentally leak into chat context.\n-   - **Alternatives considered:**\n-     - Reusing `chatSlice` with special system messages (rejected: conflicts with requirement to exclude summaries from chat history/context).\n-     - Component-local state only (rejected: weaker consistency across tabs and PR reload flows).\n-\n-2. **Add a dedicated PR summary orchestration path**\n-   - **Decision:** Introduce a summary generation helper/service used by PR selection flows, with explicit logic for empty detection, cache lookup, and rate limiting.\n-   - **Rationale:** Centralizes policy (one-per-minute per PR, cache key strategy, fallback behavior) and keeps UI components simpler.\n-   - **Alternatives considered:**\n-     - Inline logic in `PRViewer` or `Sidebar` (rejected: duplicated complexity and harder testability).\n-\n-3. **Per-PR rate limit and cache key strategy**\n-   - **Decision:** Key by PR identity (`owner/repo`, PR number, head SHA) plus prompt/command fingerprint.\n-   - **Rationale:** Prevents stale summaries after prompt edits or branch updates while allowing fast cache hits for unchanged context.\n-   - **Alternatives considered:**\n-     - Global rate limit (rejected per product decision).\n-     - PR-only key without prompt fingerprint (rejected: would return mismatched cached summaries after prompt customization).\n-\n-4. **Summary prompt model**\n-   - **Decision:** Use a persisted `summaryPrompt` defaulted to the product-provided baseline prompt; append optional `summaryCommands`; enforce an orientation-first contract (2-4 lines) and adaptive `Focus Areas` contract (`0..4` items).\n-   - **Rationale:** Preserves user control while maintaining stable, scan-friendly output for rapid reviewer orientation.\n-   - **Alternatives considered:**\n-      - Fixed prompt only (rejected: conflicts with editability requirement).\n-      - Free-form output with no section contract (rejected: weak consistency).\n-\n-5. **Focus area shape and inclusion rules**\n-   - **Decision:** Include focus areas only when warranted by risk/complexity/churn signals. Each emitted focus area must include `where`, `why it matters`, and `what to verify` guidance.\n-   - **Rationale:** Keeps summary useful for triage without forcing noisy or low-signal bullets on simple PRs.\n-   - **Alternatives considered:**\n-      - Always include at least one focus area (rejected: simple PRs can legitimately have none).\n-      - Allow unlimited focus areas (rejected: undermines quick orientation).\n-\n-6. **Use existing LLM config and transport**\n-   - **Decision:** Summary generation uses the same `LLMService` instance/config already used for chat.\n-   - **Rationale:** Simpler operations model, no duplicated configuration surface, consistent provider behavior.\n-   - **Alternatives considered:**\n-      - Separate summary model/backend settings (rejected by requirement and would add UX complexity).\n-\n-7. **Commit messages become first-class summary context**\n-   - **Decision:** Extend GitHub service/store flows to fetch PR commits and make commit messages available to summary prompt building.\n-   - **Rationale:** Required by default prompt and improves orientation fidelity.\n-   - **Alternatives considered:**\n-      - Deriving commit context only from PR title/body (rejected: misses important intent details).\n-\n-## Risks / Trade-offs\n-\n-- **[Risk] Extra API and token cost on PR selection** -> **Mitigation:** summary toggle (default on but user-controlled), one-per-minute per-PR rate limit, and session cache reuse.\n-- **[Risk] Empty/binary-heavy PRs cause poor summary quality** -> **Mitigation:** detect absence of textual diff content and show `Empty PR` without calling LLM.\n-- **[Risk] Inconsistent output formatting from model** -> **Mitigation:** explicit section/format instructions in summary prompt; tolerant rendering in Summary tab.\n-- **[Risk] Race conditions when switching PRs rapidly** -> **Mitigation:** key requests by selected PR identity and discard stale in-flight responses when active PR changes.\n-- **[Risk] Added state complexity in PR slice** -> **Mitigation:** isolate summary fields and reducers, plus focused unit tests for transitions.\n-\n-## Migration Plan\n-\n-1. Add new config fields with backward-compatible defaults (`summaryEnabled: true`, default summary prompt, empty summary commands).\n-2. Add commit fetch API and state support; ensure existing PR load paths remain functional.\n-3. Implement summary orchestration (cache/rate-limit/empty checks) and wire it to PR selection lifecycle.\n-4. Add `Summary` tab rendering states and generated timestamp footer in `PRViewer`.\n-5. Update Settings UI with summary controls and reset behavior.\n-6. Add/expand tests for config, store transitions, summary utility logic, and prompt composition.\n-7. Update documentation for new summary feature behavior.\n-\n-Rollback strategy: disable summary feature by default through config fallback or temporarily gate summary generation trigger; existing chat and PR viewer tabs remain operational.\n-\n-## Open Questions\n-\n-- None at this time; product behavior is fully specified for this change.\ndiff --git a/openspec/changes/add-pr-summary-tab/proposal.md b/openspec/changes/add-pr-summary-tab/proposal.md\ndeleted file mode 100644\nindex 5b17c6d..0000000\n--- a/openspec/changes/add-pr-summary-tab/proposal.md\n+++ /dev/null\n@@ -1,30 +0,0 @@\n-## Why\n-\n-Reviewers currently have to manually scan PR metadata, file diffs, and comments before they can ask useful questions. A generated kickoff summary provides fast orientation and helps reviewers focus on high-risk areas immediately.\n-\n-## What Changes\n-\n-- Add an optional, auto-generated PR summary flow that runs when a PR is selected and is enabled by default.\n-- Add a new `Summary` tab in the right-hand PR viewer pane with loading, success, empty, and failure states.\n-- Refine summary output for quick reviewer orientation: a concise 2-4 line top summary plus adaptive `Focus Areas` when meaningful complexity/risk signals exist.\n-- Allow `Focus Areas` to be omitted for simple PRs and cap focus areas at 4 when present.\n-- Make the summary prompt user-editable in Settings, persist it between sessions, and provide a reset action that restores the default prompt only.\n-- Allow optional additional summary commands from Settings and append them to the summary prompt.\n-- Keep summary output separate from chat history and exclude it from subsequent LLM chat context.\n-- Add per-PR summary generation rate limiting (one request per minute) and sessionStorage caching.\n-- Show a generation timestamp at the bottom of the Summary pane.\n-- Fetch and include PR commit messages as summary context.\n-\n-## Capabilities\n-\n-### New Capabilities\n-- `pr-review-summary`: Generate and display reviewer-oriented PR summaries with configurable prompt behavior, caching, and guarded fallback states.\n-\n-### Modified Capabilities\n-- None.\n-\n-## Impact\n-\n-- Affected frontend areas: `src/components/PRViewer.tsx`, `src/components/SettingsDialog.tsx`, `src/store/slices/configSlice.ts`, `src/store/slices/prsSlice.ts`, `src/services/llm.ts`, `src/services/github.ts`, and related tests.\n-- Adds summary-specific state management and sessionStorage cache handling for per-PR summary payloads and generation timestamps.\n-- Adds one GitHub API integration path for PR commit messages to enrich summary context.\ndiff --git a/openspec/changes/add-pr-summary-tab/specs/pr-review-summary/spec.md b/openspec/changes/add-pr-summary-tab/specs/pr-review-summary/spec.md\ndeleted file mode 100644\nindex dac8540..0000000\n--- a/openspec/changes/add-pr-summary-tab/specs/pr-review-summary/spec.md\n+++ /dev/null\n@@ -1,98 +0,0 @@\n-## ADDED Requirements\n-\n-### Requirement: Automatic Summary Generation on PR Selection\n-The system SHALL generate a reviewer-orientation summary when a pull request is selected and summary generation is enabled.\n-\n-#### Scenario: Summary generated for selected PR\n-- **WHEN** a user selects a PR and summary generation is enabled\n-- **THEN** the system SHALL request a summary using PR description, PR commit messages, and textual code changes as context.\n-\n-#### Scenario: Summary generation disabled\n-- **WHEN** a user selects a PR and summary generation is disabled\n-- **THEN** the system SHALL not request or refresh summary content.\n-\n-### Requirement: Summary Uses Existing LLM Configuration\n-The system SHALL use the existing LLM backend configuration for summary generation.\n-\n-#### Scenario: Summary request uses configured LLM settings\n-- **WHEN** a summary request is issued\n-- **THEN** the request SHALL use the currently configured `llmBackend`, `llmEndpoint`, `llmApiKey`, and `llmModel` values.\n-\n-### Requirement: Summary Prompt Is Configurable and Persisted\n-The system SHALL allow users to edit the summary prompt, persist it across sessions, and reset only the prompt to the default value.\n-\n-#### Scenario: Prompt edits persist\n-- **WHEN** a user saves changes to the summary prompt in Settings\n-- **THEN** the system SHALL persist the updated prompt and reuse it for future summary generation.\n-\n-#### Scenario: Reset restores default prompt only\n-- **WHEN** a user chooses Reset Prompt in Settings\n-- **THEN** the system SHALL restore only the summary prompt to the default text and SHALL NOT modify additional summary commands.\n-\n-### Requirement: Additional Summary Commands Are Supported\n-The system SHALL allow optional additional summary commands configured by the user and append them to summary-generation instructions.\n-\n-#### Scenario: Commands appended to summary prompt\n-- **WHEN** one or more summary commands are configured\n-- **THEN** the system SHALL append those commands to summary-generation instructions for the selected PR.\n-\n-### Requirement: Summary Output Contract\n-The generated summary SHALL follow a structured response contract suitable for reviewer orientation.\n-\n-#### Scenario: Orientation-first summary format\n-- **WHEN** summary instructions are sent to the LLM\n-- **THEN** the instructions SHALL require a concise orientation section of 2-4 lines.\n-\n-#### Scenario: Adaptive focus areas with cap\n-- **WHEN** summary instructions are sent to the LLM\n-- **THEN** the instructions SHALL allow adaptive `Focus Areas` inclusion based on meaningful risk/complexity/churn signals\n-- **AND** the number of focus areas SHALL be capped at 4.\n-\n-#### Scenario: No focus areas for simple PRs\n-- **WHEN** the PR is simple and no meaningful risk/complexity/churn signals are detected\n-- **THEN** the summary MAY omit `Focus Areas`\n-- **AND** this SHALL be considered a valid successful summary outcome.\n-\n-#### Scenario: Focus area content shape\n-- **WHEN** one or more focus areas are emitted\n-- **THEN** each focus area SHALL include: where to review, why it matters, and what to verify.\n-\n-### Requirement: Summary Is Separate from Chat History\n-Summary content SHALL be isolated from chat history and SHALL NOT be included in subsequent LLM chat context.\n-\n-#### Scenario: Summary excluded from chat context\n-- **WHEN** a user sends a chat message after summary generation\n-- **THEN** the outbound chat context SHALL NOT include summary content as a prior message or system/context segment.\n-\n-### Requirement: Summary Presentation in PR Viewer\n-The PR viewer SHALL provide a dedicated Summary tab with loading and metadata display.\n-\n-#### Scenario: Summary tab displays loading spinner\n-- **WHEN** summary generation is in progress\n-- **THEN** the Summary tab SHALL display a spinner indicator and loading state text.\n-\n-#### Scenario: Summary tab displays generated timestamp\n-- **WHEN** summary generation succeeds\n-- **THEN** the Summary tab SHALL display the summary content and a generation-time timestamp at the bottom of the pane.\n-\n-### Requirement: Empty and Failure Fallback States\n-The system SHALL provide explicit fallback states when summary generation is not possible.\n-\n-#### Scenario: Empty PR state\n-- **WHEN** a selected PR has no textual content to summarize\n-- **THEN** the system SHALL skip summary generation and display `Nothing to Summarize` in the Summary tab.\n-\n-#### Scenario: LLM request failure state\n-- **WHEN** the system cannot reach the LLM or summary generation fails\n-- **THEN** the system SHALL display `Unable to generate summary` in the Summary tab.\n-\n-### Requirement: Per-PR Rate Limiting and Session Cache\n-The system SHALL limit summary generation to one request per minute per PR and cache generated summaries in session storage.\n-\n-#### Scenario: Per-PR one-minute generation limit\n-- **WHEN** a summary was generated for a PR less than one minute ago\n-- **THEN** the system SHALL NOT issue another summary generation request for that same PR during the one-minute window.\n-\n-#### Scenario: Cached summary reuse\n-- **WHEN** a cached summary exists in session storage for the current PR and summary prompt fingerprint\n-- **THEN** the system SHALL reuse the cached summary content and generated timestamp instead of issuing a new summary request.\ndiff --git a/openspec/changes/add-pr-summary-tab/tasks.md b/openspec/changes/add-pr-summary-tab/tasks.md\ndeleted file mode 100644\nindex ee16fe6..0000000\n--- a/openspec/changes/add-pr-summary-tab/tasks.md\n+++ /dev/null\n@@ -1,38 +0,0 @@\n-## 1. Configuration and Defaults\n-\n-- [ ] 1.1 Extend `AppConfig` with `summaryEnabled`, `summaryPrompt`, and `summaryCommands` fields.\n-- [ ] 1.2 Add and export the default summary prompt constant using the product-provided baseline prompt text.\n-- [ ] 1.3 Update config slice load/save/default behavior to persist summary settings while keeping sensitive field handling unchanged.\n-- [ ] 1.4 Add config slice tests for summary defaults, persistence, and reset-only-prompt behavior.\n-\n-## 2. PR Data and Summary State Model\n-\n-- [ ] 2.1 Extend GitHub service with a PR commits endpoint and related types for commit message context.\n-- [ ] 2.2 Add PR commits state and async thunk wiring in `prsSlice` and store update flows.\n-- [ ] 2.3 Add summary-specific PR state fields (`status`, `content`, `generatedAt`, `error`) and reducers/actions for lifecycle transitions.\n-- [ ] 2.4 Add/expand PR slice and GitHub service tests for commit loading and summary state transitions.\n-\n-## 3. Summary Orchestration and Prompt Assembly\n-\n-- [ ] 3.1 Implement summary utility logic for per-PR cache keying, one-per-minute rate limiting, and sessionStorage read/write.\n-- [ ] 3.2 Implement empty-PR detection that skips generation when no textual diff content is available.\n-- [ ] 3.3 Extend LLM summary prompt assembly to include editable prompt text, optional summary commands, required section contract, and style constraints.\n-- [ ] 3.4 Ensure summary generation uses existing LLM configuration and never inserts summary content into chat history/context.\n-- [ ] 3.5 Add unit tests for summary utility behavior and summary prompt composition.\n-- [ ] 3.6 Refine summary output contract to prioritize quick orientation: enforce a 2-4 line top summary and adaptive `Focus Areas` (0-4 items, no minimum).\n-- [ ] 3.7 Ensure each emitted focus area includes: review target (`where`), rationale (`why it matters`), and reviewer guidance (`what to verify`).\n-- [ ] 3.8 Add/expand summary prompt tests to assert: orientation is constrained to 2-4 lines, focus areas are adaptive, zero focus areas are valid, and output never exceeds 4 focus areas.\n-\n-## 4. UI Integration\n-\n-- [ ] 4.1 Add summary controls to Settings (enable toggle, editable prompt, additional commands input, reset prompt button).\n-- [ ] 4.2 Add a `Summary` tab to `PRViewer` with loading spinner, success rendering, empty/failure states, and timestamp footer.\n-- [ ] 4.3 Trigger summary generation on PR selection, clear chat when PR changes, and guard against stale in-flight responses.\n-- [ ] 4.4 Add/expand UI tests for settings interactions and summary tab state rendering.\n-- [ ] 4.5 Add/expand Summary tab rendering tests for orientation-only success output (no focus areas), adaptive rendering for 1-4 focus areas, and graceful handling when focus areas are omitted.\n-\n-## 5. Documentation and Validation\n-\n-- [ ] 5.1 Update README documentation for summary behavior, settings, fallback states, cache/rate-limit behavior, and output expectations.\n-- [ ] 5.2 Update `plans/plan.md` and any relevant agent guidance to reflect the new summary feature scope.\n-- [ ] 5.3 Run `npm run lint`, `npm run test`, and `npm run build`, then resolve any failures, including new quick-orientation summary contract tests.\ndiff --git a/plans/plan.md b/plans/plan.md\nindex eec1020..874092f 100644\n--- a/plans/plan.md\n+++ b/plans/plan.md\n@@ -245,3 +245,35 @@ Identified during initial code review. These are non-blocking improvements to ad\n \n - `openspec/changes/add-pr-summary-tab/tasks.md` was updated to capture quick-orientation behavior decisions from explore mode.\n - Summary behavior target: 2-4 line orientation section, adaptive `Focus Areas` with bounds `0..4`, and valid success output when focus areas are omitted for simple PRs.\n+- Synced delta spec `openspec/changes/add-pr-summary-tab/specs/pr-review-summary/spec.md` into new main spec `openspec/specs/pr-review-summary/spec.md`.\n+- Added change scaffold `openspec/changes/update-pr-review-summary-ui-readability/` with completed proposal, design, spec delta, and tasks artifacts for summary UI readability improvements.\n+- Refined `update-pr-review-summary-ui-readability` scope to panelized Summary display: Orientation and each Focus Area render as separate cards styled like Comments/Reviews, with blue/yellow title accents and no spec contract changes.\n+\n+---\n+\n+## ✅ Phase 9: PR Summary Tab (COMPLETED)\n+\n+- [x] Extend `AppConfig` with summary fields: `summaryEnabled`, `summaryPrompt`, `summaryCommands`\n+- [x] Add/export `DEFAULT_SUMMARY_PROMPT` and keep reset behavior prompt-only\n+- [x] Add PR commits API loading (`getPRCommits`) and Redux state wiring\n+- [x] Add summary lifecycle state in `prsSlice` (`status`, `content`, `generatedAt`, `error`)\n+- [x] Implement summary orchestration utilities:\n+  - per-PR+head+prompt cache keying\n+  - sessionStorage read/write cache\n+  - one-per-minute per-PR-head rate limiting\n+  - empty textual diff detection\n+- [x] Extend LLM service with structured summary prompt assembly (orientation + adaptive focus areas)\n+- [x] Add Summary tab UI in `PRViewer` with loading/success/empty/error states and timestamp footer\n+- [x] Wire summary generation on PR selection/load and keep summary separate from chat history/context\n+- [x] Add/expand tests for config, GitHub service, PR slice, summary utilities, LLM prompt, Settings UI, and Summary tab rendering\n+- [x] Update README and agent guidance for summary behavior, fallback states, and output contract\n+\n+---\n+\n+## OpenSpec Implementation Updates (2026-03-14)\n+\n+- [x] Completed OpenSpec change `update-pr-review-summary-ui-readability` implementation tasks (8/8) for panelized Summary tab readability updates.\n+- [x] Updated Summary success rendering in `src/components/PRViewer.tsx` to show an `Orientation` panel and per-item `Focus Area N` panels with blue/yellow title accents.\n+- [x] Kept summary generation flow and fallback state semantics unchanged (loading/empty/error behavior preserved).\n+- [x] Updated `src/components/PRViewer.summary.test.tsx` assertions for orientation-only and orientation+focus-area panelized rendering.\n+- [x] Validation run completed with `npm run lint && npm run build && npm run test`.\ndiff --git a/src/components/ChatWindow.tsx b/src/components/ChatWindow.tsx\nindex aeaa921..5956f52 100644\n--- a/src/components/ChatWindow.tsx\n+++ b/src/components/ChatWindow.tsx\n@@ -109,6 +109,7 @@ export function ChatWindow() {\n   const [input, setInput] = useState('');\n   const messagesEndRef = useRef<HTMLDivElement>(null);\n   const textareaRef = useRef<HTMLTextAreaElement>(null);\n+  const previousSelectedPRIdRef = useRef<number | null>(null);\n \n   const scrollToBottom = useCallback(() => {\n     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });\n@@ -118,6 +119,18 @@ export function ChatWindow() {\n     scrollToBottom();\n   }, [messages, scrollToBottom]);\n \n+  useEffect(() => {\n+    const currentPRId = selectedPR?.id ?? null;\n+    if (\n+      previousSelectedPRIdRef.current !== null &&\n+      currentPRId !== null &&\n+      previousSelectedPRIdRef.current !== currentPRId\n+    ) {\n+      dispatch(clearMessages());\n+    }\n+    previousSelectedPRIdRef.current = currentPRId;\n+  }, [dispatch, selectedPR?.id]);\n+\n   const getPRContext = useCallback((): PRContext => {\n     if (config.demoMode) {\n       return dummyPRContext;\ndiff --git a/src/components/PRViewer.tsx b/src/components/PRViewer.tsx\nindex 93c85a6..3684af6 100644\n--- a/src/components/PRViewer.tsx\n+++ b/src/components/PRViewer.tsx\n@@ -1,5 +1,7 @@\n import { useState } from 'react';\n import { ChevronRight, FileCode, FilePlus, FileMinus, FileEdit, Loader2, AlertCircle, Inbox } from 'lucide-react';\n+import ReactMarkdown from 'react-markdown';\n+import remarkGfm from 'remark-gfm';\n import { useAppSelector } from '../store/hooks';\n import { cn, formatDate } from '../lib/utils';\n import type { PRFile } from '../types';\n@@ -139,11 +141,88 @@ function EmptyState({ message }: { message: string }) {\n   );\n }\n \n+interface SummaryPanels {\n+  orientation: string;\n+  focusAreas: string[];\n+}\n+\n+function parseSummaryPanels(content: string): SummaryPanels {\n+  const normalized = content.replace(/\\r\\n/g, '\\n').trim();\n+  const focusHeadingMatch = /^#{1,6}\\s+Focus Areas\\s*$/im.exec(normalized);\n+\n+  if (!focusHeadingMatch || focusHeadingMatch.index === undefined) {\n+    return {\n+      orientation: normalized,\n+      focusAreas: [],\n+    };\n+  }\n+\n+  const headingStart = focusHeadingMatch.index;\n+  const headingText = focusHeadingMatch[0] ?? '';\n+  const headingEnd = headingStart + headingText.length;\n+  const orientation = normalized.slice(0, headingStart).trim();\n+  const focusAreaBlock = normalized.slice(headingEnd).trim();\n+\n+  if (!focusAreaBlock) {\n+    return {\n+      orientation,\n+      focusAreas: [],\n+    };\n+  }\n+\n+  const focusAreas: string[] = [];\n+  const lines = focusAreaBlock.split('\\n');\n+  let current: string[] = [];\n+\n+  for (const line of lines) {\n+    if (/^\\s*-\\s+/.test(line)) {\n+      if (current.length > 0) {\n+        focusAreas.push(current.join('\\n').trim());\n+      }\n+      current = [line.replace(/^\\s*-\\s+/, '')];\n+      continue;\n+    }\n+\n+    if (current.length > 0) {\n+      current.push(line);\n+    }\n+  }\n+\n+  if (current.length > 0) {\n+    focusAreas.push(current.join('\\n').trim());\n+  }\n+\n+  return {\n+    orientation,\n+    focusAreas,\n+  };\n+}\n+\n+function SummaryPanel({\n+  title,\n+  titleClassName,\n+  content,\n+}: {\n+  title: string;\n+  titleClassName: string;\n+  content: string;\n+}) {\n+  return (\n+    <div className=\"rounded-md border border-border p-3 sm:p-4 space-y-2 bg-muted/10\">\n+      <div className={cn('text-xs font-semibold uppercase tracking-wide', titleClassName)}>{title}</div>\n+      <div className=\"prose prose-sm dark:prose-invert max-w-none text-foreground prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-code:text-xs\">\n+        <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>\n+      </div>\n+    </div>\n+  );\n+}\n+\n export function PRViewer() {\n-  const { selectedPR, files, comments, reviews, loadingByResource, errorByResource } = useAppSelector(\n+  const { selectedPR, files, comments, reviews, summary, loadingByResource, errorByResource } = useAppSelector(\n     (state) => state.prs\n   );\n-  const [activeTab, setActiveTab] = useState<'files' | 'comments' | 'reviews'>('files');\n+  const summaryEnabled = useAppSelector((state) => state.config.config.summaryEnabled);\n+  const [activeTab, setActiveTab] = useState<'summary' | 'files' | 'comments' | 'reviews'>('summary');\n \n   if (!selectedPR) {\n     if (loadingByResource.metadata) {\n@@ -170,6 +249,7 @@ export function PRViewer() {\n   }\n \n   const tabs = [\n+    { id: 'summary' as const, label: 'Summary' },\n     { id: 'files' as const, label: `Files (${files.length})` },\n     { id: 'comments' as const, label: `Comments (${comments.length})` },\n     { id: 'reviews' as const, label: `Reviews (${reviews.length})` },\n@@ -237,6 +317,51 @@ export function PRViewer() {\n \n       {/* Tab Content */}\n       <div className=\"flex-1 overflow-y-auto p-3\">\n+        {activeTab === 'summary' && (\n+          <div className=\"space-y-2 animate-fade-slide-in\">\n+            {!summaryEnabled ? (\n+              <EmptyState message=\"Summary generation is disabled in Settings.\" />\n+            ) : summary.status === 'loading' ? (\n+              <LoadingState label=\"Generating summary...\" />\n+            ) : summary.status === 'error' ? (\n+              <ErrorState message={summary.error || 'Unable to generate summary'} />\n+            ) : summary.status === 'empty' ? (\n+              <EmptyState message={summary.content || 'Nothing to Summarize'} />\n+            ) : summary.status === 'success' && summary.content ? (\n+              <div className=\"space-y-3\">\n+                {(() => {\n+                  const panels = parseSummaryPanels(summary.content);\n+\n+                  return (\n+                    <div className=\"space-y-2\">\n+                      <SummaryPanel\n+                        title=\"Orientation\"\n+                        titleClassName=\"text-blue-700 dark:text-blue-300\"\n+                        content={panels.orientation || summary.content}\n+                      />\n+                      {panels.focusAreas.map((focusArea, index) => (\n+                        <SummaryPanel\n+                          key={`${focusArea.slice(0, 40)}::${index}`}\n+                          title={`Focus Area ${index + 1}`}\n+                          titleClassName=\"text-yellow-700 dark:text-yellow-300\"\n+                          content={focusArea}\n+                        />\n+                      ))}\n+                    </div>\n+                  );\n+                })()}\n+                {summary.generatedAt && (\n+                  <div className=\"text-xs text-muted-foreground text-right\">\n+                    Generated {formatDate(new Date(summary.generatedAt).toISOString())}\n+                  </div>\n+                )}\n+              </div>\n+            ) : (\n+              <EmptyState message=\"Summary will appear after PR data loads.\" />\n+            )}\n+          </div>\n+        )}\n+\n         {activeTab === 'files' && (\n           <div className=\"space-y-2 animate-fade-slide-in\">\n             {loadingByResource.files ? (\ndiff --git a/src/components/SettingsDialog.tsx b/src/components/SettingsDialog.tsx\nindex 749fed7..bb65b66 100644\n--- a/src/components/SettingsDialog.tsx\n+++ b/src/components/SettingsDialog.tsx\n@@ -2,7 +2,7 @@ import { useState } from 'react';\n import * as Dialog from '@radix-ui/react-dialog';\n import { Settings, X } from 'lucide-react';\n import { useAppDispatch, useAppSelector } from '../store/hooks';\n-import { updateConfig } from '../store/slices/configSlice';\n+import { DEFAULT_SUMMARY_PROMPT, updateConfig } from '../store/slices/configSlice';\n import type { AppConfig } from '../types';\n import { cn } from '../lib/utils';\n \n@@ -16,6 +16,16 @@ interface FieldProps {\n   description?: string;\n }\n \n+interface TextareaFieldProps {\n+  label: string;\n+  id: string;\n+  value: string;\n+  onChange: (value: string) => void;\n+  placeholder?: string;\n+  description?: string;\n+  rows?: number;\n+}\n+\n function Field({ label, id, type = 'text', value, onChange, placeholder, description }: FieldProps) {\n   return (\n     <div className=\"space-y-1.5\">\n@@ -42,6 +52,30 @@ function Field({ label, id, type = 'text', value, onChange, placeholder, descrip\n   );\n }\n \n+function TextareaField({ label, id, value, onChange, placeholder, description, rows = 4 }: TextareaFieldProps) {\n+  return (\n+    <div className=\"space-y-1.5\">\n+      <label htmlFor={id} className=\"text-sm font-medium text-foreground\">\n+        {label}\n+      </label>\n+      <textarea\n+        id={id}\n+        value={value}\n+        onChange={(e) => onChange(e.target.value)}\n+        placeholder={placeholder}\n+        rows={rows}\n+        className={cn(\n+          'w-full rounded-md border border-input bg-background px-3 py-2 text-sm',\n+          'placeholder:text-muted-foreground',\n+          'focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-1',\n+          'transition-colors resize-y'\n+        )}\n+      />\n+      {description && <p className=\"text-xs text-muted-foreground\">{description}</p>}\n+    </div>\n+  );\n+}\n+\n export function SettingsDialog() {\n   const dispatch = useAppDispatch();\n   const config = useAppSelector((state) => state.config.config);\n@@ -67,6 +101,10 @@ export function SettingsDialog() {\n     setForm((prev) => ({ ...prev, [field]: value }));\n   };\n \n+  const handleResetSummaryPrompt = () => {\n+    setForm((prev) => ({ ...prev, summaryPrompt: DEFAULT_SUMMARY_PROMPT }));\n+  };\n+\n   return (\n     <Dialog.Root open={open} onOpenChange={(o) => !o && handleCancel()}>\n       <Dialog.Trigger asChild>\n@@ -217,6 +255,69 @@ export function SettingsDialog() {\n                 description=\"The model to use for chat completions\"\n               />\n             </div>\n+\n+            {/* Summary Section */}\n+            <div className=\"space-y-4\">\n+              <h3 className=\"text-sm font-semibold text-foreground border-b border-border pb-2\">\n+                PR Summary\n+              </h3>\n+\n+              <div className=\"flex items-center justify-between rounded-lg border border-border p-4\">\n+                <div>\n+                  <p className=\"text-sm font-medium text-foreground\">Enable Summary Generation</p>\n+                  <p className=\"text-xs text-muted-foreground mt-0.5\">\n+                    Automatically generate a kickoff summary when loading a pull request\n+                  </p>\n+                </div>\n+                <button\n+                  role=\"switch\"\n+                  aria-checked={form.summaryEnabled}\n+                  onClick={() => updateField('summaryEnabled')(!form.summaryEnabled)}\n+                  className={cn(\n+                    'relative inline-flex h-6 w-11 items-center rounded-full transition-colors',\n+                    form.summaryEnabled ? 'bg-primary' : 'bg-muted'\n+                  )}\n+                >\n+                  <span\n+                    className={cn(\n+                      'inline-block h-4 w-4 rounded-full bg-white shadow-sm transition-transform',\n+                      form.summaryEnabled ? 'translate-x-6' : 'translate-x-1'\n+                    )}\n+                  />\n+                </button>\n+              </div>\n+\n+              <TextareaField\n+                label=\"Summary Prompt\"\n+                id=\"summary-prompt\"\n+                value={form.summaryPrompt}\n+                onChange={updateField('summaryPrompt')}\n+                rows={10}\n+                description=\"Editable base prompt used to generate PR kickoff summaries.\"\n+              />\n+\n+              <TextareaField\n+                label=\"Additional Summary Commands\"\n+                id=\"summary-commands\"\n+                value={form.summaryCommands}\n+                onChange={updateField('summaryCommands')}\n+                rows={4}\n+                placeholder=\"Optional per-team guidance appended to summary generation\"\n+                description=\"Optional extra instructions appended after the summary prompt.\"\n+              />\n+\n+              <button\n+                onClick={handleResetSummaryPrompt}\n+                type=\"button\"\n+                className={cn(\n+                  'rounded-md px-3 py-2 text-xs font-medium',\n+                  'border border-input bg-background text-foreground',\n+                  'hover:bg-accent hover:text-accent-foreground transition-colors'\n+                )}\n+              >\n+                Reset Summary Prompt\n+              </button>\n+            </div>\n           </div>\n \n           <div className=\"flex justify-end gap-3 mt-6 pt-4 border-t border-border\">\ndiff --git a/src/components/Sidebar.test.tsx b/src/components/Sidebar.test.tsx\nindex 2653f7e..612b58f 100644\n--- a/src/components/Sidebar.test.tsx\n+++ b/src/components/Sidebar.test.tsx\n@@ -55,6 +55,9 @@ function renderSidebar(options?: {\n           llmEndpoint: 'https://api.openai.com/v1',\n           llmModel: 'gpt-4o',\n           demoMode: options?.demoMode ?? false,\n+          summaryEnabled: true,\n+          summaryPrompt: 'default summary prompt',\n+          summaryCommands: '',\n         },\n       },\n       prs: {\n@@ -63,6 +66,14 @@ function renderSidebar(options?: {\n         comments: [],\n         reviewComments: [],\n         reviews: [],\n+        commits: [],\n+        summary: {\n+          status: 'idle' as const,\n+          content: null,\n+          generatedAt: null,\n+          error: null,\n+          requestKey: null,\n+        },\n         isLoading: options?.isLoading ?? false,\n         error: null,\n         loadingByResource: {\n@@ -71,6 +82,7 @@ function renderSidebar(options?: {\n           comments: false,\n           reviewComments: false,\n           reviews: false,\n+          commits: false,\n         },\n         errorByResource: {\n           metadata: null,\n@@ -78,6 +90,7 @@ function renderSidebar(options?: {\n           comments: null,\n           reviewComments: null,\n           reviews: null,\n+          commits: null,\n         },\n       },\n       chat: {\ndiff --git a/src/components/Sidebar.tsx b/src/components/Sidebar.tsx\nindex 5203c56..7283d80 100644\n--- a/src/components/Sidebar.tsx\n+++ b/src/components/Sidebar.tsx\n@@ -7,12 +7,17 @@ import {\n   setPRComments,\n   setPRReviewComments,\n   setPRReviews,\n+  setPRCommits,\n+  resetSummaryState,\n   fetchPullRequest,\n   fetchPRFiles,\n   fetchPRComments,\n   fetchPRReviewComments,\n   fetchPRReviews,\n+  fetchPRCommits,\n+  generatePRSummary,\n } from '../store/slices/prsSlice';\n+import { clearMessages } from '../store/slices/chatSlice';\n import { setDemoMode } from '../store/slices/configSlice';\n import { dummyPR, dummyFiles, dummyComments, dummyReviewComments, dummyReviews } from '../services/dummyData';\n import { cn, formatDate } from '../lib/utils';\n@@ -83,28 +88,45 @@ export function Sidebar() {\n       dispatch(setPRComments(dummyComments));\n       dispatch(setPRReviewComments(dummyReviewComments));\n       dispatch(setPRReviews(dummyReviews));\n+      dispatch(setPRCommits([]));\n+      if (config.summaryEnabled) {\n+        void dispatch(generatePRSummary({ owner: 'demo', repo: 'demo', prNumber: dummyPR.number }));\n+      }\n     }\n-  }, [config.demoMode, selectedPR, dispatch]);\n+  }, [config.demoMode, config.summaryEnabled, selectedPR, dispatch]);\n \n   const handleSelectDemoPR = () => {\n+    dispatch(clearMessages());\n     dispatch(setSelectedPR(dummyPR));\n     dispatch(setPRFiles(dummyFiles));\n     dispatch(setPRComments(dummyComments));\n     dispatch(setPRReviewComments(dummyReviewComments));\n     dispatch(setPRReviews(dummyReviews));\n+    dispatch(setPRCommits([]));\n+    if (config.summaryEnabled) {\n+      void dispatch(generatePRSummary({ owner: 'demo', repo: 'demo', prNumber: dummyPR.number }));\n+    } else {\n+      dispatch(resetSummaryState());\n+    }\n   };\n \n   const handleToggleDemoMode = () => {\n     dispatch(setDemoMode(!config.demoMode));\n     if (!config.demoMode) {\n       // Switching to demo mode - load dummy data\n+      dispatch(clearMessages());\n       dispatch(setSelectedPR(dummyPR));\n       dispatch(setPRFiles(dummyFiles));\n       dispatch(setPRComments(dummyComments));\n       dispatch(setPRReviewComments(dummyReviewComments));\n       dispatch(setPRReviews(dummyReviews));\n+      dispatch(setPRCommits([]));\n+      if (config.summaryEnabled) {\n+        void dispatch(generatePRSummary({ owner: 'demo', repo: 'demo', prNumber: dummyPR.number }));\n+      }\n     } else {\n       // Switching to GitHub mode - clear selection\n+      dispatch(clearMessages());\n       dispatch(setSelectedPR(null));\n     }\n   };\n@@ -140,6 +162,7 @@ export function Sidebar() {\n   };\n \n   const loadPullRequestContext = async (values: PRFormValues) => {\n+    dispatch(clearMessages());\n     const metadataAction = await dispatch(fetchPullRequest(values));\n     if (fetchPullRequest.rejected.match(metadataAction)) {\n       return;\n@@ -150,7 +173,14 @@ export function Sidebar() {\n       dispatch(fetchPRComments(values)),\n       dispatch(fetchPRReviewComments(values)),\n       dispatch(fetchPRReviews(values)),\n+      dispatch(fetchPRCommits(values)),\n     ]);\n+\n+    if (config.summaryEnabled) {\n+      await dispatch(generatePRSummary(values));\n+    } else {\n+      dispatch(resetSummaryState());\n+    }\n   };\n \n   const handleLoadPR = () => {\ndiff --git a/src/services/github.test.ts b/src/services/github.test.ts\nindex 87be9d2..73b0986 100644\n--- a/src/services/github.test.ts\n+++ b/src/services/github.test.ts\n@@ -16,6 +16,9 @@ function makeConfig(overrides: Partial<AppConfig> = {}): AppConfig {\n     llmEndpoint: 'https://api.openai.com/v1',\n     llmModel: 'gpt-4o',\n     demoMode: false,\n+    summaryEnabled: true,\n+    summaryPrompt: 'default summary prompt',\n+    summaryCommands: '',\n     ...overrides,\n   };\n }\n@@ -187,6 +190,37 @@ describe('GitHubService — getPRFiles pagination', () => {\n   });\n });\n \n+describe('GitHubService — getPRCommits', () => {\n+  beforeEach(() => {\n+    vi.stubEnv('VITE_USE_PROXY', '');\n+  });\n+\n+  it('fetches commit messages for a pull request', async () => {\n+    const svc = new GitHubService(makeConfig());\n+    // eslint-disable-next-line @typescript-eslint/no-explicit-any\n+    const getSpy = vi.spyOn((svc as any).client, 'get');\n+\n+    getSpy.mockResolvedValueOnce({\n+      data: [\n+        {\n+          sha: 'abc123',\n+          commit: { message: 'feat: add summary tab' },\n+          html_url: 'https://github.com/org/repo/commit/abc123',\n+        },\n+      ],\n+    });\n+\n+    const commits = await svc.getPRCommits('org', 'repo', 123);\n+\n+    expect(commits).toHaveLength(1);\n+    expect(commits[0].commit.message).toBe('feat: add summary tab');\n+    expect(getSpy).toHaveBeenCalledWith(\n+      '/repos/org/repo/pulls/123/commits',\n+      expect.objectContaining({ params: expect.objectContaining({ per_page: 100, page: 1 }) })\n+    );\n+  });\n+});\n+\n // ---------------------------------------------------------------------------\n // Error parsing tests\n // ---------------------------------------------------------------------------\ndiff --git a/src/services/github.ts b/src/services/github.ts\nindex d758125..e703777 100644\n--- a/src/services/github.ts\n+++ b/src/services/github.ts\n@@ -6,6 +6,7 @@ import type {\n   PRComment,\n   PRReviewComment,\n   PRReview,\n+  PRCommit,\n   AppConfig,\n   GitHubApiErrorCode,\n   GitHubApiErrorData,\n@@ -314,6 +315,38 @@ export class GitHubService {\n     );\n   }\n \n+  async getPRCommits(owner: string, repo: string, prNumber: number): Promise<PRCommit[]> {\n+    const perPage = 100;\n+    const maxPages = 10;\n+    const commits: PRCommit[] = [];\n+\n+    for (let page = 1; page <= maxPages; page += 1) {\n+      const pageCommits = await this.get<PRCommit[]>(\n+        `/repos/${owner}/${repo}/pulls/${prNumber}/commits`,\n+        {\n+          params: {\n+            per_page: perPage,\n+            page,\n+          },\n+        }\n+      );\n+\n+      commits.push(...pageCommits);\n+\n+      if (pageCommits.length < perPage) {\n+        return commits;\n+      }\n+    }\n+\n+    throw new GitHubApiError({\n+      code: 'UNKNOWN_ERROR',\n+      status: null,\n+      message: 'Exceeded maximum pagination depth while fetching pull request commits',\n+      userMessage:\n+        'Could not load all pull request commits because the result set is unusually large. Please narrow scope and retry.',\n+    });\n+  }\n+\n   async validateToken(): Promise<boolean> {\n     try {\n       await this.client.get('/user');\ndiff --git a/src/services/llm.test.ts b/src/services/llm.test.ts\nindex c9a9bc4..a013c4b 100644\n--- a/src/services/llm.test.ts\n+++ b/src/services/llm.test.ts\n@@ -15,6 +15,9 @@ function makeConfig(overrides: Partial<AppConfig> = {}): AppConfig {\n     llmEndpoint: 'https://api.openai.com/v1',\n     llmModel: 'gpt-4o',\n     demoMode: false,\n+    summaryEnabled: true,\n+    summaryPrompt: 'default summary prompt',\n+    summaryCommands: '',\n     ...overrides,\n   };\n }\n@@ -80,6 +83,13 @@ const mockContext: PRContext = {\n       html_url: '',\n     },\n   ],\n+  commits: [\n+    {\n+      sha: 'abc123',\n\n...34985 bytes truncated...\n\nThe tool call succeeded but the output was truncated. Full output saved to: /home/mark/.local/share/opencode/tool-output/tool_ceed0fc22001u6xLTbvD5BKnBq\nUse the Task tool to have explore agent process this file with Grep and Read (with offset/limit). Do NOT read the full file yourself - delegate to save context.",
+            "title": "Shows all unstaged and staged changes",
+            "metadata": {
+              "output": "diff --git a/README.md b/README.md\nindex c3a4986..c2105f7 100644\n--- a/README.md\n+++ b/README.md\n@@ -13,6 +13,7 @@ A standalone web application that lets you review and ask questions about GitHub\n - 🎭 **Demo mode** — Try the app immediately with a sample PR, no credentials needed\n - 🐙 **GitHub integration** — Works with github.com and GitHub Enterprise Server (GHES)\n - 🔍 **PR context** — Injects PR metadata, file diffs, comments, and reviews into the LLM context\n+- 🧭 **Summary tab** — Auto-generates a PR kickoff summary in a dedicated tab (separate from chat)\n - ⚙️ **Runtime configuration** — Override all settings via the Settings dialog (persisted to localStorage)\n - 🌙 **Dark mode** — Toggle between light and dark themes\n \n@@ -26,6 +27,8 @@ Planned summary behavior:\n - Favor quick orientation: a 2-4 line overview first\n - Add adaptive `Focus Areas` only when warranted, with a hard cap of 4 and no minimum\n - Treat summary output with no focus areas as valid for simple PRs\n+- Include commit messages as first-class summary context\n+- Reuse session cache per PR/prompt fingerprint and rate-limit generation to one request per minute per PR head SHA\n \n ---\n \n@@ -104,6 +107,12 @@ VITE_LLM_MODEL=gpt-4o\n # Start in demo mode (true/false)\n # Demo mode uses a pre-loaded sample PR — no GitHub credentials needed\n VITE_DEMO_MODE=true\n+\n+# Enable PR summary auto-generation by default (true/false)\n+VITE_SUMMARY_ENABLED=true\n+\n+# Optional additional summary commands appended to summary prompt\n+VITE_SUMMARY_COMMANDS=\n ```\n \n ---\n@@ -232,6 +241,14 @@ Example questions to try:\n 4. Enter the PR number and click **Load PR**\n 5. Use the refresh button in the Pull Requests header to reload the currently selected PR\n \n+Summary behavior in GitHub mode:\n+- A summary request is triggered after PR metadata/files/comments/reviews/commits load\n+- Summary output is rendered in the `Summary` tab and is not inserted into chat history/context\n+- Empty textual diffs skip LLM generation and show `Nothing to Summarize`\n+- LLM failures show `Unable to generate summary`\n+- Cache is session-scoped and keyed by PR identity + head SHA + prompt/commands fingerprint\n+- Generation is limited to one request per minute for each PR head SHA\n+\n GitHub mode behavior:\n - While data is loading, the **Load PR** button shows a spinner and inputs are disabled to prevent duplicate requests.\n - Auth failures (401) prompt you to update your GitHub PAT in Settings.\n@@ -252,6 +269,9 @@ Click the **⚙️ Settings** button in the top bar to configure:\n | LLM Endpoint | Base URL for the LLM API |\n | LLM API Key | Your API key |\n | LLM Model | Model name (e.g., `gpt-4o`, `claude-3-5-sonnet`) |\n+| Summary Enabled | Toggle auto-generation for PR summaries |\n+| Summary Prompt | Editable base prompt for summary generation |\n+| Additional Summary Commands | Optional appended instructions for summaries |\n \n ---\n \n@@ -300,6 +320,11 @@ You need to set an LLM API key. Click ⚙️ Settings and fill in the **API Key*\n - Ensure the model name is correct for your provider\n - Check browser console for detailed error messages\n \n+### Summary output expectations\n+- Successful summaries should start with a concise 2-4 line orientation section\n+- `Focus Areas` are adaptive and optional for simple PRs\n+- When present, `Focus Areas` should remain within 1-4 items and include where/why/what-to-verify guidance\n+\n ### GitHub API errors\n - Verify your PAT has the correct scopes (`repo` or `public_repo`)\n - For GHES, ensure the hostname is correct (no `https://` prefix)\ndiff --git a/agents.md b/agents.md\nindex bb31b88..d8a055d 100644\n--- a/agents.md\n+++ b/agents.md\n@@ -29,16 +29,17 @@ src/\n │   └── slices/\n │       ├── configSlice.ts     # App config (env vars + localStorage overrides)\n │       ├── chatSlice.ts       # Chat messages + streaming state\n-│       └── prsSlice.ts        # Selected PR data (files, comments, reviews)\n+│       └── prsSlice.ts        # Selected PR data + commits + summary lifecycle state\n ├── services/\n │   ├── llm.ts                 # LLM service (OpenAI v1 API + LiteLLM, streaming)\n │   ├── github.ts              # GitHub API service (github.com + GHES)\n+│   ├── summary.ts             # Summary cache/rate-limit/empty-diff utilities\n │   └── dummyData.ts           # Sample PR data for demo mode\n ├── components/\n │   ├── Sidebar.tsx            # Demo toggle + GitHub owner/repo + PR loader\n │   ├── ChatWindow.tsx         # Chat interface with streaming\n-│   ├── PRViewer.tsx           # PR details, diffs, comments, reviews\n-│   └── SettingsDialog.tsx     # Runtime configuration override\n+│   ├── PRViewer.tsx           # PR details, summary tab, diffs, comments, reviews\n+│   └── SettingsDialog.tsx     # Runtime configuration override + summary controls\n └── lib/\n     └── utils.ts               # cn(), formatDate(), generateId()\n ```\n@@ -56,13 +57,14 @@ src/\n - Streaming responses via Server-Sent Events\n - PR context injected as system prompt (PR metadata, diffs, comments, reviews)\n - Configurable endpoint, model, and API key\n+- Separate summary prompt assembly path (`buildSummaryPrompt`) for orientation-first PR kickoff summaries\n \n ### GitHub Integration\n - PAT (Personal Access Token) authentication\n - Supports **github.com** and **GitHub Enterprise Server (GHES)**\n - GHES base URL: `https://<host>/api/v3`\n - Manual GitHub mode input in sidebar: `owner/repo` + PR number\n-- Fetches: PR metadata, file diffs, issue comments, review comments, reviews\n+- Fetches: PR metadata, file diffs, issue comments, review comments, reviews, commit messages\n - Refresh action re-fetches currently selected PR\n - User-friendly GitHub API errors (auth, not found, rate limit, network)\n \n@@ -70,6 +72,19 @@ src/\n - Runtime override of all configuration\n - Persisted to `localStorage`\n - Defaults from environment variables (`VITE_*`)\n+- Includes summary controls (`summaryEnabled`, editable `summaryPrompt`, optional `summaryCommands`, reset prompt)\n+\n+### PR Summary Flow\n+- Summary generation triggers on PR selection/load when `summaryEnabled` is true\n+- Summary state is isolated from chat state (`prsSlice.summary`)\n+- Fallback states:\n+  - `Nothing to Summarize` when no textual diffs exist\n+  - `Unable to generate summary` on generation failure\n+- Uses session-scoped cache and one-per-minute per-PR-head rate limit\n+- Summary output contract:\n+  - 2-4 line orientation section\n+  - adaptive `Focus Areas` (`0..4`)\n+  - each focus area includes where/why/what-to-verify\n \n ## Environment Variables\n \n@@ -81,6 +96,8 @@ VITE_LLM_BACKEND=openai   # \"openai\" or \"litellm\"\n VITE_LLM_ENDPOINT=https://api.openai.com/v1\n VITE_LLM_MODEL=gpt-4o\n VITE_DEMO_MODE=true\n+VITE_SUMMARY_ENABLED=true\n+VITE_SUMMARY_COMMANDS=\n ```\n \n ## Development\n@@ -111,6 +128,12 @@ npm run preview   # Preview production build\n - The method receives a `PRContext` object with `pr`, `files`, `comments`, `reviewComments`, `reviews`\n - Prompt construction uses a deterministic character budget for very large PRs and emits an omission summary when some diffs are excluded\n \n+### Modifying summary behavior\n+- Summary orchestration policy lives in [`src/services/summary.ts`](src/services/summary.ts)\n+- Summary state transitions and async generation thunk live in [`src/store/slices/prsSlice.ts`](src/store/slices/prsSlice.ts)\n+- Summary prompt contract lives in `buildSummaryPrompt()` in [`src/services/llm.ts`](src/services/llm.ts)\n+- Summary UI rendering lives in [`src/components/PRViewer.tsx`](src/components/PRViewer.tsx)\n+\n ### Adding GitHub API endpoints\n - Add methods to the `GitHubService` class in [`src/services/github.ts`](src/services/github.ts)\n - The service automatically handles github.com vs GHES URL routing\ndiff --git a/openspec/changes/add-pr-summary-tab/.openspec.yaml b/openspec/changes/add-pr-summary-tab/.openspec.yaml\ndeleted file mode 100644\nindex 49ccc67..0000000\n--- a/openspec/changes/add-pr-summary-tab/.openspec.yaml\n+++ /dev/null\n@@ -1,2 +0,0 @@\n-schema: spec-driven\n-created: 2026-03-14\ndiff --git a/openspec/changes/add-pr-summary-tab/design.md b/openspec/changes/add-pr-summary-tab/design.md\ndeleted file mode 100644\nindex 7696a40..0000000\n--- a/openspec/changes/add-pr-summary-tab/design.md\n+++ /dev/null\n@@ -1,94 +0,0 @@\n-## Context\n-\n-The current reviewer workflow starts with raw PR metadata and diffs, then relies on free-form chat questions for orientation. This increases time-to-context, especially for large or complex pull requests. The application already has stable GitHub data-loading flows, an LLM service abstraction, and a right-pane PR viewer with tabbed detail views, which makes a summary-first reviewer experience a natural extension.\n-\n-This change spans multiple modules (settings, PR state, GitHub service, LLM prompt assembly, and PR viewer UI), includes new persistence behavior (sessionStorage cache + localStorage config), and adds request-guard behavior (per-PR one-per-minute rate limiting). It also introduces stricter output-shape requirements for generated content.\n-\n-## Goals / Non-Goals\n-\n-**Goals:**\n-- Provide an optional auto-generated PR summary, enabled by default, immediately after PR selection.\n-- Render summaries in a dedicated `Summary` tab in the right-hand PR pane, not in chat history.\n-- Prioritize quick orientation: generate a concise 2-4 line top summary before any deeper detail.\n-- Emit adaptive `Focus Areas` only when meaningful risk/complexity signals are present, with a hard cap of 4 and no minimum.\n-- Keep summary generation aligned with existing LLM configuration and API path.\n-- Make the summary prompt editable/persisted with a reset-to-default action.\n-- Enforce safe fallback states (`Empty PR`, `Unable to generate summary`) and avoid runaway generation via per-PR rate limits.\n-- Cache generated summaries in sessionStorage and display generation timestamp.\n-\n-**Non-Goals:**\n-- Creating a separate LLM provider or model configuration for summaries.\n-- Persisting summaries across browser sessions (cache is session-scoped by design).\n-- Replacing existing chat interactions or auto-answering reviewer follow-up questions.\n-\n-## Decisions\n-\n-1. **Summary state lives in PR domain state, not chat state**\n-   - **Decision:** Add summary-specific fields under `prsSlice` (status, content, generated timestamp, and error state), and render them in `PRViewer`.\n-   - **Rationale:** Summary is PR metadata context, not conversational history. Keeping it out of `chatSlice` ensures it cannot accidentally leak into chat context.\n-   - **Alternatives considered:**\n-     - Reusing `chatSlice` with special system messages (rejected: conflicts with requirement to exclude summaries from chat history/context).\n-     - Component-local state only (rejected: weaker consistency across tabs and PR reload flows).\n-\n-2. **Add a dedicated PR summary orchestration path**\n-   - **Decision:** Introduce a summary generation helper/service used by PR selection flows, with explicit logic for empty detection, cache lookup, and rate limiting.\n-   - **Rationale:** Centralizes policy (one-per-minute per PR, cache key strategy, fallback behavior) and keeps UI components simpler.\n-   - **Alternatives considered:**\n-     - Inline logic in `PRViewer` or `Sidebar` (rejected: duplicated complexity and harder testability).\n-\n-3. **Per-PR rate limit and cache key strategy**\n-   - **Decision:** Key by PR identity (`owner/repo`, PR number, head SHA) plus prompt/command fingerprint.\n-   - **Rationale:** Prevents stale summaries after prompt edits or branch updates while allowing fast cache hits for unchanged context.\n-   - **Alternatives considered:**\n-     - Global rate limit (rejected per product decision).\n-     - PR-only key without prompt fingerprint (rejected: would return mismatched cached summaries after prompt customization).\n-\n-4. **Summary prompt model**\n-   - **Decision:** Use a persisted `summaryPrompt` defaulted to the product-provided baseline prompt; append optional `summaryCommands`; enforce an orientation-first contract (2-4 lines) and adaptive `Focus Areas` contract (`0..4` items).\n-   - **Rationale:** Preserves user control while maintaining stable, scan-friendly output for rapid reviewer orientation.\n-   - **Alternatives considered:**\n-      - Fixed prompt only (rejected: conflicts with editability requirement).\n-      - Free-form output with no section contract (rejected: weak consistency).\n-\n-5. **Focus area shape and inclusion rules**\n-   - **Decision:** Include focus areas only when warranted by risk/complexity/churn signals. Each emitted focus area must include `where`, `why it matters`, and `what to verify` guidance.\n-   - **Rationale:** Keeps summary useful for triage without forcing noisy or low-signal bullets on simple PRs.\n-   - **Alternatives considered:**\n-      - Always include at least one focus area (rejected: simple PRs can legitimately have none).\n-      - Allow unlimited focus areas (rejected: undermines quick orientation).\n-\n-6. **Use existing LLM config and transport**\n-   - **Decision:** Summary generation uses the same `LLMService` instance/config already used for chat.\n-   - **Rationale:** Simpler operations model, no duplicated configuration surface, consistent provider behavior.\n-   - **Alternatives considered:**\n-      - Separate summary model/backend settings (rejected by requirement and would add UX complexity).\n-\n-7. **Commit messages become first-class summary context**\n-   - **Decision:** Extend GitHub service/store flows to fetch PR commits and make commit messages available to summary prompt building.\n-   - **Rationale:** Required by default prompt and improves orientation fidelity.\n-   - **Alternatives considered:**\n-      - Deriving commit context only from PR title/body (rejected: misses important intent details).\n-\n-## Risks / Trade-offs\n-\n-- **[Risk] Extra API and token cost on PR selection** -> **Mitigation:** summary toggle (default on but user-controlled), one-per-minute per-PR rate limit, and session cache reuse.\n-- **[Risk] Empty/binary-heavy PRs cause poor summary quality** -> **Mitigation:** detect absence of textual diff content and show `Empty PR` without calling LLM.\n-- **[Risk] Inconsistent output formatting from model** -> **Mitigation:** explicit section/format instructions in summary prompt; tolerant rendering in Summary tab.\n-- **[Risk] Race conditions when switching PRs rapidly** -> **Mitigation:** key requests by selected PR identity and discard stale in-flight responses when active PR changes.\n-- **[Risk] Added state complexity in PR slice** -> **Mitigation:** isolate summary fields and reducers, plus focused unit tests for transitions.\n-\n-## Migration Plan\n-\n-1. Add new config fields with backward-compatible defaults (`summaryEnabled: true`, default summary prompt, empty summary commands).\n-2. Add commit fetch API and state support; ensure existing PR load paths remain functional.\n-3. Implement summary orchestration (cache/rate-limit/empty checks) and wire it to PR selection lifecycle.\n-4. Add `Summary` tab rendering states and generated timestamp footer in `PRViewer`.\n-5. Update Settings UI with summary controls and reset behavior.\n-6. Add/expand tests for config, store transitions, summary utility logic, and prompt composition.\n-7. Update documentation for new summary feature behavior.\n-\n-Rollback strategy: disable summary feature by default through config fallback or temporarily gate summary generation trigger; existing chat and PR viewer tabs remain operational.\n-\n-## Open Questions\n-\n-- None at this time; product behavior is fully specified for this change.\ndiff --git a/openspec/changes/add-pr-summary-tab/proposal.md b/openspec/changes/add-pr-summary-tab/proposal.md\ndeleted file mode 100644\nindex 5b17c6d..0000000\n--- a/openspec/changes/add-pr-summary-tab/proposal.md\n+++ /dev/null\n@@ -1,30 +0,0 @@\n-## Why\n-\n-Reviewers currently have to manually scan PR metadata, file diffs, and comments before they can ask useful questions. A generated kickoff summary provides fast orientation and helps reviewers focus on high-risk areas immediately.\n-\n-## What Changes\n-\n-- Add an optional, auto-generated PR summary flow that runs when a PR is selected and is enabled by default.\n-- Add a new `Summary` tab in the right-hand PR viewer pane with loading, success, empty, and failure states.\n-- Refine summary output for quick reviewer orientation: a concise 2-4 line top summary plus adaptive `Focus Areas` when meaningful complexity/risk signals exist.\n-- Allow `Focus Areas` to be omitted for simple PRs and cap focus areas at 4 when present.\n-- Make the summary prompt user-editable in Settings, persist it between sessions, and provide a reset action that restores the default prompt only.\n-- Allow optional additional summary commands from Settings and append them to the summary prompt.\n-- Keep summary output separate from chat history and exclude it from subsequent LLM chat context.\n-- Add per-PR summary generation rate limiting (one request per minute) and sessionStorage caching.\n-- Show a generation timestamp at the bottom of the Summary pane.\n-- Fetch and include PR commit messages as summary context.\n-\n-## Capabilities\n-\n-### New Capabilities\n-- `pr-review-summary`: Generate and display reviewer-oriented PR summaries with configurable prompt behavior, caching, and guarded fallback states.\n-\n-### Modified Capabilities\n-- None.\n-\n-## Impact\n-\n-- Affected frontend areas: `src/components/PRViewer.tsx`, `src/components/SettingsDialog.tsx`, `src/store/slices/configSlice.ts`, `src/store/slices/prsSlice.ts`, `src/services/llm.ts`, `src/services/github.ts`, and related tests.\n-- Adds summary-specific state management and sessionStorage cache handling for per-PR summary payloads and generation timestamps.\n-- Adds one GitHub API integration path for PR commit messages to enrich summary context.\ndiff --git a/openspec/changes/add-pr-summary-tab/specs/pr-review-summary/spec.md b/openspec/changes/add-pr-summary-tab/specs/pr-review-summary/spec.md\ndeleted file mode 100644\nindex dac8540..0000000\n--- a/openspec/changes/add-pr-summary-tab/specs/pr-review-summary/spec.md\n+++ /dev/null\n@@ -1,98 +0,0 @@\n-## ADDED Requirements\n-\n-### Requirement: Automatic Summary Generation on PR Selection\n-The system SHALL generate a reviewer-orientation summary when a pull request is selected and summary generation is enabled.\n-\n-#### Scenario: Summary generated for selected PR\n-- **WHEN** a user selects a PR and summary generation is enabled\n-- **THEN** the system SHALL request a summary using PR description, PR commit messages, and textual code changes as context.\n-\n-#### Scenario: Summary generation disabled\n-- **WHEN** a user selects a PR and summary generation is disabled\n-- **THEN** the system SHALL not request or refresh summary content.\n-\n-### Requirement: Summary Uses Existing LLM Configuration\n-The system SHALL use the existing LLM backend configuration for summary generation.\n-\n-#### Scenario: Summary request uses configured LLM settings\n-- **WHEN** a summary request is issued\n-- **THEN** the request SHALL use the currently configured `llmBackend`, `llmEndpoint`, `llmApiKey`, and `llmModel` values.\n-\n-### Requirement: Summary Prompt Is Configurable and Persisted\n-The system SHALL allow users to edit the summary prompt, persist it across sessions, and reset only the prompt to the default value.\n-\n-#### Scenario: Prompt edits persist\n-- **WHEN** a user saves changes to the summary prompt in Settings\n-- **THEN** the system SHALL persist the updated prompt and reuse it for future summary generation.\n-\n-#### Scenario: Reset restores default prompt only\n-- **WHEN** a user chooses Reset Prompt in Settings\n-- **THEN** the system SHALL restore only the summary prompt to the default text and SHALL NOT modify additional summary commands.\n-\n-### Requirement: Additional Summary Commands Are Supported\n-The system SHALL allow optional additional summary commands configured by the user and append them to summary-generation instructions.\n-\n-#### Scenario: Commands appended to summary prompt\n-- **WHEN** one or more summary commands are configured\n-- **THEN** the system SHALL append those commands to summary-generation instructions for the selected PR.\n-\n-### Requirement: Summary Output Contract\n-The generated summary SHALL follow a structured response contract suitable for reviewer orientation.\n-\n-#### Scenario: Orientation-first summary format\n-- **WHEN** summary instructions are sent to the LLM\n-- **THEN** the instructions SHALL require a concise orientation section of 2-4 lines.\n-\n-#### Scenario: Adaptive focus areas with cap\n-- **WHEN** summary instructions are sent to the LLM\n-- **THEN** the instructions SHALL allow adaptive `Focus Areas` inclusion based on meaningful risk/complexity/churn signals\n-- **AND** the number of focus areas SHALL be capped at 4.\n-\n-#### Scenario: No focus areas for simple PRs\n-- **WHEN** the PR is simple and no meaningful risk/complexity/churn signals are detected\n-- **THEN** the summary MAY omit `Focus Areas`\n-- **AND** this SHALL be considered a valid successful summary outcome.\n-\n-#### Scenario: Focus area content shape\n-- **WHEN** one or more focus areas are emitted\n-- **THEN** each focus area SHALL include: where to review, why it matters, and what to verify.\n-\n-### Requirement: Summary Is Separate from Chat History\n-Summary content SHALL be isolated from chat history and SHALL NOT be included in subsequent LLM chat context.\n-\n-#### Scenario: Summary excluded from chat context\n-- **WHEN** a user sends a chat message after summary generation\n-- **THEN** the outbound chat context SHALL NOT include summary content as a prior message or system/context segment.\n-\n-### Requirement: Summary Presentation in PR Viewer\n-The PR viewer SHALL provide a dedicated Summary tab with loading and metadata display.\n-\n-#### Scenario: Summary tab displays loading spinner\n-- **WHEN** summary generation is in progress\n-- **THEN** the Summary tab SHALL display a spinner indicator and loading state text.\n-\n-#### Scenario: Summary tab displays generated timestamp\n-- **WHEN** summary generation succeeds\n-- **THEN** the Summary tab SHALL display the summary content and a generation-time timestamp at the bottom of the pane.\n-\n-### Requirement: Empty and Failure Fallback States\n-The system SHALL provide explicit fallback states when summary generation is not possible.\n-\n-#### Scenario: Empty PR state\n-- **WHEN** a selected PR has no textual content to summarize\n-- **THEN** the system SHALL skip summary generation and display `Nothing to Summarize` in the Summary tab.\n-\n-#### Scenario: LLM request failure state\n-- **WHEN** the system cannot reach the LLM or summary generation fails\n-- **THEN** the system SHALL display `Unable to generate summary` in the Summary tab.\n-\n-### Requirement: Per-PR Rate Limiting and Session Cache\n-The system SHALL limit summary generation to one request per minute per PR and cache generated summaries in session storage.\n-\n-#### Scenario: Per-PR one-minute generation limit\n-- **WHEN** a summary was generated for a PR less than one minute ago\n-- **THEN** the system SHALL NOT issue another summary generation request for that same PR during the one-minute window.\n-\n-#### Scenario: Cached summary reuse\n-- **WHEN** a cached summary exists in session storage for the current PR and summary prompt fingerprint\n-- **THEN** the system SHALL reuse the cached summary content and generated timestamp instead of issuing a new summary request.\ndiff --git a/openspec/changes/add-pr-summary-tab/tasks.md b/openspec/changes/add-pr-summary-tab/tasks.md\ndeleted file mode 100644\nindex ee16fe6..0000000\n--- a/openspec/changes/add-pr-summary-tab/tasks.md\n+++ /dev/null\n@@ -1,38 +0,0 @@\n-## 1. Configuration and Defaults\n-\n-- [ ] 1.1 Extend `AppConfig` with `summaryEnabled`, `summaryPrompt`, and `summaryCommands` fields.\n-- [ ] 1.2 Add and export the default summary prompt constant using the product-provided baseline prompt text.\n-- [ ] 1.3 Update config slice load/save/default behavior to persist summary settings while keeping sensitive field handling unchanged.\n-- [ ] 1.4 Add config slice tests for summary defaults, persistence, and reset-only-prompt behavior.\n-\n-## 2. PR Data and Summary State Model\n-\n-- [ ] 2.1 Extend GitHub service with a PR commits endpoint and related types for commit message context.\n-- [ ] 2.2 Add PR commits state and async thunk wiring in `prsSlice` and store update flows.\n-- [ ] 2.3 Add summary-specific PR state fields (`status`, `content`, `generatedAt`, `error`) and reducers/actions for lifecycle transitions.\n-- [ ] 2.4 Add/expand PR slice and GitHub service tests for commit loading and summary state transitions.\n-\n-## 3. Summary Orchestration and Prompt Assembly\n-\n-- [ ] 3.1 Implement summary utility logic for per-PR cache keying, one-per-minute rate limiting, and sessionStorage read/write.\n-- [ ] 3.2 Implement empty-PR detection that skips generation when no textual diff content is available.\n-- [ ] 3.3 Extend LLM summary prompt assembly to include editable prompt text, optional summary commands, required section contract, and style constraints.\n-- [ ] 3.4 Ensure summary generation uses existing LLM configuration and never inserts summary content into chat history/context.\n-- [ ] 3.5 Add unit tests for summary utility behavior and summary prompt composition.\n-- [ ] 3.6 Refine summary output contract to prioritize quick orientation: enforce a 2-4 line top summary and adaptive `Focus Areas` (0-4 items, no minimum).\n-- [ ] 3.7 Ensure each emitted focus area includes: review target (`where`), rationale (`why it matters`), and reviewer guidance (`what to verify`).\n-- [ ] 3.8 Add/expand summary prompt tests to assert: orientation is constrained to 2-4 lines, focus areas are adaptive, zero focus areas are valid, and output never exceeds 4 focus areas.\n-\n-## 4. UI Integration\n-\n-- [ ] 4.1 Add summary controls to Settings (enable toggle, editable prompt, additional commands input, reset prompt button).\n-- [ ] 4.2 Add a `Summary` tab to `PRViewer` with loading spinner, success rendering, empty/failure states, and timestamp footer.\n-- [ ] 4.3 Trigger summary generation on PR selection, clear chat when PR changes, and guard against stale in-flight responses.\n-- [ ] 4.4 Add/expand UI tests for settings interactions and summary tab state rendering.\n-- [ ] 4.5 Add/expand Summary tab rendering tests for orientation-only success output (no focus areas), adaptive rendering for 1-4 focus areas, and graceful handling when focus areas are omitted.\n-\n-## 5. Documentation and Validation\n-\n-- [ ] 5.1 Update README documentation for summary behavior, settings, fallback states, cache/rate-limit behavior, and output expectations.\n-- [ ] 5.2 Update `plans/plan.md` and any relevant agent guidance to reflect the new summary feature scope.\n-- [ ] 5.3 Run `npm run lint`, `npm run test`, and `npm run build`, then resolve any failures, including new quick-orientation summary contract tests.\ndiff --git a/plans/plan.md b/plans/plan.md\nindex eec1020..874092f 100644\n--- a/plans/plan.md\n+++ b/plans/plan.md\n@@ -245,3 +245,35 @@ Identified during initial code review. These are non-blocking improvements to ad\n \n - `openspec/changes/add-pr-summary-tab/tasks.md` was updated to capture quick-orientation behavior decisions from explore mode.\n - Summary behavior target: 2-4 line orientation section, adaptive `Focus Areas` with bounds `0..4`, and valid success output when focus areas are omitted for simple PRs.\n+- Synced delta spec `openspec/changes/add-pr-summary-tab/specs/pr-review-summary/spec.md` into new main spec `openspec/specs/pr-review-summary/spec.md`.\n+- Added change scaffold `openspec/changes/update-pr-review-summary-ui-readability/` with completed proposal, design, spec delta, and tasks artifacts for summary UI readability improvements.\n+- Refined `update-pr-review-summary-ui-readability` scope to panelized Summary display: Orientation and each Focus Area render as separate cards styled like Comments/Reviews, with blue/yellow title accents and no spec contract changes.\n+\n+---\n+\n+## ✅ Phase 9: PR Summary Tab (COMPLETED)\n+\n+- [x] Extend `AppConfig` with summary fields: `summaryEnabled`, `summaryPrompt`, `summaryCommands`\n+- [x] Add/export `DEFAULT_SUMMARY_PROMPT` and keep reset behavior prompt-only\n+- [x] Add PR commits API loading (`getPRCommits`) and Redux state wiring\n+- [x] Add summary lifecycle state in `prsSlice` (`status`, `content`, `generatedAt`, `error`)\n+- [x] Implement summary orchestration utilities:\n+  - per-PR+head+prompt cache keying\n+  - sessionStorage read/write cache\n+  - one-per-minute per-PR-head rate limiting\n+  - empty textual diff detection\n+- [x] Extend LLM service with structured summary prompt assembly (orientation + adaptive focus areas)\n+- [x] Add Summary tab UI in `PRViewer` with loading/success/empty/error states and timestamp footer\n+- [x] Wire summary generation on PR selection/load and keep summary separate from chat history/context\n+- [x] Add/expand tests for config, GitHub service, PR slice, summary utilities, LLM prompt, Settings UI, and Summary tab rendering\n+- [x] Update README and agent guidance for summary behavior, fallback states, and output contract\n+\n+---\n+\n+## OpenSpec Implementation Updates (2026-03-14)\n+\n+- [x] Completed OpenSpec change `update-pr-review-summary-ui-readability` implementation tasks (8/8) for panelized Summary tab readability updates.\n+- [x] Updated Summary success rendering in `src/components/PRViewer.tsx` to show an `Orientation` panel and per-item `Focus Area N` panels with blue/yellow title accents.\n+- [x] Kept summary generation flow and fallback state semantics unchanged (loading/empty/error behavior preserved).\n+- [x] Updated `src/components/PRViewer.summary.test.tsx` assertions for orientation-only and orientation+focus-area panelized rendering.\n+- [x] Validation run completed with `npm run lint && npm run build && npm run test`.\ndiff --git a/src/components/ChatWindow.tsx b/\n\n...",
+              "exit": 0,
+              "description": "Shows all unstaged and staged changes",
+              "truncated": true,
+              "outputPath": "/home/mark/.local/share/opencode/tool-output/tool_ceed0fc22001u6xLTbvD5BKnBq"
+            },
+            "time": {
+              "start": 1773533199339,
+              "end": 1773533199396
+            }
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "fc_074501efed72260d0169b5f80f37d08193aa20ed2f0a80db95"
+            }
+          },
+          "id": "prt_ceed0fbdc001q7PX25ufEIVu5t",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceed0e31a001I3B8wjLYEenxDf"
+        },
+        {
+          "type": "tool",
+          "callID": "REDACTED",
+          "tool": "bash",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git log -8 --oneline",
+              "description": "Shows recent commit message history"
+            },
+            "output": "9cd141b Updates Openspec Configuration\na4b1314 Update pr review summary\nbc6e4e6 Add Repository Watcher spec\ne6d9ec9 Updated spec for pr summary.\n3242656 Add OpenSpec command and skill scaffolding\na6f6a3c Add OpenSpec artifacts for PR summary tab\n450b1d0 Add refresh button UX coverage tests\n80d2cb8 Persist dark mode preference across reloads\n",
+            "title": "Shows recent commit message history",
+            "metadata": {
+              "output": "9cd141b Updates Openspec Configuration\na4b1314 Update pr review summary\nbc6e4e6 Add Repository Watcher spec\ne6d9ec9 Updated spec for pr summary.\n3242656 Add OpenSpec command and skill scaffolding\na6f6a3c Add OpenSpec artifacts for PR summary tab\n450b1d0 Add refresh button UX coverage tests\n80d2cb8 Persist dark mode preference across reloads\n",
+              "exit": 0,
+              "description": "Shows recent commit message history",
+              "truncated": false
+            },
+            "time": {
+              "start": 1773533199347,
+              "end": 1773533199374
+            }
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "fc_074501efed72260d0169b5f80f37d881938acb0347b664e972"
+            }
+          },
+          "id": "prt_ceed0fbee0010PEFRb0XqH1yNA",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceed0e31a001I3B8wjLYEenxDf"
+        },
+        {
+          "type": "step-finish",
+          "reason": "tool-calls",
+          "snapshot": "51173424e62a9b29d28a0ddbb973d4c5313951b0",
+          "cost": 0.031003,
+          "tokens": {
+            "total": 13469,
+            "input": 13132,
+            "output": 337,
+            "reasoning": 236,
+            "cache": {
+              "read": 0,
+              "write": 0
+            }
+          },
+          "id": "prt_ceed0fc29001xaf7YntXubhHK2",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceed0e31a001I3B8wjLYEenxDf"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "assistant",
+        "time": {
+          "created": 1773533199464,
+          "completed": 1773533203459
+        },
+        "parentID": "msg_ceed0e2dc001awZ3Z31WhTmHDJ",
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/home/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/home/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0279041,
+        "tokens": {
+          "total": 26315,
+          "input": 12878,
+          "output": 125,
+          "reasoning": 92,
+          "cache": {
+            "read": 13312,
+            "write": 0
+          }
+        },
+        "finish": "tool-calls",
+        "id": "msg_ceed0fc68001P0IkMYLFcm7cQv",
+        "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP"
+      },
+      "parts": [
+        {
+          "type": "step-start",
+          "snapshot": "51173424e62a9b29d28a0ddbb973d4c5313951b0",
+          "id": "prt_ceed0ff0f001b4qWsWAQtyg9kZ",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceed0fc68001P0IkMYLFcm7cQv"
+        },
+        {
+          "type": "reasoning",
+          "text": "**Summarizing broad change impact**",
+          "metadata": {
+            "opencode": {
+              "itemId": "rs_024120b914d351fb0169b5f81051d4819896d6e01af4d49047",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "time": {
+            "start": 1773533200430,
+            "end": 1773533203149
+          },
+          "id": "prt_ceed1002e001GABLWm3AZ791dB",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceed0fc68001P0IkMYLFcm7cQv"
+        },
+        {
+          "type": "tool",
+          "callID": "call_rO1auD422d534NsvAxms7kD5",
+          "tool": "bash",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git diff --stat HEAD",
+              "description": "Shows changed files and line statistics"
+            },
+            "output": " README.md                                          |  25 +++\n agents.md                                          |  31 ++-\n openspec/changes/add-pr-summary-tab/.openspec.yaml |   2 -\n openspec/changes/add-pr-summary-tab/design.md      |  94 --------\n openspec/changes/add-pr-summary-tab/proposal.md    |  30 ---\n .../specs/pr-review-summary/spec.md                |  98 ---------\n openspec/changes/add-pr-summary-tab/tasks.md       |  38 ----\n plans/plan.md                                      |  32 +++\n src/components/ChatWindow.tsx                      |  13 ++\n src/components/PRViewer.tsx                        | 129 ++++++++++-\n src/components/SettingsDialog.tsx                  | 103 ++++++++-\n src/components/Sidebar.test.tsx                    |  13 ++\n src/components/Sidebar.tsx                         |  32 ++-\n src/services/github.test.ts                        |  34 +++\n src/services/github.ts                             |  33 +++\n src/services/llm.test.ts                           |  38 ++++\n src/services/llm.ts                                |  48 +++++\n src/store/slices/configSlice.test.ts               |  46 +++-\n src/store/slices/configSlice.ts                    |  26 ++-\n src/store/slices/prsSlice.test.ts                  | 228 ++++++++------------\n src/store/slices/prsSlice.ts                       | 240 +++++++++++++++++++++\n src/types/index.ts                                 |  12 ++\n 22 files changed, 936 insertions(+), 409 deletions(-)\n",
+            "title": "Shows changed files and line statistics",
+            "metadata": {
+              "output": " README.md                                          |  25 +++\n agents.md                                          |  31 ++-\n openspec/changes/add-pr-summary-tab/.openspec.yaml |   2 -\n openspec/changes/add-pr-summary-tab/design.md      |  94 --------\n openspec/changes/add-pr-summary-tab/proposal.md    |  30 ---\n .../specs/pr-review-summary/spec.md                |  98 ---------\n openspec/changes/add-pr-summary-tab/tasks.md       |  38 ----\n plans/plan.md                                      |  32 +++\n src/components/ChatWindow.tsx                      |  13 ++\n src/components/PRViewer.tsx                        | 129 ++++++++++-\n src/components/SettingsDialog.tsx                  | 103 ++++++++-\n src/components/Sidebar.test.tsx                    |  13 ++\n src/components/Sidebar.tsx                         |  32 ++-\n src/services/github.test.ts                        |  34 +++\n src/services/github.ts                             |  33 +++\n src/services/llm.test.ts                           |  38 ++++\n src/services/llm.ts                                |  48 +++++\n src/store/slices/configSlice.test.ts               |  46 +++-\n src/store/slices/configSlice.ts                    |  26 ++-\n src/store/slices/prsSlice.test.ts                  | 228 ++++++++------------\n src/store/slices/prsSlice.ts                       | 240 +++++++++++++++++++++\n src/types/index.ts                                 |  12 ++\n 22 files changed, 936 insertions(+), 409 deletions(-)\n",
+              "exit": 0,
+              "description": "Shows changed files and line statistics",
+              "truncated": false
+            },
+            "time": {
+              "start": 1773533203336,
+              "end": 1773533203355
+            }
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "fc_024120b914d351fb0169b5f8130f208198803349ff310ba637"
+            }
+          },
+          "id": "prt_ceed10ace001ifsbr5CrwUI94z",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceed0fc68001P0IkMYLFcm7cQv"
+        },
+        {
+          "type": "step-finish",
+          "reason": "tool-calls",
+          "snapshot": "51173424e62a9b29d28a0ddbb973d4c5313951b0",
+          "cost": 0.0279041,
+          "tokens": {
+            "total": 26315,
+            "input": 12878,
+            "output": 125,
+            "reasoning": 92,
+            "cache": {
+              "read": 13312,
+              "write": 0
+            }
+          },
+          "id": "prt_ceed10bd0001poexnS0R7Xwnp3",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceed0fc68001P0IkMYLFcm7cQv"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "assistant",
+        "time": {
+          "created": 1773533203467
+        },
+        "parentID": "msg_ceed0e2dc001awZ3Z31WhTmHDJ",
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/home/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/home/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0,
+        "tokens": {
+          "input": 0,
+          "output": 0,
+          "reasoning": 0,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        },
+        "id": "msg_ceed10c0b00150tXvb0P2DL2MT",
+        "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP"
+      },
+      "parts": [
+        {
+          "type": "step-start",
+          "snapshot": "51173424e62a9b29d28a0ddbb973d4c5313951b0",
+          "id": "prt_ceed10e47001LGuqx3jlFGOBof",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceed10c0b00150tXvb0P2DL2MT"
+        },
+        {
+          "type": "reasoning",
+          "text": "**Planning comprehensive commit with untracked files**",
+          "metadata": {
+            "opencode": {
+              "itemId": "rs_0e15a7bca1a26ab50169b5f814903c8199980f2a447680daa8",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "time": {
+            "start": 1773533204648,
+            "end": 1773533209366
+          },
+          "id": "prt_ceed110a7001fQbKUi5aKYfXoj",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceed10c0b00150tXvb0P2DL2MT"
+        },
+        {
+          "type": "tool",
+          "callID": "call_iFxFktKHcyQXOnN2HenEX9fi",
+          "tool": "bash",
+          "state": {
+            "status": "running",
+            "input": {
+              "command": "git add -A && git commit -m \"Implement PR kickoff summary workflow\" -m \"Add a dedicated Summary tab, configurable summary prompt settings, and commit-aware summary generation with cache/rate limiting so reviewers can get fast orientation without polluting chat context.\" && git status --short",
+              "description": "Stage all changes, commit, and verify status"
+            },
+            "time": {
+              "start": 1773533209832
+            }
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "fc_0e15a7bca1a26ab50169b5f81946608199b3c0a341bb8ccee1"
+            }
+          },
+          "id": "prt_ceed123180010QaSc2Z04MXHHt",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceed10c0b00150tXvb0P2DL2MT"
+        }
+      ]
+    }
+  ]
+}

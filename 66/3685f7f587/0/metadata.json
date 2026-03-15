@@ -1,0 +1,55 @@
+{
+  "cli_version": "0.5.0",
+  "checkpoint_id": "663685f7f587",
+  "session_id": "ses_311369ecbffepVNUWNy7OkBfgP",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-15T00:06:51.037300066Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "README.md",
+    "agents.md",
+    "openspec/changes/add-pr-summary-tab/.openspec.yaml",
+    "openspec/changes/add-pr-summary-tab/design.md",
+    "openspec/changes/add-pr-summary-tab/proposal.md",
+    "openspec/changes/add-pr-summary-tab/specs/pr-review-summary/spec.md",
+    "openspec/changes/add-pr-summary-tab/tasks.md",
+    "plans/plan.md",
+    "src/components/ChatWindow.tsx",
+    "src/components/PRViewer.tsx",
+    "src/components/SettingsDialog.tsx",
+    "src/components/Sidebar.test.tsx",
+    "src/components/Sidebar.tsx",
+    "src/services/github.test.ts",
+    "src/services/github.ts",
+    "src/services/llm.test.ts",
+    "src/services/llm.ts",
+    "src/store/slices/configSlice.test.ts",
+    "src/store/slices/configSlice.ts",
+    "src/store/slices/prsSlice.test.ts",
+    "src/store/slices/prsSlice.ts",
+    "src/types/index.ts"
+  ],
+  "agent": "OpenCode",
+  "model": "gpt-5.3-codex",
+  "turn_id": "98f6f96647d0",
+  "token_usage": {
+    "input_tokens": 39255,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 65152,
+    "output_tokens": 1302,
+    "api_call_count": 8
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-15T00:06:50.910615871Z",
+    "agent_lines": 674,
+    "human_added": 2119,
+    "human_modified": 262,
+    "human_removed": 0,
+    "total_committed": 3055,
+    "agent_percentage": 22.062193126022915
+  }
+}
