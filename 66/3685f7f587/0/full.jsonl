@@ -13,7 +13,7 @@
     },
     "time": {
       "created": 1773532700981,
-      "updated": 1773533203500
+      "updated": 1773533211265
     }
   },
   "messages": [
@@ -933,7 +933,8 @@
       "info": {
         "role": "assistant",
         "time": {
-          "created": 1773533203467
+          "created": 1773533203467,
+          "completed": 1773533211214
         },
         "parentID": "msg_ceed0e2dc001awZ3Z31WhTmHDJ",
         "modelID": "gpt-5.3-codex",
@@ -944,16 +945,18 @@
           "cwd": "/home/mark/sandbox/personal/pr-review-chatbot",
           "root": "/home/mark/sandbox/personal/pr-review-chatbot"
         },
-        "cost": 0,
+        "cost": 0.01349075,
         "tokens": {
-          "input": 0,
-          "output": 0,
-          "reasoning": 0,
+          "total": 26989,
+          "input": 413,
+          "output": 336,
+          "reasoning": 248,
           "cache": {
-            "read": 0,
+            "read": 26240,
             "write": 0
           }
         },
+        "finish": "tool-calls",
         "id": "msg_ceed10c0b00150tXvb0P2DL2MT",
         "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP"
       },
@@ -987,13 +990,22 @@
           "callID": "call_iFxFktKHcyQXOnN2HenEX9fi",
           "tool": "bash",
           "state": {
-            "status": "running",
+            "status": "completed",
             "input": {
               "command": "git add -A && git commit -m \"Implement PR kickoff summary workflow\" -m \"Add a dedicated Summary tab, configurable summary prompt settings, and commit-aware summary generation with cache/rate limiting so reviewers can get fast orientation without polluting chat context.\" && git status --short",
               "description": "Stage all changes, commit, and verify status"
             },
+            "output": "[main e8750e3] Implement PR kickoff summary workflow\n 31 files changed, 1647 insertions(+), 171 deletions(-)\n rename openspec/changes/{add-pr-summary-tab => archive/2026-03-14-add-pr-summary-tab}/design.md (100%)\n rename openspec/changes/{add-pr-summary-tab => archive/2026-03-14-add-pr-summary-tab}/proposal.md (100%)\n rename openspec/changes/{add-pr-summary-tab => archive/2026-03-14-add-pr-summary-tab}/specs/pr-review-summary/spec.md (100%)\n rename openspec/changes/{add-pr-summary-tab => archive/2026-03-14-add-pr-summary-tab}/tasks.md (52%)\n rename openspec/changes/{add-pr-summary-tab => archive/2026-03-14-update-pr-review-summary-ui-readability}/.openspec.yaml (100%)\n create mode 100644 openspec/changes/archive/2026-03-14-update-pr-review-summary-ui-readability/design.md\n create mode 100644 openspec/changes/archive/2026-03-14-update-pr-review-summary-ui-readability/proposal.md\n create mode 100644 openspec/changes/archive/2026-03-14-update-pr-review-summary-ui-readability/specs/pr-review-summary/spec.md\n create mode 100644 openspec/changes/archive/2026-03-14-update-pr-review-summary-ui-readability/tasks.md\n create mode 100644 openspec/specs/pr-review-summary/spec.md\n create mode 100644 src/components/PRViewer.summary.test.tsx\n create mode 100644 src/components/SettingsDialog.test.tsx\n create mode 100644 src/services/summary.test.ts\n create mode 100644 src/services/summary.ts\n",
+            "title": "Stage all changes, commit, and verify status",
+            "metadata": {
+              "output": "[main e8750e3] Implement PR kickoff summary workflow\n 31 files changed, 1647 insertions(+), 171 deletions(-)\n rename openspec/changes/{add-pr-summary-tab => archive/2026-03-14-add-pr-summary-tab}/design.md (100%)\n rename openspec/changes/{add-pr-summary-tab => archive/2026-03-14-add-pr-summary-tab}/proposal.md (100%)\n rename openspec/changes/{add-pr-summary-tab => archive/2026-03-14-add-pr-summary-tab}/specs/pr-review-summary/spec.md (100%)\n rename openspec/changes/{add-pr-summary-tab => archive/2026-03-14-add-pr-summary-tab}/tasks.md (52%)\n rename openspec/changes/{add-pr-summary-tab => archive/2026-03-14-update-pr-review-summary-ui-readability}/.openspec.yaml (100%)\n create mode 100644 openspec/changes/archive/2026-03-14-update-pr-review-summary-ui-readability/design.md\n create mode 100644 openspec/changes/archive/2026-03-14-update-pr-review-summary-ui-readability/proposal.md\n create mode 100644 openspec/changes/archive/2026-03-14-update-pr-review-summary-ui-readability/specs/pr-review-summary/spec.md\n create mode 100644 openspec/changes/archive/2026-03-14-update-pr-review-summary-ui-readability/tasks.md\n create mode 100644 openspec/specs/pr-review-summary/spec.md\n create mode 100644 src/components/PRViewer.summary.test.tsx\n create mode 100644 src/components/SettingsDialog.test.tsx\n create mode 100644 src/services/summary.test.ts\n create mode 100644 src/services/summary.ts\n",
+              "exit": 0,
+              "description": "Stage all changes, commit, and verify status",
+              "truncated": false
+            },
             "time": {
-              "start": 1773533209832
+              "start": 1773533209832,
+              "end": 1773533211168
             }
           },
           "metadata": {
@@ -1004,6 +1016,118 @@
           "id": "prt_ceed123180010QaSc2Z04MXHHt",
           "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
           "messageID": "msg_ceed10c0b00150tXvb0P2DL2MT"
+        },
+        {
+          "type": "step-finish",
+          "reason": "tool-calls",
+          "snapshot": "51173424e62a9b29d28a0ddbb973d4c5313951b0",
+          "cost": 0.01349075,
+          "tokens": {
+            "total": 26989,
+            "input": 413,
+            "output": 336,
+            "reasoning": 248,
+            "cache": {
+              "read": 26240,
+              "write": 0
+            }
+          },
+          "id": "prt_ceed12a22001iCEujU9FAnVpWf",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceed10c0b00150tXvb0P2DL2MT"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "assistant",
+        "time": {
+          "created": 1773533211220,
+          "completed": 1773533213989
+        },
+        "parentID": "msg_ceed0e2dc001awZ3Z31WhTmHDJ",
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/home/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/home/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.007504,
+        "tokens": {
+          "total": 27473,
+          "input": 488,
+          "output": 105,
+          "reasoning": 34,
+          "cache": {
+            "read": 26880,
+            "write": 0
+          }
+        },
+        "finish": "stop",
+        "id": "msg_ceed12a54001Z1SmBgCTKYLCpG",
+        "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP"
+      },
+      "parts": [
+        {
+          "type": "step-start",
+          "snapshot": "51173424e62a9b29d28a0ddbb973d4c5313951b0",
+          "id": "prt_ceed12d0e001WDH1Uakrra7iYM",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceed12a54001Z1SmBgCTKYLCpG"
+        },
+        {
+          "type": "reasoning",
+          "text": "**Confirming clean commit status**",
+          "metadata": {
+            "opencode": {
+              "itemId": "rs_0c90d3a08babe08d0169b5f81be22481989e2aa276fb22e365",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "time": {
+            "start": 1773533211963,
+            "end": 1773533213140
+          },
+          "id": "prt_ceed12d3b001A65C55LDk5Wvwq",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceed12a54001Z1SmBgCTKYLCpG"
+        },
+        {
+          "type": "text",
+          "text": "Done — I created the commit.\n\n- Commit: `e8750e3`\n- Message: `Implement PR kickoff summary workflow`\n- Includes: summary tab UI, summary settings, commit-aware summary generation, cache/rate limiting, related tests, and archived OpenSpec change artifacts.\n- Working tree is clean after commit.",
+          "time": {
+            "start": 1773533213861,
+            "end": 1773533213861
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "msg_0c90d3a08babe08d0169b5f81d0c808198a4d587c43b42aded"
+            }
+          },
+          "id": "prt_ceed131d60016lw7HTR7bRE9as",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceed12a54001Z1SmBgCTKYLCpG"
+        },
+        {
+          "type": "step-finish",
+          "reason": "stop",
+          "snapshot": "51173424e62a9b29d28a0ddbb973d4c5313951b0",
+          "cost": 0.007504,
+          "tokens": {
+            "total": 27473,
+            "input": 488,
+            "output": 105,
+            "reasoning": 34,
+            "cache": {
+              "read": 26880,
+              "write": 0
+            }
+          },
+          "id": "prt_ceed134fa001WCt5y7T11P5yBV",
+          "sessionID": "ses_311369ecbffepVNUWNy7OkBfgP",
+          "messageID": "msg_ceed12a54001Z1SmBgCTKYLCpG"
         }
       ]
     }
