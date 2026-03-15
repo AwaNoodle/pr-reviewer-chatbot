@@ -1,0 +1,34 @@
+{
+  "cli_version": "0.5.0",
+  "checkpoint_id": "d84440a71c40",
+  "session_id": "ses_3119c617affeH0Ih8PeyRALE8B",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-15T00:01:19.395795977Z",
+  "branch": "main",
+  "checkpoints_count": 4,
+  "files_touched": [
+    "openspec/changes/archive/2026-03-14-add-pr-summary-tab/.openspec.yaml"
+  ],
+  "agent": "OpenCode",
+  "model": "gpt-5.3-codex",
+  "turn_id": "fe892b6926c7",
+  "token_usage": {
+    "input_tokens": 62338,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 417536,
+    "output_tokens": 3197,
+    "api_call_count": 15
+  },
+  "session_metrics": {
+    "turn_count": 9
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-15T00:01:19.205400283Z",
+    "agent_lines": 2,
+    "human_added": 1430,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1432,
+    "agent_percentage": 0.13966480446927373
+  }
+}
