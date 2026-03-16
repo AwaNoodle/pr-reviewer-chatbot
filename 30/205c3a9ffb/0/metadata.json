@@ -1,0 +1,49 @@
+{
+  "cli_version": "0.5.0",
+  "checkpoint_id": "30205c3a9ffb",
+  "session_id": "ses_3078e0baaffe0PQdiFTQ0BuTJ6",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-16T21:03:04.780030233Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "agents.md",
+    "openspec/changes/repository-watcher/design.md",
+    "openspec/changes/repository-watcher/proposal.md",
+    "openspec/changes/repository-watcher/specs/repo-pr-list/spec.md",
+    "openspec/changes/repository-watcher/specs/watched-repos/spec.md",
+    "openspec/changes/repository-watcher/tasks.md",
+    "openspec/specs/repo-pr-list/spec.md",
+    "openspec/specs/watched-repos/spec.md",
+    "plans/plan.md",
+    "src/components/PRViewer.summary.test.tsx",
+    "src/components/Sidebar.test.tsx",
+    "src/components/Sidebar.tsx",
+    "src/store/index.ts",
+    "src/store/slices/prsSlice.test.ts",
+    "src/store/slices/prsSlice.ts",
+    "src/types/index.ts"
+  ],
+  "agent": "OpenCode",
+  "model": "gpt-5.3-codex",
+  "turn_id": "605252bf7105",
+  "token_usage": {
+    "input_tokens": 25626,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 198400,
+    "output_tokens": 3327,
+    "api_call_count": 12
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-16T21:03:04.491486707Z",
+    "agent_lines": 681,
+    "human_added": 668,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1349,
+    "agent_percentage": 50.48183839881394
+  }
+}

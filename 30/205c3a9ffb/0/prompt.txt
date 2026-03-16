@@ -1,0 +1,1 @@
+Use Skill tool to invoke openspec-sync-specs for change 'repository-watcher'. Delta spec analysis: create new main specs from change deltas for capabilities repo-pr-list and watched-repos (no existing main specs currently). Apply sync and report exactly which files were created/updated.
