@@ -1,49 +1,21 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
-import { describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { describe, expect, it, vi, beforeEach } from 'vitest';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Sidebar } from './Sidebar';
 import configReducer from '../store/slices/configSlice';
 import prsReducer from '../store/slices/prsSlice';
 import chatReducer from '../store/slices/chatSlice';
-import type { PullRequest } from '../types';
+import watchedReposReducer from '../store/slices/watchedReposSlice';
+import * as githubService from '../services/github';
 
-const selectedPRFixture: PullRequest = {
-  id: 1,
-  number: 42,
-  title: 'Add refresh behavior coverage',
-  body: null,
-  state: 'open',
-  merged: false,
-  merged_at: null,
-  user: { login: 'alice', avatar_url: '', html_url: '' },
-  created_at: '2024-01-01T00:00:00Z',
-  updated_at: '2024-01-01T00:00:00Z',
-  head: { ref: 'feature', sha: 'abc', repo: { full_name: 'org/repo' } },
-  base: { ref: 'main', sha: 'def', repo: { full_name: 'org/repo' } },
-  url: '',
-  html_url: '',
-  diff_url: '',
-  additions: 5,
-  deletions: 1,
-  changed_files: 1,
-  comments: 0,
-  review_comments: 0,
-  commits: 1,
-  labels: [],
-  requested_reviewers: [],
-};
-
-function renderSidebar(options?: {
-  demoMode?: boolean;
-  isLoading?: boolean;
-  selectedPR?: PullRequest | null;
-}) {
+function renderSidebar(options?: { summaryEnabled?: boolean }) {
   const store = configureStore({
     reducer: {
       config: configReducer,
       prs: prsReducer,
       chat: chatReducer,
+      watchedRepos: watchedReposReducer,
     },
     preloadedState: {
       config: {
@@ -54,43 +26,10 @@ function renderSidebar(options?: {
           llmBackend: 'openai' as const,
           llmEndpoint: 'https://api.openai.com/v1',
           llmModel: 'gpt-4o',
-          demoMode: options?.demoMode ?? false,
-          summaryEnabled: true,
+          demoMode: false,
+          summaryEnabled: options?.summaryEnabled ?? false,
           summaryPrompt: 'default summary prompt',
           summaryCommands: '',
-        },
-      },
-      prs: {
-        selectedPR: options?.selectedPR ?? null,
-        files: [],
-        comments: [],
-        reviewComments: [],
-        reviews: [],
-        commits: [],
-        summary: {
-          status: 'idle' as const,
-          content: null,
-          generatedAt: null,
-          error: null,
-          requestKey: null,
-        },
-        isLoading: options?.isLoading ?? false,
-        error: null,
-        loadingByResource: {
-          metadata: false,
-          files: false,
-          comments: false,
-          reviewComments: false,
-          reviews: false,
-          commits: false,
-        },
-        errorByResource: {
-          metadata: null,
-          files: null,
-          comments: null,
-          reviewComments: null,
-          reviews: null,
-          commits: null,
         },
       },
       chat: {
@@ -98,6 +37,9 @@ function renderSidebar(options?: {
         isStreaming: false,
         streamingMessageId: null,
         error: null,
+      },
+      watchedRepos: {
+        items: [],
       },
     },
   });
@@ -109,31 +51,108 @@ function renderSidebar(options?: {
   );
 }
 
-describe('Sidebar refresh control', () => {
-  it('does not render refresh button in demo mode', () => {
-    renderSidebar({ demoMode: true, selectedPR: selectedPRFixture });
-
-    expect(screen.queryByTitle('Refresh')).not.toBeInTheDocument();
+describe('Sidebar repository list flow', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
   });
 
-  it('renders disabled refresh button when no PR is selected', () => {
-    renderSidebar({ demoMode: false, selectedPR: null });
+  it('changes load button text based on PR number input', () => {
+    renderSidebar();
 
-    const refreshButton = screen.getByTitle('Refresh');
-    expect(refreshButton).toBeDisabled();
+    expect(screen.getByText('Load All PRs')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('PR Number'), { target: { value: '42' } });
+    expect(screen.getByText('Load PR')).toBeInTheDocument();
   });
 
-  it('renders enabled refresh button when PR is selected and idle', () => {
-    renderSidebar({ demoMode: false, selectedPR: selectedPRFixture, isLoading: false });
+  it('loads all pull requests when PR number is empty', async () => {
+    const service = {
+      listPullRequests: vi
+        .fn()
+        .mockResolvedValueOnce([
+          {
+            id: 1,
+            number: 12,
+            title: 'Fix list flow',
+            state: 'open',
+            merged: false,
+            user: { login: 'alice', avatar_url: '', html_url: '' },
+            updated_at: '2024-01-01T00:00:00Z',
+            base: { ref: 'main', sha: 'abc', repo: { full_name: 'org/repo' } },
+            head: { ref: 'feat', sha: 'def', repo: { full_name: 'org/repo' } },
+          },
+        ])
+        .mockResolvedValueOnce([]),
+      getPullRequest: vi.fn(),
+      getPRFiles: vi.fn(),
+      getPRComments: vi.fn(),
+      getPRReviewComments: vi.fn(),
+      getPRReviews: vi.fn(),
+      getPRCommits: vi.fn(),
+    };
+    vi.spyOn(githubService, 'createGitHubService').mockReturnValue(
+      service as unknown as ReturnType<typeof githubService.createGitHubService>
+    );
 
-    const refreshButton = screen.getByTitle('Refresh');
-    expect(refreshButton).toBeEnabled();
+    renderSidebar();
+
+    fireEvent.change(screen.getByLabelText('Repository'), { target: { value: 'org/repo' } });
+    fireEvent.click(screen.getByText('Load All PRs'));
+
+    expect(await screen.findByText('Back')).toBeInTheDocument();
+    expect(await screen.findByText('Fix list flow')).toBeInTheDocument();
   });
 
-  it('disables refresh button while loading', () => {
-    renderSidebar({ demoMode: false, selectedPR: selectedPRFixture, isLoading: true });
+  it('selects PR from list and loads details in right pane state', async () => {
+    const listPR = {
+      id: 1,
+      number: 12,
+      title: 'Fix list flow',
+      state: 'open',
+      merged: false,
+      user: { login: 'alice', avatar_url: '', html_url: '' },
+      updated_at: '2024-01-01T00:00:00Z',
+      base: { ref: 'main', sha: 'abc', repo: { full_name: 'org/repo' } },
+      head: { ref: 'feat', sha: 'def', repo: { full_name: 'org/repo' } },
+    };
+    const fullPR = {
+      ...listPR,
+      body: null,
+      merged_at: null,
+      created_at: '2024-01-01T00:00:00Z',
+      url: '',
+      html_url: '',
+      diff_url: '',
+      additions: 1,
+      deletions: 0,
+      changed_files: 1,
+      comments: 0,
+      review_comments: 0,
+      commits: 1,
+      labels: [],
+      requested_reviewers: [],
+    };
+    const service = {
+      listPullRequests: vi.fn().mockResolvedValueOnce([listPR]).mockResolvedValueOnce([]),
+      getPullRequest: vi.fn().mockResolvedValueOnce(fullPR),
+      getPRFiles: vi.fn().mockResolvedValueOnce([]),
+      getPRComments: vi.fn().mockResolvedValueOnce([]),
+      getPRReviewComments: vi.fn().mockResolvedValueOnce([]),
+      getPRReviews: vi.fn().mockResolvedValueOnce([]),
+      getPRCommits: vi.fn().mockResolvedValueOnce([]),
+    };
+    vi.spyOn(githubService, 'createGitHubService').mockReturnValue(
+      service as unknown as ReturnType<typeof githubService.createGitHubService>
+    );
 
-    const refreshButton = screen.getByTitle('Refresh');
-    expect(refreshButton).toBeDisabled();
+    renderSidebar();
+
+    fireEvent.change(screen.getByLabelText('Repository'), { target: { value: 'org/repo' } });
+    fireEvent.click(screen.getByText('Load All PRs'));
+    const prButton = await screen.findByText('Fix list flow');
+    fireEvent.click(prButton);
+
+    await waitFor(() => {
+      expect(service.getPullRequest).toHaveBeenCalledWith('org', 'repo', 12);
+    });
   });
 });

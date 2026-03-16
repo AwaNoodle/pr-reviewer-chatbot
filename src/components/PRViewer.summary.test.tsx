@@ -63,6 +63,8 @@ function renderViewer(summaryState: {
       },
       prs: {
         selectedPR: selectedPRFixture,
+        activeRepository: null,
+        prList: [],
         files: [],
         comments: [],
         reviewComments: [],
@@ -81,6 +83,7 @@ function renderViewer(summaryState: {
           reviewComments: false,
           reviews: false,
           commits: false,
+          prList: false,
         },
         errorByResource: {
           metadata: null,
@@ -89,6 +92,7 @@ function renderViewer(summaryState: {
           reviewComments: null,
           reviews: null,
           commits: null,
+          prList: null,
         },
       },
       chat: {

@@ -1,4 +1,4 @@
-## ADDED Requirements
+## Requirements
 
 ### Requirement: User can add a repository to watch list
 The system SHALL allow users to add a GitHub repository to their watched repositories list by clicking a watch icon next to the repository input field.
@@ -37,3 +37,11 @@ The system SHALL display a badge showing the count of open PRs for each watched 
 - **WHEN** watched repositories are displayed
 - **THEN** each repository SHALL show a badge with the count of open PRs
 - **AND** the count SHALL be fetched from the GitHub API when the sidebar loads or refresh is clicked
+
+### Requirement: User can open a watched repository PR list in-place
+The system SHALL open repository PR list view in the same left `PR Review` pane when a watched repository is selected.
+
+#### Scenario: Open watched repository PR list
+- **WHEN** user clicks a watched repository item
+- **THEN** the system SHALL switch the left `PR Review` pane to PR list view for that repository
+- **AND** display open PRs for that repository

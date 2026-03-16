@@ -12,6 +12,7 @@ import {
 } from '../../services/summary';
 import type {
   PullRequest,
+  PRListItem,
   PRFile,
   PRComment,
   PRReviewComment,
@@ -25,6 +26,11 @@ interface PRRequestArgs {
   owner: string;
   repo: string;
   prNumber: number;
+}
+
+interface RepoRequestArgs {
+  owner: string;
+  repo: string;
 }
 
 type SummaryStatus = 'idle' | 'loading' | 'success' | 'empty' | 'error';
@@ -118,6 +124,42 @@ export const fetchPRCommits = createAsyncThunk<
   const service = createGitHubService(getState().config.config);
   try {
     return await service.getPRCommits(owner, repo, prNumber);
+  } catch (error) {
+    return rejectWithValue(toRejectedError(error));
+  }
+});
+
+export const fetchRepositoryPRList = createAsyncThunk<
+  PRListItem[],
+  RepoRequestArgs,
+  { state: RootState; rejectValue: GitHubApiErrorData }
+>('prs/fetchRepositoryPRList', async ({ owner, repo }, { getState, rejectWithValue }) => {
+  const service = createGitHubService(getState().config.config);
+  const perPage = 100;
+  const maxPages = 20;
+  const prs: PullRequest[] = [];
+
+  try {
+    for (let page = 1; page <= maxPages; page += 1) {
+      const pagePRs = await service.listPullRequests(owner, repo, 'open', page, perPage);
+      prs.push(...pagePRs);
+
+      if (pagePRs.length < perPage) {
+        break;
+      }
+    }
+
+    return prs.map((pr) => ({
+      id: pr.id,
+      number: pr.number,
+      title: pr.title,
+      state: pr.state,
+      merged: pr.merged,
+      user: pr.user,
+      updated_at: pr.updated_at,
+      base: pr.base,
+      head: pr.head,
+    }));
   } catch (error) {
     return rejectWithValue(toRejectedError(error));
   }
@@ -246,6 +288,8 @@ export const fetchPullRequest = createAsyncThunk<
 
 interface PRsState {
   selectedPR: PullRequest | null;
+  activeRepository: { owner: string; repo: string } | null;
+  prList: PRListItem[];
   files: PRFile[];
   comments: PRComment[];
   reviewComments: PRReviewComment[];
@@ -261,6 +305,7 @@ interface PRsState {
     reviewComments: boolean;
     reviews: boolean;
     commits: boolean;
+    prList: boolean;
   };
   errorByResource: {
     metadata: string | null;
@@ -269,11 +314,14 @@ interface PRsState {
     reviewComments: string | null;
     reviews: string | null;
     commits: string | null;
+    prList: string | null;
   };
 }
 
 const initialState: PRsState = {
   selectedPR: null,
+  activeRepository: null,
+  prList: [],
   files: [],
   comments: [],
   reviewComments: [],
@@ -295,6 +343,7 @@ const initialState: PRsState = {
     reviewComments: false,
     reviews: false,
     commits: false,
+    prList: false,
   },
   errorByResource: {
     metadata: null,
@@ -303,6 +352,7 @@ const initialState: PRsState = {
     reviewComments: null,
     reviews: null,
     commits: null,
+    prList: null,
   },
 };
 
@@ -318,6 +368,7 @@ function updateAggregateError(state: PRsState): void {
     state.errorByResource.reviewComments ||
     state.errorByResource.reviews ||
     state.errorByResource.commits ||
+    state.errorByResource.prList ||
     null;
 }
 
@@ -349,6 +400,7 @@ const prsSlice = createSlice({
           reviewComments: null,
           reviews: null,
           commits: null,
+          prList: null,
         };
         updateAggregateError(state);
       } else if (previousPRId !== action.payload.id) {
@@ -364,6 +416,12 @@ const prsSlice = createSlice({
     },
     setPRFiles(state, action: PayloadAction<PRFile[]>) {
       state.files = action.payload;
+    },
+    setPRList(state, action: PayloadAction<PRListItem[]>) {
+      state.prList = action.payload;
+    },
+    setActiveRepository(state, action: PayloadAction<{ owner: string; repo: string } | null>) {
+      state.activeRepository = action.payload;
     },
     setPRComments(state, action: PayloadAction<PRComment[]>) {
       state.comments = action.payload;
@@ -498,6 +556,23 @@ const prsSlice = createSlice({
         updateAggregateLoading(state);
         updateAggregateError(state);
       })
+      .addCase(fetchRepositoryPRList.pending, (state) => {
+        state.loadingByResource.prList = true;
+        state.errorByResource.prList = null;
+        updateAggregateLoading(state);
+        updateAggregateError(state);
+      })
+      .addCase(fetchRepositoryPRList.fulfilled, (state, action) => {
+        state.prList = action.payload;
+        state.loadingByResource.prList = false;
+        updateAggregateLoading(state);
+      })
+      .addCase(fetchRepositoryPRList.rejected, (state, action) => {
+        state.loadingByResource.prList = false;
+        state.errorByResource.prList = action.payload?.userMessage || action.error.message || 'Failed to load repository pull requests';
+        updateAggregateLoading(state);
+        updateAggregateError(state);
+      })
       .addCase(generatePRSummary.pending, (state, action) => {
         state.summary.status = 'loading';
         state.summary.error = null;
@@ -529,6 +604,8 @@ const prsSlice = createSlice({
 export const {
   setSelectedPR,
   setPRFiles,
+  setPRList,
+  setActiveRepository,
   setPRComments,
   setPRReviewComments,
   setPRReviews,

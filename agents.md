@@ -29,14 +29,16 @@ src/
 │   └── slices/
 │       ├── configSlice.ts     # App config (env vars + localStorage overrides)
 │       ├── chatSlice.ts       # Chat messages + streaming state
-│       └── prsSlice.ts        # Selected PR data + commits + summary lifecycle state
+│       ├── prsSlice.ts        # Selected PR data + repo PR lists + commits + summary lifecycle state
+│       └── watchedReposSlice.ts # Watched repositories + PR count badges (localStorage)
 ├── services/
 │   ├── llm.ts                 # LLM service (OpenAI v1 API + LiteLLM, streaming)
 │   ├── github.ts              # GitHub API service (github.com + GHES)
 │   ├── summary.ts             # Summary cache/rate-limit/empty-diff utilities
 │   └── dummyData.ts           # Sample PR data for demo mode
 ├── components/
-│   ├── Sidebar.tsx            # Demo toggle + GitHub owner/repo + PR loader
+│   ├── Sidebar.tsx            # Demo toggle + watchlist + controls/list sidebar views
+│   ├── PRList.tsx             # Sidebar repository PR list view with back navigation
 │   ├── ChatWindow.tsx         # Chat interface with streaming
 │   ├── PRViewer.tsx           # PR details, summary tab, diffs, comments, reviews
 │   └── SettingsDialog.tsx     # Runtime configuration override + summary controls
@@ -63,9 +65,11 @@ src/
 - PAT (Personal Access Token) authentication
 - Supports **github.com** and **GitHub Enterprise Server (GHES)**
 - GHES base URL: `https://<host>/api/v3`
-- Manual GitHub mode input in sidebar: `owner/repo` + PR number
+- Manual GitHub mode input in sidebar: `owner/repo` + optional PR number
+- Sidebar supports `Load PR` (single selected list item) and `Load All PRs` (repository list)
+- Watch repositories in sidebar and display open PR count badges
 - Fetches: PR metadata, file diffs, issue comments, review comments, reviews, commit messages
-- Refresh action re-fetches currently selected PR
+- Refresh actions re-fetch currently selected PR, repository lists, and watched repo PR counts
 - User-friendly GitHub API errors (auth, not found, rate limit, network)
 
 ### Settings
@@ -149,12 +153,15 @@ npm run preview   # Preview production build
 - Use `loadingByResource` and `errorByResource` for UI state; legacy aggregate `isLoading` and `error` are still populated for compatibility
 
 ### Active OpenSpec context
-- Active change: `openspec/changes/add-pr-summary-tab`
-- Summary product behavior target:
-  - orientation-first output (2-4 lines)
-  - adaptive `Focus Areas` with bounds `0..4`
-  - valid success output when no focus areas are emitted for simple PRs
-- Keep summary content isolated from chat history/context
+- Active change: `openspec/changes/repository-watcher`
+- Main specs synced for this change:
+  - `openspec/specs/repo-pr-list/spec.md`
+  - `openspec/specs/watched-repos/spec.md`
+- Repository watcher behavior target:
+  - left `PR Review` pane supports two views: controls/watchlist and repo PR list
+  - `Load PR` with a PR number switches to list view with one selected PR (demo-like behavior)
+  - watched repo click opens that repo list in the same pane
+  - list view includes Back action to return to controls/watchlist
 
 ### Modifying dummy data
 - Edit [`src/services/dummyData.ts`](src/services/dummyData.ts)

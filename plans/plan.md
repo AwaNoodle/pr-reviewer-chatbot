@@ -277,3 +277,26 @@ Identified during initial code review. These are non-blocking improvements to ad
 - [x] Kept summary generation flow and fallback state semantics unchanged (loading/empty/error behavior preserved).
 - [x] Updated `src/components/PRViewer.summary.test.tsx` assertions for orientation-only and orientation+focus-area panelized rendering.
 - [x] Validation run completed with `npm run lint && npm run build && npm run test`.
+
+## OpenSpec Explore Decision Updates (2026-03-16)
+
+- [x] Clarified `repository-watcher` UX scope: `repo-pr-list` renders in the left `PR Review` pane (not center chat area or right PR viewer pane).
+- [x] Captured sidebar navigator behavior: controls/watchlist view and repo list view with explicit Back action.
+- [x] Captured `Load PR` behavior parity with demo mode: when PR number is provided, show a list containing one selected PR.
+- [x] Updated change artifacts (`proposal.md`, `design.md`, `tasks.md`, `specs/repo-pr-list/spec.md`, `specs/watched-repos/spec.md`) to reflect the decision.
+
+## OpenSpec Implementation Updates (2026-03-16)
+
+- [x] Implemented `repository-watcher` change tasks end-to-end.
+- [x] Added watched repository state and persistence via `src/store/slices/watchedReposSlice.ts`.
+- [x] Added repository PR list loading in `src/store/slices/prsSlice.ts` using existing `listPullRequests()` integration.
+- [x] Added sidebar repo-list UI mode with Back navigation and new `src/components/PRList.tsx` component.
+- [x] Updated sidebar to support optional PR number flow (`Load PR` vs `Load All PRs`) and watchlist interactions.
+- [x] Added tests for watched repos, repository PR list loading, and sidebar list selection flows.
+- [x] Validation run completed with `npm run lint && npm run build && npm run test`.
+
+## OpenSpec Spec Sync Updates (2026-03-16)
+
+- [x] Synced change `repository-watcher` delta specs into new main specs for `repo-pr-list` and `watched-repos`.
+- [x] Created `openspec/specs/repo-pr-list/spec.md` from `openspec/changes/repository-watcher/specs/repo-pr-list/spec.md`.
+- [x] Created `openspec/specs/watched-repos/spec.md` from `openspec/changes/repository-watcher/specs/watched-repos/spec.md`.

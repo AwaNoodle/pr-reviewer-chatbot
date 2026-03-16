@@ -105,6 +105,27 @@ export interface PRCommit {
   html_url: string;
 }
 
+export interface WatchedRepository {
+  owner: string;
+  repo: string;
+  fullName: string;
+  openPRCount: number | null;
+  isLoadingCount: boolean;
+  countError: string | null;
+}
+
+export interface PRListItem {
+  id: number;
+  number: number;
+  title: string;
+  state: 'open' | 'closed';
+  merged: boolean;
+  user: GitHubUser;
+  updated_at: string;
+  base: PullRequest['base'];
+  head: PullRequest['head'];
+}
+
 export type GitHubApiErrorCode =
   | 'AUTHENTICATION_ERROR'
   | 'RATE_LIMITED'

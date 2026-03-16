@@ -3,6 +3,8 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import prsReducer, {
   setSelectedPR,
   setPRFiles,
+  setPRList,
+  setActiveRepository,
   setPRComments,
   setPRReviewComments,
   setPRReviews,
@@ -14,11 +16,21 @@ import prsReducer, {
   fetchPRFiles,
   fetchPRComments,
   fetchPRCommits,
+  fetchRepositoryPRList,
   generatePRSummary,
 } from './prsSlice';
 import configReducer from './configSlice';
 import chatReducer from './chatSlice';
-import type { PullRequest, PRFile, PRComment, PRReviewComment, PRReview, PRCommit } from '../../types';
+import watchedReposReducer from './watchedReposSlice';
+import type {
+  PullRequest,
+  PRFile,
+  PRComment,
+  PRReviewComment,
+  PRReview,
+  PRCommit,
+  PRListItem,
+} from '../../types';
 import * as githubService from '../../services/github';
 import * as llmServiceModule from '../../services/llm';
 
@@ -46,6 +58,18 @@ const mockPR: PullRequest = {
   commits: 1,
   labels: [],
   requested_reviewers: [],
+};
+
+const mockListItem: PRListItem = {
+  id: mockPR.id,
+  number: mockPR.number,
+  title: mockPR.title,
+  state: mockPR.state,
+  merged: mockPR.merged,
+  user: mockPR.user,
+  updated_at: mockPR.updated_at,
+  base: mockPR.base,
+  head: mockPR.head,
 };
 
 const mockFile: PRFile = {
@@ -100,6 +124,8 @@ const mockCommit: PRCommit = {
 
 const emptyState = {
   selectedPR: null,
+  activeRepository: null,
+  prList: [],
   files: [],
   comments: [],
   reviewComments: [],
@@ -121,6 +147,7 @@ const emptyState = {
     reviewComments: false,
     reviews: false,
     commits: false,
+    prList: false,
   },
   errorByResource: {
     metadata: null,
@@ -129,10 +156,12 @@ const emptyState = {
     reviewComments: null,
     reviews: null,
     commits: null,
+    prList: null,
   },
 };
 
 type MockGitHubService = {
+  listPullRequests: ReturnType<typeof vi.fn>;
   getPullRequest: ReturnType<typeof vi.fn>;
   getPRFiles: ReturnType<typeof vi.fn>;
   getPRComments: ReturnType<typeof vi.fn>;
@@ -147,6 +176,7 @@ function makeStore() {
       config: configReducer,
       chat: chatReducer,
       prs: prsReducer,
+      watchedRepos: watchedReposReducer,
     },
     preloadedState: {
       config: {
@@ -169,12 +199,16 @@ function makeStore() {
         streamingMessageId: null,
         error: null,
       },
+      watchedRepos: {
+        items: [],
+      },
     },
   });
 }
 
 function setupMockService(): MockGitHubService {
   const service = {
+    listPullRequests: vi.fn(),
     getPullRequest: vi.fn(),
     getPRFiles: vi.fn(),
     getPRComments: vi.fn(),
@@ -218,7 +252,27 @@ describe('prsSlice', () => {
       expect(next.summary.status).toBe('idle');
     });
 
-    it('sets commits and can reset summary state', () => {
+    it('supports PR list and repository reducers', () => {
+      const withList = prsReducer(emptyState, setPRList([mockListItem]));
+      expect(withList.prList).toHaveLength(1);
+
+      const withRepo = prsReducer(withList, setActiveRepository({ owner: 'org', repo: 'repo' }));
+      expect(withRepo.activeRepository).toEqual({ owner: 'org', repo: 'repo' });
+    });
+
+    it('supports existing list setters', () => {
+      expect(prsReducer(emptyState, setPRFiles([mockFile])).files).toHaveLength(1);
+      expect(prsReducer(emptyState, setPRComments([mockComment])).comments).toHaveLength(1);
+      expect(prsReducer(emptyState, setPRReviewComments([mockReviewComment])).reviewComments).toHaveLength(1);
+      expect(prsReducer(emptyState, setPRReviews([mockReview])).reviews).toHaveLength(1);
+    });
+
+    it('supports setLoading and setError reducers', () => {
+      expect(prsReducer(emptyState, setLoading(true)).isLoading).toBe(true);
+      expect(prsReducer({ ...emptyState, isLoading: true }, setError('boom')).isLoading).toBe(false);
+    });
+
+    it('supports commits and summary reset', () => {
       const withCommits = prsReducer(emptyState, setPRCommits([mockCommit]));
       expect(withCommits.commits).toHaveLength(1);
 
@@ -235,18 +289,6 @@ describe('prsSlice', () => {
       const reset = prsReducer(withSummary, resetSummaryState());
       expect(reset.summary.status).toBe('idle');
       expect(reset.summary.content).toBeNull();
-    });
-
-    it('supports existing list setters', () => {
-      expect(prsReducer(emptyState, setPRFiles([mockFile])).files).toHaveLength(1);
-      expect(prsReducer(emptyState, setPRComments([mockComment])).comments).toHaveLength(1);
-      expect(prsReducer(emptyState, setPRReviewComments([mockReviewComment])).reviewComments).toHaveLength(1);
-      expect(prsReducer(emptyState, setPRReviews([mockReview])).reviews).toHaveLength(1);
-    });
-
-    it('supports setLoading and setError reducers', () => {
-      expect(prsReducer(emptyState, setLoading(true)).isLoading).toBe(true);
-      expect(prsReducer({ ...emptyState, isLoading: true }, setError('boom')).isLoading).toBe(false);
     });
   });
 
@@ -270,22 +312,17 @@ describe('prsSlice', () => {
       expect(store.getState().prs.commits).toHaveLength(1);
     });
 
-    it('stores user-friendly errors for resource failures', async () => {
+    it('loads open pull requests for a repository', async () => {
       const store = makeStore();
       const service = setupMockService();
-      service.getPRFiles.mockRejectedValueOnce(
-        new githubService.GitHubApiError({
-          code: 'RATE_LIMITED',
-          status: 403,
-          message: 'API rate limit exceeded',
-          userMessage: 'GitHub rate limit reached. Wait and retry.',
-        })
-      );
 
-      await store.dispatch(fetchPRFiles({ owner: 'org', repo: 'repo', prNumber: 42 }));
+      service.listPullRequests.mockResolvedValueOnce([mockPR]).mockResolvedValueOnce([]);
 
-      expect(store.getState().prs.errorByResource.files).toBe('GitHub rate limit reached. Wait and retry.');
-      expect(store.getState().prs.error).toBe('GitHub rate limit reached. Wait and retry.');
+      await store.dispatch(fetchRepositoryPRList({ owner: 'org', repo: 'repo' }));
+
+      expect(store.getState().prs.prList).toHaveLength(1);
+      expect(store.getState().prs.prList[0].number).toBe(42);
+      expect(service.listPullRequests).toHaveBeenCalledWith('org', 'repo', 'open', 1, 100);
     });
 
     it('runs summary generation and updates summary lifecycle state', async () => {

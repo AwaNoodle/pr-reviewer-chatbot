@@ -8,7 +8,7 @@ This is a web application (React + Redux) that allows users to review GitHub PRs
 - Add watched repositories list to sidebar with add/remove functionality
 - Persist watched repos in localStorage
 - Make PR number optional - load all PRs from a repo when empty
-- Add PR list view in main area for displaying multiple PRs
+- Add PR list view in the left `PR Review` pane, with back navigation to the controls/watchlist view
 
 **Non-Goals:**
 - Real-time polling (manual refresh only)
@@ -46,6 +46,23 @@ Adding repo to watch list immediately when clicking the watch icon.
 - **Rationale**: Simpler UX, user can easily remove if added by mistake
 - **Alternative**: Confirmation dialog - adds friction
 
+### 5. Sidebar navigation: two views in the same pane
+
+The left `PR Review` pane will behave as a small navigator with two views:
+
+- **Controls view**: repository input, optional PR number input, load button, watchlist
+- **Repo list view**: list of PRs for the active repository, plus a Back action
+
+Behavior details:
+
+- Clicking **Load PR** with a PR number switches to repo list view containing one selected PR (demo-like behavior)
+- Clicking **Load All PRs** (empty PR number) switches to repo list view containing all open PRs
+- Clicking a watched repository switches to repo list view for that repository
+- Back returns to controls view and keeps form inputs intact
+
+- **Rationale**: Matches existing demo mode mental model and keeps repository workflows in one consistent sidebar location
+- **Alternative**: Render PR list in center chat area or right PR detail pane, which fragments navigation and blurs responsibility
+
 ## Risks / Trade-offs
 
 | Risk | Mitigation |
@@ -54,3 +71,4 @@ Adding repo to watch list immediately when clicking the watch icon.
 | Invalid repos entered by user | Validate via API before adding, show error |
 | Large number of PRs in a repo | Pagination in list view if needed |
 | No real-time updates | Manual refresh only for MVP |
+| Users may miss how to return from repo list view | Add visible Back action at top of repo list view |

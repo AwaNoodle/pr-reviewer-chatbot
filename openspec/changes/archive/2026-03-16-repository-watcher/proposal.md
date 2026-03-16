@@ -7,7 +7,7 @@ Currently users must manually enter a full PR URL each time they want to review 
 - Add watched repos list to sidebar, persisted in localStorage
 - Make PR Number field optional in the PR loader
 - Load all PRs from a repo when PR Number is empty
-- Add PR list view in main area to display multiple PRs when loaded without a specific PR number
+- Add PR list view in the left `PR Review` pane (replacing controls view) to display repository PRs, with back navigation to the controls/watchlist view
 - Add watch toggle button next to repository input field
 
 ## Capabilities
@@ -24,6 +24,7 @@ Currently users must manually enter a full PR URL each time they want to review 
 ## Impact
 
 - **Sidebar**: Add watched repos list, watch toggle icon on repo input
-- **PRViewer**: Support list view mode alongside detail view
+- **Sidebar**: Add navigable controls/list views and back action in the `PR Review` pane
+- **PRViewer**: Remain detail-focused; selected PR still opens in right detail pane
 - **Config**: Add watched repos storage in localStorage
 - **GitHub Service**: Already has `listPullRequests()` - no changes needed
