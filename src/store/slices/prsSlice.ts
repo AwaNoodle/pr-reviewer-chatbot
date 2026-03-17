@@ -33,6 +33,8 @@ interface RepoRequestArgs {
   repo: string;
 }
 
+type PRResourceKey = 'metadata' | 'files' | 'comments' | 'reviewComments' | 'reviews' | 'commits';
+
 type SummaryStatus = 'idle' | 'loading' | 'success' | 'empty' | 'error';
 
 interface SummaryState {
@@ -316,6 +318,7 @@ interface PRsState {
     commits: string | null;
     prList: string | null;
   };
+  latestRequestKeyByResource: Record<PRResourceKey, string | null>;
 }
 
 const initialState: PRsState = {
@@ -354,7 +357,19 @@ const initialState: PRsState = {
     commits: null,
     prList: null,
   },
+  latestRequestKeyByResource: {
+    metadata: null,
+    files: null,
+    comments: null,
+    reviewComments: null,
+    reviews: null,
+    commits: null,
+  },
 };
+
+function getPRRequestKey(args: PRRequestArgs): string {
+  return `${args.owner}/${args.repo}#${args.prNumber}`;
+}
 
 function updateAggregateLoading(state: PRsState): void {
   state.isLoading = Object.values(state.loadingByResource).some(Boolean);
@@ -403,6 +418,14 @@ const prsSlice = createSlice({
           prList: null,
         };
         updateAggregateError(state);
+        state.latestRequestKeyByResource = {
+          metadata: null,
+          files: null,
+          comments: null,
+          reviewComments: null,
+          reviews: null,
+          commits: null,
+        };
       } else if (previousPRId !== action.payload.id) {
         state.commits = [];
         state.summary = {
@@ -454,103 +477,157 @@ const prsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchPullRequest.pending, (state) => {
+      .addCase(fetchPullRequest.pending, (state, action) => {
+        state.latestRequestKeyByResource.metadata = getPRRequestKey(action.meta.arg);
         state.loadingByResource.metadata = true;
         state.errorByResource.metadata = null;
         updateAggregateLoading(state);
         updateAggregateError(state);
       })
       .addCase(fetchPullRequest.fulfilled, (state, action) => {
+        if (state.latestRequestKeyByResource.metadata !== getPRRequestKey(action.meta.arg)) {
+          return;
+        }
+
         state.selectedPR = action.payload;
         state.loadingByResource.metadata = false;
         updateAggregateLoading(state);
       })
       .addCase(fetchPullRequest.rejected, (state, action) => {
+        if (state.latestRequestKeyByResource.metadata !== getPRRequestKey(action.meta.arg)) {
+          return;
+        }
+
         state.loadingByResource.metadata = false;
         state.errorByResource.metadata = action.payload?.userMessage || action.error.message || 'Failed to load pull request metadata';
         updateAggregateLoading(state);
         updateAggregateError(state);
       })
-      .addCase(fetchPRFiles.pending, (state) => {
+      .addCase(fetchPRFiles.pending, (state, action) => {
+        state.latestRequestKeyByResource.files = getPRRequestKey(action.meta.arg);
         state.loadingByResource.files = true;
         state.errorByResource.files = null;
         updateAggregateLoading(state);
         updateAggregateError(state);
       })
       .addCase(fetchPRFiles.fulfilled, (state, action) => {
+        if (state.latestRequestKeyByResource.files !== getPRRequestKey(action.meta.arg)) {
+          return;
+        }
+
         state.files = action.payload;
         state.loadingByResource.files = false;
         updateAggregateLoading(state);
       })
       .addCase(fetchPRFiles.rejected, (state, action) => {
+        if (state.latestRequestKeyByResource.files !== getPRRequestKey(action.meta.arg)) {
+          return;
+        }
+
         state.loadingByResource.files = false;
         state.errorByResource.files = action.payload?.userMessage || action.error.message || 'Failed to load pull request files';
         updateAggregateLoading(state);
         updateAggregateError(state);
       })
-      .addCase(fetchPRComments.pending, (state) => {
+      .addCase(fetchPRComments.pending, (state, action) => {
+        state.latestRequestKeyByResource.comments = getPRRequestKey(action.meta.arg);
         state.loadingByResource.comments = true;
         state.errorByResource.comments = null;
         updateAggregateLoading(state);
         updateAggregateError(state);
       })
       .addCase(fetchPRComments.fulfilled, (state, action) => {
+        if (state.latestRequestKeyByResource.comments !== getPRRequestKey(action.meta.arg)) {
+          return;
+        }
+
         state.comments = action.payload;
         state.loadingByResource.comments = false;
         updateAggregateLoading(state);
       })
       .addCase(fetchPRComments.rejected, (state, action) => {
+        if (state.latestRequestKeyByResource.comments !== getPRRequestKey(action.meta.arg)) {
+          return;
+        }
+
         state.loadingByResource.comments = false;
         state.errorByResource.comments = action.payload?.userMessage || action.error.message || 'Failed to load pull request comments';
         updateAggregateLoading(state);
         updateAggregateError(state);
       })
-      .addCase(fetchPRReviewComments.pending, (state) => {
+      .addCase(fetchPRReviewComments.pending, (state, action) => {
+        state.latestRequestKeyByResource.reviewComments = getPRRequestKey(action.meta.arg);
         state.loadingByResource.reviewComments = true;
         state.errorByResource.reviewComments = null;
         updateAggregateLoading(state);
         updateAggregateError(state);
       })
       .addCase(fetchPRReviewComments.fulfilled, (state, action) => {
+        if (state.latestRequestKeyByResource.reviewComments !== getPRRequestKey(action.meta.arg)) {
+          return;
+        }
+
         state.reviewComments = action.payload;
         state.loadingByResource.reviewComments = false;
         updateAggregateLoading(state);
       })
       .addCase(fetchPRReviewComments.rejected, (state, action) => {
+        if (state.latestRequestKeyByResource.reviewComments !== getPRRequestKey(action.meta.arg)) {
+          return;
+        }
+
         state.loadingByResource.reviewComments = false;
         state.errorByResource.reviewComments = action.payload?.userMessage || action.error.message || 'Failed to load pull request review comments';
         updateAggregateLoading(state);
         updateAggregateError(state);
       })
-      .addCase(fetchPRReviews.pending, (state) => {
+      .addCase(fetchPRReviews.pending, (state, action) => {
+        state.latestRequestKeyByResource.reviews = getPRRequestKey(action.meta.arg);
         state.loadingByResource.reviews = true;
         state.errorByResource.reviews = null;
         updateAggregateLoading(state);
         updateAggregateError(state);
       })
       .addCase(fetchPRReviews.fulfilled, (state, action) => {
+        if (state.latestRequestKeyByResource.reviews !== getPRRequestKey(action.meta.arg)) {
+          return;
+        }
+
         state.reviews = action.payload;
         state.loadingByResource.reviews = false;
         updateAggregateLoading(state);
       })
       .addCase(fetchPRReviews.rejected, (state, action) => {
+        if (state.latestRequestKeyByResource.reviews !== getPRRequestKey(action.meta.arg)) {
+          return;
+        }
+
         state.loadingByResource.reviews = false;
         state.errorByResource.reviews = action.payload?.userMessage || action.error.message || 'Failed to load pull request reviews';
         updateAggregateLoading(state);
         updateAggregateError(state);
       })
-      .addCase(fetchPRCommits.pending, (state) => {
+      .addCase(fetchPRCommits.pending, (state, action) => {
+        state.latestRequestKeyByResource.commits = getPRRequestKey(action.meta.arg);
         state.loadingByResource.commits = true;
         state.errorByResource.commits = null;
         updateAggregateLoading(state);
         updateAggregateError(state);
       })
       .addCase(fetchPRCommits.fulfilled, (state, action) => {
+        if (state.latestRequestKeyByResource.commits !== getPRRequestKey(action.meta.arg)) {
+          return;
+        }
+
         state.commits = action.payload;
         state.loadingByResource.commits = false;
         updateAggregateLoading(state);
       })
       .addCase(fetchPRCommits.rejected, (state, action) => {
+        if (state.latestRequestKeyByResource.commits !== getPRRequestKey(action.meta.arg)) {
+          return;
+        }
+
         state.loadingByResource.commits = false;
         state.errorByResource.commits = action.payload?.userMessage || action.error.message || 'Failed to load pull request commits';
         updateAggregateLoading(state);

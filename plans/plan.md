@@ -300,3 +300,14 @@ Identified during initial code review. These are non-blocking improvements to ad
 - [x] Synced change `repository-watcher` delta specs into new main specs for `repo-pr-list` and `watched-repos`.
 - [x] Created `openspec/specs/repo-pr-list/spec.md` from `openspec/changes/repository-watcher/specs/repo-pr-list/spec.md`.
 - [x] Created `openspec/specs/watched-repos/spec.md` from `openspec/changes/repository-watcher/specs/watched-repos/spec.md`.
+
+---
+
+## Code Review Hardening Tasks (2026-03-17)
+
+- [x] Task 1: Add stale-response guards in `prsSlice` so older PR resource responses cannot overwrite newer selection state.
+- [ ] Task 2: Add regression tests for rapid PR switching race in `src/store/slices/prsSlice.test.ts`.
+- [ ] Task 3: Add `Dialog.Description` in `src/components/SettingsDialog.tsx` to satisfy Radix dialog accessibility contract.
+- [ ] Task 4: Update settings dialog tests to assert description semantics and eliminate warning output.
+- [ ] Task 5: Add chat stream request cancellation (`AbortController`) in `src/components/ChatWindow.tsx` and `src/services/llm.ts`.
+- [ ] Task 6: Add tests for stream cancellation behavior and UI streaming state cleanup.
