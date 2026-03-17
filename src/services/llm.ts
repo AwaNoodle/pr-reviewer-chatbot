@@ -42,7 +42,7 @@ export class LLMService {
     return headers;
   }
 
-  async chat(messages: LLMMessage[]): Promise<string> {
+  async chat(messages: LLMMessage[], options?: { signal?: AbortSignal }): Promise<string> {
     const request: LLMChatRequest = {
       model: this.config.llmModel,
       messages,
@@ -53,6 +53,7 @@ export class LLMService {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify(request),
+      signal: options?.signal,
     });
 
     if (!response.ok) {
@@ -64,7 +65,10 @@ export class LLMService {
     return data.choices[0]?.message?.content ?? '';
   }
 
-  async *chatStream(messages: LLMMessage[]): AsyncGenerator<string, void, unknown> {
+  async *chatStream(
+    messages: LLMMessage[],
+    options?: { signal?: AbortSignal }
+  ): AsyncGenerator<string, void, unknown> {
     const request: LLMChatRequest = {
       model: this.config.llmModel,
       messages,
@@ -75,6 +79,7 @@ export class LLMService {
       method: 'POST',
       headers: this.getHeaders(),
       body: JSON.stringify(request),
+      signal: options?.signal,
     });
 
     if (!response.ok) {

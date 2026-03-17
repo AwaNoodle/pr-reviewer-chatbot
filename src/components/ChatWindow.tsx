@@ -110,6 +110,7 @@ export function ChatWindow() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const previousSelectedPRIdRef = useRef<number | null>(null);
+  const activeStreamAbortRef = useRef<AbortController | null>(null);
 
   const scrollToBottom = useCallback(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -120,7 +121,13 @@ export function ChatWindow() {
   }, [messages, scrollToBottom]);
 
   useEffect(() => {
+    const abortController = activeStreamAbortRef.current;
     const currentPRId = selectedPR?.id ?? null;
+    if (previousSelectedPRIdRef.current !== currentPRId) {
+      abortController?.abort();
+      activeStreamAbortRef.current = null;
+    }
+
     if (
       previousSelectedPRIdRef.current !== null &&
       currentPRId !== null &&
@@ -130,6 +137,13 @@ export function ChatWindow() {
     }
     previousSelectedPRIdRef.current = currentPRId;
   }, [dispatch, selectedPR?.id]);
+
+  useEffect(() => {
+    return () => {
+      activeStreamAbortRef.current?.abort();
+      activeStreamAbortRef.current = null;
+    };
+  }, []);
 
   const getPRContext = useCallback((): PRContext => {
     if (config.demoMode) {
@@ -175,6 +189,10 @@ export function ChatWindow() {
     dispatch(setStreaming({ isStreaming: true, messageId: assistantId }));
 
     try {
+      activeStreamAbortRef.current?.abort();
+      const abortController = new AbortController();
+      activeStreamAbortRef.current = abortController;
+
       const llmService = createLLMService(config);
       const prContext = getPRContext();
       const systemPrompt = llmService.buildSystemPrompt(prContext);
@@ -194,14 +212,21 @@ export function ChatWindow() {
       ];
 
       // Stream the response
-      for await (const chunk of llmService.chatStream(llmMessages)) {
+      for await (const chunk of llmService.chatStream(llmMessages, { signal: abortController.signal })) {
         dispatch(appendStreamingContent({ id: assistantId, chunk }));
       }
 
       dispatch(finalizeStreamingMessage(assistantId));
     } catch (err) {
+      if (err instanceof Error && err.name === 'AbortError') {
+        dispatch(finalizeStreamingMessage(assistantId));
+        return;
+      }
+
       const errorMessage = err instanceof Error ? err.message : 'An error occurred';
       dispatch(markMessageError({ id: assistantId, error: errorMessage }));
+    } finally {
+      activeStreamAbortRef.current = null;
     }
   }, [input, isStreaming, dispatch, config, messages, getPRContext]);
 
