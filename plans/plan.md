@@ -310,4 +310,4 @@ Identified during initial code review. These are non-blocking improvements to ad
 - [x] Task 3: Add `Dialog.Description` in `src/components/SettingsDialog.tsx` to satisfy Radix dialog accessibility contract.
 - [x] Task 4: Update settings dialog tests to assert description semantics and eliminate warning output.
 - [x] Task 5: Add chat stream request cancellation (`AbortController`) in `src/components/ChatWindow.tsx` and `src/services/llm.ts`.
-- [ ] Task 6: Add tests for stream cancellation behavior and UI streaming state cleanup.
+- [x] Task 6: Add tests for stream cancellation behavior and UI streaming state cleanup.
