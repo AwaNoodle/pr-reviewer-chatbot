@@ -1,0 +1,13 @@
+Code review the current project
+
+---
+
+show a plan for the critical and improvements. Split into individual tasks
+
+---
+
+Process one at a time in a subagent. Ensure that tests are updated (if needed) and passing when finishing the task. Commit each task as they complete.
+
+---
+
+Go
