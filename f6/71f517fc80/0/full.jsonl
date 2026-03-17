@@ -7,13 +7,13 @@
     "title": "Code review for current project",
     "version": "1.2.27",
     "summary": {
-      "additions": 226,
+      "additions": 230,
       "deletions": 6,
-      "files": 4
+      "files": 5
     },
     "time": {
       "created": 1773777285718,
-      "updated": 1773779042538
+      "updated": 1773779078342
     }
   },
   "messages": [
@@ -1954,8 +1954,16 @@
             {
               "file": "plans/plan.md",
               "before": "# PR Review Chatbot - Implementation Plan\n\n## Priority: UI and LLM Integration First\n**Key Change**: Use dummy data for PR content to allow immediate interaction with the LLM without needing GitHub API credentials. GitHub integration can be added later.\n\n---\n\n## Tech Stack\n- Vite + React 18 + TypeScript\n- Redux Toolkit for state management\n- Axios for HTTP\n- Tailwind CSS for styling\n- Radix UI for accessible components\n\n---\n\n## Implementation Phases\n\n### ✅ Phase 1: Project Setup (COMPLETED)\n- [x] Initialize Vite + React + TypeScript project\n- [x] Install dependencies (Redux Toolkit, Axios, Tailwind, Radix UI, react-markdown, react-syntax-highlighter, lucide-react)\n- [x] Configure Tailwind CSS with CSS variables for theming\n- [x] Set up project structure (`src/types`, `src/store`, `src/services`, `src/components`, `src/lib`)\n- [x] Create `vite-env.d.ts` for Vite environment type declarations\n- [x] Create `.env.example` with all configuration options\n- [x] Create `.gitignore`\n\n### ✅ Phase 2: UI Shell & Configuration (COMPLETED)\n- [x] Create Redux store (`src/store/index.ts`)\n- [x] Implement `configSlice.ts` — env var defaults + localStorage runtime overrides\n- [x] Implement `chatSlice.ts` — messages, streaming state\n- [x] Implement `prsSlice.ts` — selected PR, files, comments, reviews\n- [x] Create typed Redux hooks (`src/store/hooks.ts`)\n- [x] Create `SettingsDialog.tsx` — runtime config override with demo mode toggle\n- [x] Create main `App.tsx` layout (sidebar + chat + PR viewer panels)\n- [x] Dark mode toggle in top bar\n- [x] Collapsible sidebar and PR viewer panels\n\n### ✅ Phase 3: Chat Interface (COMPLETED)\n- [x] Build `ChatWindow.tsx` with message display\n- [x] User/assistant message bubbles with avatars\n- [x] Markdown rendering with `react-markdown` + `remark-gfm`\n- [x] Code syntax highlighting with `react-syntax-highlighter`\n- [x] Streaming response display (animated cursor)\n- [x] Auto-scroll to latest message\n- [x] Multi-line textarea input (auto-resize)\n- [x] Enter to send, Shift+Enter for new line\n- [x] Suggestion chips on empty state\n- [x] Clear conversation button\n- [x] Error display in message bubbles\n\n### ✅ Phase 4: LLM Integration (COMPLETED)\n- [x] Implement `LLMService` class in `src/services/llm.ts`\n- [x] OpenAI v1 API support (`/chat/completions`)\n- [x] LiteLLM Proxy support (same API format)\n- [x] Streaming via Server-Sent Events (SSE)\n- [x] `buildSystemPrompt()` — injects full PR context (metadata, diffs, comments, reviews)\n- [x] Connect LLM service to `ChatWindow` with streaming dispatch\n- [x] Error handling for API failures\n\n### ✅ Phase 5: Dummy Data & Demo Mode (COMPLETED)\n- [x] Create `src/services/dummyData.ts` with realistic sample PR\n  - Sample PR: JWT authentication feature (8 files, realistic diffs)\n  - Sample comments, review comments, and reviews\n- [x] Build `PRViewer.tsx` with:\n  - PR metadata header (state badge, author, branch, stats)\n  - Tabs: Files, Comments, Reviews\n  - Collapsible file items with diff view\n  - Diff syntax highlighting (green/red/blue lines)\n  - Status badges per file (added/modified/removed)\n- [x] Build `Sidebar.tsx` with demo mode toggle\n- [x] Auto-load dummy PR on startup in demo mode\n- [x] Demo mode toggle in sidebar and Settings dialog\n\n### ✅ Phase 6: GitHub Integration (COMPLETED)\n- [x] Implement `GitHubService` class in `src/services/github.ts`\n- [x] PAT (Bearer token) authentication\n- [x] Support for github.com (`https://api.github.com`)\n- [x] Support for GHES (`https://<host>/api/v3`)\n- [x] Methods: `listRepositories`, `searchRepositories`, `listPullRequests`, `getPullRequest`, `getPRFiles`, `getPRComments`, `getPRReviewComments`, `getPRReviews`, `validateToken`\n- [x] Token validation method\n\n### ✅ Phase 7: Polish (COMPLETED)\n- [x] Add loading states and loading indicators for GitHub API calls\n- [x] Add error handling for GitHub API failures (rate limiting, 404, auth errors)\n- [x] Polish UI/UX (animations, transitions)\n- [x] GitHub mode UI — allow entering repo/PR manually\n- [x] Context window management for very large PRs\n\n---\n\n## Documentation (COMPLETED)\n- [x] `README.md` — User-facing docs: quick start, configuration, LLM setup, GitHub setup, troubleshooting\n- [x] `agents.md` — Developer/agent docs: project structure, architecture, common tasks\n- [x] `.env.example` — Annotated environment variable reference\n\n---\n\n## Configuration\n\n### Environment Variables (with defaults)\n```\nVITE_GITHUB_PAT=          # GitHub Personal Access Token\nVITE_LLM_API_KEY=         # LLM API Key\nVITE_GITHUB_INSTANCE=     # \"github.com\" or URL for GHES\nVITE_LLM_BACKEND=         # \"openai\" or \"litellm\"\nVITE_LLM_ENDPOINT=        # API endpoint URL\nVITE_LLM_MODEL=           # Model name\nVITE_DEMO_MODE=           # \"true\" or \"false\"\n```\n\n### Runtime Override\nSettings dialog allows overriding env vars at runtime (persisted to localStorage).\n\n---\n\n## Architecture\n\n### Services\n```\nsrc/services/\n├── github.ts      # Fetch PRs, details, diffs, comments (supports GHES)\n├── llm.ts         # Unified interface for OpenAI v1 API + LiteLLM Proxy\n└── dummyData.ts   # Sample PR data for demo mode\n```\n\n### Redux Store\n```\nsrc/store/\n├── index.ts              # Store configuration\n├── hooks.ts              # Typed useAppDispatch / useAppSelector\n└── slices/\n    ├── configSlice.ts    # App config (env defaults + runtime overrides)\n    ├── prsSlice.ts       # Current PR data\n    └── chatSlice.ts      # Messages + streaming state\n```\n\n### Components\n```\nsrc/components/\n├── SettingsDialog.tsx   # Runtime config override\n├── Sidebar.tsx          # Repo/PR navigation (or demo mode toggle)\n├── ChatWindow.tsx       # Chat messages + input\n└── PRViewer.tsx         # File diffs, metadata\n```\n\n---\n\n## Data Types\n\n### GitHub PR\n```typescript\ninterface PullRequest {\n  id: number;\n  number: number;\n  title: string;\n  body: string | null;\n  state: 'open' | 'closed';\n  merged: boolean;\n  merged_at: string | null;\n  user: GitHubUser;\n  created_at: string;\n  updated_at: string;\n  head: { ref: string; sha: string; repo: { full_name: string } | null };\n  base: { ref: string; sha: string; repo: { full_name: string } };\n  url: string;\n  html_url: string;\n  diff_url: string;\n  additions: number;\n  deletions: number;\n  changed_files: number;\n  comments: number;\n  review_comments: number;\n  commits: number;\n  labels: Array<{ id: number; name: string; color: string }>;\n  requested_reviewers: GitHubUser[];\n}\n```\n\n### Chat Message\n```typescript\ninterface ChatMessage {\n  id: string;\n  role: 'user' | 'assistant' | 'system';\n  content: string;\n  timestamp: number;\n  isStreaming?: boolean;\n  error?: string;\n}\n```\n\n### App Config\n```typescript\ninterface AppConfig {\n  githubPat: string;\n  llmApiKey: string;\n  githubInstance: string;\n  llmBackend: 'openai' | 'litellm';\n  llmEndpoint: string;\n  llmModel: string;\n  demoMode: boolean;\n}\n```\n\n---\n\n## Error Handling\n\n### LLM API Errors\n- Invalid API key: Error shown in message bubble\n- Rate limiting: Error shown in message bubble\n- Network errors: Error shown in message bubble\n- Streaming errors: Graceful fallback with error message\n\n### GitHub API Errors (when enabled)\n- Invalid PAT: Prompt to update token\n- Rate limiting: Show remaining requests\n- Not found (404): Repository/PR not found\n\n---\n\n### ⏳ Phase 8: Code Quality & UX Improvements (PENDING)\n\nIdentified during initial code review. These are non-blocking improvements to address after the Phase 7 polish work.\n\n#### Quality\n- [x] **ESLint v9 flat config** (`eslint.config.js`) — Added repository-level flat config so `npm run lint` works with ESLint 9.\n- [x] **`getPRFiles` pagination** (`src/services/github.ts:96`) — The GitHub API caps file lists at 100 per page. PRs with >100 changed files silently return incomplete data. Add pagination (loop until `response.data.length < perPage`) or at minimum show a warning banner in `PRViewer` when the file count equals the page limit.\n- [x] **Stable React keys in `DiffView`** (`src/components/PRViewer.tsx:41`) — Diff lines currently use array index as `key`. Replace with a content-based key (e.g. `` `${i}-${line.slice(0, 8)}` ``) to prevent React reusing DOM nodes incorrectly when switching between files.\n\n#### UX\n- [x] **Persist dark mode preference** (`src/App.tsx:10`) — Dark mode state resets on every page reload. Initialise from `localStorage` and respect the OS `prefers-color-scheme` media query:\n  ```ts\n  const [darkMode, setDarkMode] = useState(\n    () => localStorage.getItem('darkMode') === 'true'\n      || window.matchMedia('(prefers-color-scheme: dark)').matches\n  );\n  ```\n  Also persist the toggle: `localStorage.setItem('darkMode', String(!darkMode))` inside `toggleDarkMode`.\n- [x] **Wire up the Refresh button** (`src/components/Sidebar.tsx:111`) — The refresh `<button>` in the sidebar is rendered in GitHub mode but has no `onClick` handler. Either connect it to a `fetchPullRequests` thunk (part of Phase 7 GitHub UI work) or hide it with `{false && ...}` until that feature is ready, to avoid confusing users with a dead control.\n\n---\n\n## OpenSpec Alignment Notes (2026-03-14)\n\n- `openspec/changes/add-pr-summary-tab/tasks.md` was updated to capture quick-orientation behavior decisions from explore mode.\n- Summary behavior target: 2-4 line orientation section, adaptive `Focus Areas` with bounds `0..4`, and valid success output when focus areas are omitted for simple PRs.\n- Synced delta spec `openspec/changes/add-pr-summary-tab/specs/pr-review-summary/spec.md` into new main spec `openspec/specs/pr-review-summary/spec.md`.\n- Added change scaffold `openspec/changes/update-pr-review-summary-ui-readability/` with completed proposal, design, spec delta, and tasks artifacts for summary UI readability improvements.\n- Refined `update-pr-review-summary-ui-readability` scope to panelized Summary display: Orientation and each Focus Area render as separate cards styled like Comments/Reviews, with blue/yellow title accents and no spec contract changes.\n\n---\n\n## ✅ Phase 9: PR Summary Tab (COMPLETED)\n\n- [x] Extend `AppConfig` with summary fields: `summaryEnabled`, `summaryPrompt`, `summaryCommands`\n- [x] Add/export `DEFAULT_SUMMARY_PROMPT` and keep reset behavior prompt-only\n- [x] Add PR commits API loading (`getPRCommits`) and Redux state wiring\n- [x] Add summary lifecycle state in `prsSlice` (`status`, `content`, `generatedAt`, `error`)\n- [x] Implement summary orchestration utilities:\n  - per-PR+head+prompt cache keying\n  - sessionStorage read/write cache\n  - one-per-minute per-PR-head rate limiting\n  - empty textual diff detection\n- [x] Extend LLM service with structured summary prompt assembly (orientation + adaptive focus areas)\n- [x] Add Summary tab UI in `PRViewer` with loading/success/empty/error states and timestamp footer\n- [x] Wire summary generation on PR selection/load and keep summary separate from chat history/context\n- [x] Add/expand tests for config, GitHub service, PR slice, summary utilities, LLM prompt, Settings UI, and Summary tab rendering\n- [x] Update README and agent guidance for summary behavior, fallback states, and output contract\n\n---\n\n## OpenSpec Implementation Updates (2026-03-14)\n\n- [x] Completed OpenSpec change `update-pr-review-summary-ui-readability` implementation tasks (8/8) for panelized Summary tab readability updates.\n- [x] Updated Summary success rendering in `src/components/PRViewer.tsx` to show an `Orientation` panel and per-item `Focus Area N` panels with blue/yellow title accents.\n- [x] Kept summary generation flow and fallback state semantics unchanged (loading/empty/error behavior preserved).\n- [x] Updated `src/components/PRViewer.summary.test.tsx` assertions for orientation-only and orientation+focus-area panelized rendering.\n- [x] Validation run completed with `npm run lint && npm run build && npm run test`.\n\n## OpenSpec Explore Decision Updates (2026-03-16)\n\n- [x] Clarified `repository-watcher` UX scope: `repo-pr-list` renders in the left `PR Review` pane (not center chat area or right PR viewer pane).\n- [x] Captured sidebar navigator behavior: controls/watchlist view and repo list view with explicit Back action.\n- [x] Captured `Load PR` behavior parity with demo mode: when PR number is provided, show a list containing one selected PR.\n- [x] Updated change artifacts (`proposal.md`, `design.md`, `tasks.md`, `specs/repo-pr-list/spec.md`, `specs/watched-repos/spec.md`) to reflect the decision.\n\n## OpenSpec Implementation Updates (2026-03-16)\n\n- [x] Implemented `repository-watcher` change tasks end-to-end.\n- [x] Added watched repository state and persistence via `src/store/slices/watchedReposSlice.ts`.\n- [x] Added repository PR list loading in `src/store/slices/prsSlice.ts` using existing `listPullRequests()` integration.\n- [x] Added sidebar repo-list UI mode with Back navigation and new `src/components/PRList.tsx` component.\n- [x] Updated sidebar to support optional PR number flow (`Load PR` vs `Load All PRs`) and watchlist interactions.\n- [x] Added tests for watched repos, repository PR list loading, and sidebar list selection flows.\n- [x] Validation run completed with `npm run lint && npm run build && npm run test`.\n\n## OpenSpec Spec Sync Updates (2026-03-16)\n\n- [x] Synced change `repository-watcher` delta specs into new main specs for `repo-pr-list` and `watched-repos`.\n- [x] Created `openspec/specs/repo-pr-list/spec.md` from `openspec/changes/repository-watcher/specs/repo-pr-list/spec.md`.\n- [x] Created `openspec/specs/watched-repos/spec.md` from `openspec/changes/repository-watcher/specs/watched-repos/spec.md`.\n",
-              "after": "# PR Review Chatbot - Implementation Plan\n\n## Priority: UI and LLM Integration First\n**Key Change**: Use dummy data for PR content to allow immediate interaction with the LLM without needing GitHub API credentials. GitHub integration can be added later.\n\n---\n\n## Tech Stack\n- Vite + React 18 + TypeScript\n- Redux Toolkit for state management\n- Axios for HTTP\n- Tailwind CSS for styling\n- Radix UI for accessible components\n\n---\n\n## Implementation Phases\n\n### ✅ Phase 1: Project Setup (COMPLETED)\n- [x] Initialize Vite + React + TypeScript project\n- [x] Install dependencies (Redux Toolkit, Axios, Tailwind, Radix UI, react-markdown, react-syntax-highlighter, lucide-react)\n- [x] Configure Tailwind CSS with CSS variables for theming\n- [x] Set up project structure (`src/types`, `src/store`, `src/services`, `src/components`, `src/lib`)\n- [x] Create `vite-env.d.ts` for Vite environment type declarations\n- [x] Create `.env.example` with all configuration options\n- [x] Create `.gitignore`\n\n### ✅ Phase 2: UI Shell & Configuration (COMPLETED)\n- [x] Create Redux store (`src/store/index.ts`)\n- [x] Implement `configSlice.ts` — env var defaults + localStorage runtime overrides\n- [x] Implement `chatSlice.ts` — messages, streaming state\n- [x] Implement `prsSlice.ts` — selected PR, files, comments, reviews\n- [x] Create typed Redux hooks (`src/store/hooks.ts`)\n- [x] Create `SettingsDialog.tsx` — runtime config override with demo mode toggle\n- [x] Create main `App.tsx` layout (sidebar + chat + PR viewer panels)\n- [x] Dark mode toggle in top bar\n- [x] Collapsible sidebar and PR viewer panels\n\n### ✅ Phase 3: Chat Interface (COMPLETED)\n- [x] Build `ChatWindow.tsx` with message display\n- [x] User/assistant message bubbles with avatars\n- [x] Markdown rendering with `react-markdown` + `remark-gfm`\n- [x] Code syntax highlighting with `react-syntax-highlighter`\n- [x] Streaming response display (animated cursor)\n- [x] Auto-scroll to latest message\n- [x] Multi-line textarea input (auto-resize)\n- [x] Enter to send, Shift+Enter for new line\n- [x] Suggestion chips on empty state\n- [x] Clear conversation button\n- [x] Error display in message bubbles\n\n### ✅ Phase 4: LLM Integration (COMPLETED)\n- [x] Implement `LLMService` class in `src/services/llm.ts`\n- [x] OpenAI v1 API support (`/chat/completions`)\n- [x] LiteLLM Proxy support (same API format)\n- [x] Streaming via Server-Sent Events (SSE)\n- [x] `buildSystemPrompt()` — injects full PR context (metadata, diffs, comments, reviews)\n- [x] Connect LLM service to `ChatWindow` with streaming dispatch\n- [x] Error handling for API failures\n\n### ✅ Phase 5: Dummy Data & Demo Mode (COMPLETED)\n- [x] Create `src/services/dummyData.ts` with realistic sample PR\n  - Sample PR: JWT authentication feature (8 files, realistic diffs)\n  - Sample comments, review comments, and reviews\n- [x] Build `PRViewer.tsx` with:\n  - PR metadata header (state badge, author, branch, stats)\n  - Tabs: Files, Comments, Reviews\n  - Collapsible file items with diff view\n  - Diff syntax highlighting (green/red/blue lines)\n  - Status badges per file (added/modified/removed)\n- [x] Build `Sidebar.tsx` with demo mode toggle\n- [x] Auto-load dummy PR on startup in demo mode\n- [x] Demo mode toggle in sidebar and Settings dialog\n\n### ✅ Phase 6: GitHub Integration (COMPLETED)\n- [x] Implement `GitHubService` class in `src/services/github.ts`\n- [x] PAT (Bearer token) authentication\n- [x] Support for github.com (`https://api.github.com`)\n- [x] Support for GHES (`https://<host>/api/v3`)\n- [x] Methods: `listRepositories`, `searchRepositories`, `listPullRequests`, `getPullRequest`, `getPRFiles`, `getPRComments`, `getPRReviewComments`, `getPRReviews`, `validateToken`\n- [x] Token validation method\n\n### ✅ Phase 7: Polish (COMPLETED)\n- [x] Add loading states and loading indicators for GitHub API calls\n- [x] Add error handling for GitHub API failures (rate limiting, 404, auth errors)\n- [x] Polish UI/UX (animations, transitions)\n- [x] GitHub mode UI — allow entering repo/PR manually\n- [x] Context window management for very large PRs\n\n---\n\n## Documentation (COMPLETED)\n- [x] `README.md` — User-facing docs: quick start, configuration, LLM setup, GitHub setup, troubleshooting\n- [x] `agents.md` — Developer/agent docs: project structure, architecture, common tasks\n- [x] `.env.example` — Annotated environment variable reference\n\n---\n\n## Configuration\n\n### Environment Variables (with defaults)\n```\nVITE_GITHUB_PAT=          # GitHub Personal Access Token\nVITE_LLM_API_KEY=         # LLM API Key\nVITE_GITHUB_INSTANCE=     # \"github.com\" or URL for GHES\nVITE_LLM_BACKEND=         # \"openai\" or \"litellm\"\nVITE_LLM_ENDPOINT=        # API endpoint URL\nVITE_LLM_MODEL=           # Model name\nVITE_DEMO_MODE=           # \"true\" or \"false\"\n```\n\n### Runtime Override\nSettings dialog allows overriding env vars at runtime (persisted to localStorage).\n\n---\n\n## Architecture\n\n### Services\n```\nsrc/services/\n├── github.ts      # Fetch PRs, details, diffs, comments (supports GHES)\n├── llm.ts         # Unified interface for OpenAI v1 API + LiteLLM Proxy\n└── dummyData.ts   # Sample PR data for demo mode\n```\n\n### Redux Store\n```\nsrc/store/\n├── index.ts              # Store configuration\n├── hooks.ts              # Typed useAppDispatch / useAppSelector\n└── slices/\n    ├── configSlice.ts    # App config (env defaults + runtime overrides)\n    ├── prsSlice.ts       # Current PR data\n    └── chatSlice.ts      # Messages + streaming state\n```\n\n### Components\n```\nsrc/components/\n├── SettingsDialog.tsx   # Runtime config override\n├── Sidebar.tsx          # Repo/PR navigation (or demo mode toggle)\n├── ChatWindow.tsx       # Chat messages + input\n└── PRViewer.tsx         # File diffs, metadata\n```\n\n---\n\n## Data Types\n\n### GitHub PR\n```typescript\ninterface PullRequest {\n  id: number;\n  number: number;\n  title: string;\n  body: string | null;\n  state: 'open' | 'closed';\n  merged: boolean;\n  merged_at: string | null;\n  user: GitHubUser;\n  created_at: string;\n  updated_at: string;\n  head: { ref: string; sha: string; repo: { full_name: string } | null };\n  base: { ref: string; sha: string; repo: { full_name: string } };\n  url: string;\n  html_url: string;\n  diff_url: string;\n  additions: number;\n  deletions: number;\n  changed_files: number;\n  comments: number;\n  review_comments: number;\n  commits: number;\n  labels: Array<{ id: number; name: string; color: string }>;\n  requested_reviewers: GitHubUser[];\n}\n```\n\n### Chat Message\n```typescript\ninterface ChatMessage {\n  id: string;\n  role: 'user' | 'assistant' | 'system';\n  content: string;\n  timestamp: number;\n  isStreaming?: boolean;\n  error?: string;\n}\n```\n\n### App Config\n```typescript\ninterface AppConfig {\n  githubPat: string;\n  llmApiKey: string;\n  githubInstance: string;\n  llmBackend: 'openai' | 'litellm';\n  llmEndpoint: string;\n  llmModel: string;\n  demoMode: boolean;\n}\n```\n\n---\n\n## Error Handling\n\n### LLM API Errors\n- Invalid API key: Error shown in message bubble\n- Rate limiting: Error shown in message bubble\n- Network errors: Error shown in message bubble\n- Streaming errors: Graceful fallback with error message\n\n### GitHub API Errors (when enabled)\n- Invalid PAT: Prompt to update token\n- Rate limiting: Show remaining requests\n- Not found (404): Repository/PR not found\n\n---\n\n### ⏳ Phase 8: Code Quality & UX Improvements (PENDING)\n\nIdentified during initial code review. These are non-blocking improvements to address after the Phase 7 polish work.\n\n#### Quality\n- [x] **ESLint v9 flat config** (`eslint.config.js`) — Added repository-level flat config so `npm run lint` works with ESLint 9.\n- [x] **`getPRFiles` pagination** (`src/services/github.ts:96`) — The GitHub API caps file lists at 100 per page. PRs with >100 changed files silently return incomplete data. Add pagination (loop until `response.data.length < perPage`) or at minimum show a warning banner in `PRViewer` when the file count equals the page limit.\n- [x] **Stable React keys in `DiffView`** (`src/components/PRViewer.tsx:41`) — Diff lines currently use array index as `key`. Replace with a content-based key (e.g. `` `${i}-${line.slice(0, 8)}` ``) to prevent React reusing DOM nodes incorrectly when switching between files.\n\n#### UX\n- [x] **Persist dark mode preference** (`src/App.tsx:10`) — Dark mode state resets on every page reload. Initialise from `localStorage` and respect the OS `prefers-color-scheme` media query:\n  ```ts\n  const [darkMode, setDarkMode] = useState(\n    () => localStorage.getItem('darkMode') === 'true'\n      || window.matchMedia('(prefers-color-scheme: dark)').matches\n  );\n  ```\n  Also persist the toggle: `localStorage.setItem('darkMode', String(!darkMode))` inside `toggleDarkMode`.\n- [x] **Wire up the Refresh button** (`src/components/Sidebar.tsx:111`) — The refresh `<button>` in the sidebar is rendered in GitHub mode but has no `onClick` handler. Either connect it to a `fetchPullRequests` thunk (part of Phase 7 GitHub UI work) or hide it with `{false && ...}` until that feature is ready, to avoid confusing users with a dead control.\n\n---\n\n## OpenSpec Alignment Notes (2026-03-14)\n\n- `openspec/changes/add-pr-summary-tab/tasks.md` was updated to capture quick-orientation behavior decisions from explore mode.\n- Summary behavior target: 2-4 line orientation section, adaptive `Focus Areas` with bounds `0..4`, and valid success output when focus areas are omitted for simple PRs.\n- Synced delta spec `openspec/changes/add-pr-summary-tab/specs/pr-review-summary/spec.md` into new main spec `openspec/specs/pr-review-summary/spec.md`.\n- Added change scaffold `openspec/changes/update-pr-review-summary-ui-readability/` with completed proposal, design, spec delta, and tasks artifacts for summary UI readability improvements.\n- Refined `update-pr-review-summary-ui-readability` scope to panelized Summary display: Orientation and each Focus Area render as separate cards styled like Comments/Reviews, with blue/yellow title accents and no spec contract changes.\n\n---\n\n## ✅ Phase 9: PR Summary Tab (COMPLETED)\n\n- [x] Extend `AppConfig` with summary fields: `summaryEnabled`, `summaryPrompt`, `summaryCommands`\n- [x] Add/export `DEFAULT_SUMMARY_PROMPT` and keep reset behavior prompt-only\n- [x] Add PR commits API loading (`getPRCommits`) and Redux state wiring\n- [x] Add summary lifecycle state in `prsSlice` (`status`, `content`, `generatedAt`, `error`)\n- [x] Implement summary orchestration utilities:\n  - per-PR+head+prompt cache keying\n  - sessionStorage read/write cache\n  - one-per-minute per-PR-head rate limiting\n  - empty textual diff detection\n- [x] Extend LLM service with structured summary prompt assembly (orientation + adaptive focus areas)\n- [x] Add Summary tab UI in `PRViewer` with loading/success/empty/error states and timestamp footer\n- [x] Wire summary generation on PR selection/load and keep summary separate from chat history/context\n- [x] Add/expand tests for config, GitHub service, PR slice, summary utilities, LLM prompt, Settings UI, and Summary tab rendering\n- [x] Update README and agent guidance for summary behavior, fallback states, and output contract\n\n---\n\n## OpenSpec Implementation Updates (2026-03-14)\n\n- [x] Completed OpenSpec change `update-pr-review-summary-ui-readability` implementation tasks (8/8) for panelized Summary tab readability updates.\n- [x] Updated Summary success rendering in `src/components/PRViewer.tsx` to show an `Orientation` panel and per-item `Focus Area N` panels with blue/yellow title accents.\n- [x] Kept summary generation flow and fallback state semantics unchanged (loading/empty/error behavior preserved).\n- [x] Updated `src/components/PRViewer.summary.test.tsx` assertions for orientation-only and orientation+focus-area panelized rendering.\n- [x] Validation run completed with `npm run lint && npm run build && npm run test`.\n\n## OpenSpec Explore Decision Updates (2026-03-16)\n\n- [x] Clarified `repository-watcher` UX scope: `repo-pr-list` renders in the left `PR Review` pane (not center chat area or right PR viewer pane).\n- [x] Captured sidebar navigator behavior: controls/watchlist view and repo list view with explicit Back action.\n- [x] Captured `Load PR` behavior parity with demo mode: when PR number is provided, show a list containing one selected PR.\n- [x] Updated change artifacts (`proposal.md`, `design.md`, `tasks.md`, `specs/repo-pr-list/spec.md`, `specs/watched-repos/spec.md`) to reflect the decision.\n\n## OpenSpec Implementation Updates (2026-03-16)\n\n- [x] Implemented `repository-watcher` change tasks end-to-end.\n- [x] Added watched repository state and persistence via `src/store/slices/watchedReposSlice.ts`.\n- [x] Added repository PR list loading in `src/store/slices/prsSlice.ts` using existing `listPullRequests()` integration.\n- [x] Added sidebar repo-list UI mode with Back navigation and new `src/components/PRList.tsx` component.\n- [x] Updated sidebar to support optional PR number flow (`Load PR` vs `Load All PRs`) and watchlist interactions.\n- [x] Added tests for watched repos, repository PR list loading, and sidebar list selection flows.\n- [x] Validation run completed with `npm run lint && npm run build && npm run test`.\n\n## OpenSpec Spec Sync Updates (2026-03-16)\n\n- [x] Synced change `repository-watcher` delta specs into new main specs for `repo-pr-list` and `watched-repos`.\n- [x] Created `openspec/specs/repo-pr-list/spec.md` from `openspec/changes/repository-watcher/specs/repo-pr-list/spec.md`.\n- [x] Created `openspec/specs/watched-repos/spec.md` from `openspec/changes/repository-watcher/specs/watched-repos/spec.md`.\n\n---\n\n## Code Review Hardening Tasks (2026-03-17)\n\n- [x] Task 1: Add stale-response guards in `prsSlice` so older PR resource responses cannot overwrite newer selection state.\n- [x] Task 2: Add regression tests for rapid PR switching race in `src/store/slices/prsSlice.test.ts`.\n- [x] Task 3: Add `Dialog.Description` in `src/components/SettingsDialog.tsx` to satisfy Radix dialog accessibility contract.\n- [ ] Task 4: Update settings dialog tests to assert description semantics and eliminate warning output.\n- [ ] Task 5: Add chat stream request cancellation (`AbortController`) in `src/components/ChatWindow.tsx` and `src/services/llm.ts`.\n- [ ] Task 6: Add tests for stream cancellation behavior and UI streaming state cleanup.\n",
+              "after": "# PR Review Chatbot - Implementation Plan\n\n## Priority: UI and LLM Integration First\n**Key Change**: Use dummy data for PR content to allow immediate interaction with the LLM without needing GitHub API credentials. GitHub integration can be added later.\n\n---\n\n## Tech Stack\n- Vite + React 18 + TypeScript\n- Redux Toolkit for state management\n- Axios for HTTP\n- Tailwind CSS for styling\n- Radix UI for accessible components\n\n---\n\n## Implementation Phases\n\n### ✅ Phase 1: Project Setup (COMPLETED)\n- [x] Initialize Vite + React + TypeScript project\n- [x] Install dependencies (Redux Toolkit, Axios, Tailwind, Radix UI, react-markdown, react-syntax-highlighter, lucide-react)\n- [x] Configure Tailwind CSS with CSS variables for theming\n- [x] Set up project structure (`src/types`, `src/store`, `src/services`, `src/components`, `src/lib`)\n- [x] Create `vite-env.d.ts` for Vite environment type declarations\n- [x] Create `.env.example` with all configuration options\n- [x] Create `.gitignore`\n\n### ✅ Phase 2: UI Shell & Configuration (COMPLETED)\n- [x] Create Redux store (`src/store/index.ts`)\n- [x] Implement `configSlice.ts` — env var defaults + localStorage runtime overrides\n- [x] Implement `chatSlice.ts` — messages, streaming state\n- [x] Implement `prsSlice.ts` — selected PR, files, comments, reviews\n- [x] Create typed Redux hooks (`src/store/hooks.ts`)\n- [x] Create `SettingsDialog.tsx` — runtime config override with demo mode toggle\n- [x] Create main `App.tsx` layout (sidebar + chat + PR viewer panels)\n- [x] Dark mode toggle in top bar\n- [x] Collapsible sidebar and PR viewer panels\n\n### ✅ Phase 3: Chat Interface (COMPLETED)\n- [x] Build `ChatWindow.tsx` with message display\n- [x] User/assistant message bubbles with avatars\n- [x] Markdown rendering with `react-markdown` + `remark-gfm`\n- [x] Code syntax highlighting with `react-syntax-highlighter`\n- [x] Streaming response display (animated cursor)\n- [x] Auto-scroll to latest message\n- [x] Multi-line textarea input (auto-resize)\n- [x] Enter to send, Shift+Enter for new line\n- [x] Suggestion chips on empty state\n- [x] Clear conversation button\n- [x] Error display in message bubbles\n\n### ✅ Phase 4: LLM Integration (COMPLETED)\n- [x] Implement `LLMService` class in `src/services/llm.ts`\n- [x] OpenAI v1 API support (`/chat/completions`)\n- [x] LiteLLM Proxy support (same API format)\n- [x] Streaming via Server-Sent Events (SSE)\n- [x] `buildSystemPrompt()` — injects full PR context (metadata, diffs, comments, reviews)\n- [x] Connect LLM service to `ChatWindow` with streaming dispatch\n- [x] Error handling for API failures\n\n### ✅ Phase 5: Dummy Data & Demo Mode (COMPLETED)\n- [x] Create `src/services/dummyData.ts` with realistic sample PR\n  - Sample PR: JWT authentication feature (8 files, realistic diffs)\n  - Sample comments, review comments, and reviews\n- [x] Build `PRViewer.tsx` with:\n  - PR metadata header (state badge, author, branch, stats)\n  - Tabs: Files, Comments, Reviews\n  - Collapsible file items with diff view\n  - Diff syntax highlighting (green/red/blue lines)\n  - Status badges per file (added/modified/removed)\n- [x] Build `Sidebar.tsx` with demo mode toggle\n- [x] Auto-load dummy PR on startup in demo mode\n- [x] Demo mode toggle in sidebar and Settings dialog\n\n### ✅ Phase 6: GitHub Integration (COMPLETED)\n- [x] Implement `GitHubService` class in `src/services/github.ts`\n- [x] PAT (Bearer token) authentication\n- [x] Support for github.com (`https://api.github.com`)\n- [x] Support for GHES (`https://<host>/api/v3`)\n- [x] Methods: `listRepositories`, `searchRepositories`, `listPullRequests`, `getPullRequest`, `getPRFiles`, `getPRComments`, `getPRReviewComments`, `getPRReviews`, `validateToken`\n- [x] Token validation method\n\n### ✅ Phase 7: Polish (COMPLETED)\n- [x] Add loading states and loading indicators for GitHub API calls\n- [x] Add error handling for GitHub API failures (rate limiting, 404, auth errors)\n- [x] Polish UI/UX (animations, transitions)\n- [x] GitHub mode UI — allow entering repo/PR manually\n- [x] Context window management for very large PRs\n\n---\n\n## Documentation (COMPLETED)\n- [x] `README.md` — User-facing docs: quick start, configuration, LLM setup, GitHub setup, troubleshooting\n- [x] `agents.md` — Developer/agent docs: project structure, architecture, common tasks\n- [x] `.env.example` — Annotated environment variable reference\n\n---\n\n## Configuration\n\n### Environment Variables (with defaults)\n```\nVITE_GITHUB_PAT=          # GitHub Personal Access Token\nVITE_LLM_API_KEY=         # LLM API Key\nVITE_GITHUB_INSTANCE=     # \"github.com\" or URL for GHES\nVITE_LLM_BACKEND=         # \"openai\" or \"litellm\"\nVITE_LLM_ENDPOINT=        # API endpoint URL\nVITE_LLM_MODEL=           # Model name\nVITE_DEMO_MODE=           # \"true\" or \"false\"\n```\n\n### Runtime Override\nSettings dialog allows overriding env vars at runtime (persisted to localStorage).\n\n---\n\n## Architecture\n\n### Services\n```\nsrc/services/\n├── github.ts      # Fetch PRs, details, diffs, comments (supports GHES)\n├── llm.ts         # Unified interface for OpenAI v1 API + LiteLLM Proxy\n└── dummyData.ts   # Sample PR data for demo mode\n```\n\n### Redux Store\n```\nsrc/store/\n├── index.ts              # Store configuration\n├── hooks.ts              # Typed useAppDispatch / useAppSelector\n└── slices/\n    ├── configSlice.ts    # App config (env defaults + runtime overrides)\n    ├── prsSlice.ts       # Current PR data\n    └── chatSlice.ts      # Messages + streaming state\n```\n\n### Components\n```\nsrc/components/\n├── SettingsDialog.tsx   # Runtime config override\n├── Sidebar.tsx          # Repo/PR navigation (or demo mode toggle)\n├── ChatWindow.tsx       # Chat messages + input\n└── PRViewer.tsx         # File diffs, metadata\n```\n\n---\n\n## Data Types\n\n### GitHub PR\n```typescript\ninterface PullRequest {\n  id: number;\n  number: number;\n  title: string;\n  body: string | null;\n  state: 'open' | 'closed';\n  merged: boolean;\n  merged_at: string | null;\n  user: GitHubUser;\n  created_at: string;\n  updated_at: string;\n  head: { ref: string; sha: string; repo: { full_name: string } | null };\n  base: { ref: string; sha: string; repo: { full_name: string } };\n  url: string;\n  html_url: string;\n  diff_url: string;\n  additions: number;\n  deletions: number;\n  changed_files: number;\n  comments: number;\n  review_comments: number;\n  commits: number;\n  labels: Array<{ id: number; name: string; color: string }>;\n  requested_reviewers: GitHubUser[];\n}\n```\n\n### Chat Message\n```typescript\ninterface ChatMessage {\n  id: string;\n  role: 'user' | 'assistant' | 'system';\n  content: string;\n  timestamp: number;\n  isStreaming?: boolean;\n  error?: string;\n}\n```\n\n### App Config\n```typescript\ninterface AppConfig {\n  githubPat: string;\n  llmApiKey: string;\n  githubInstance: string;\n  llmBackend: 'openai' | 'litellm';\n  llmEndpoint: string;\n  llmModel: string;\n  demoMode: boolean;\n}\n```\n\n---\n\n## Error Handling\n\n### LLM API Errors\n- Invalid API key: Error shown in message bubble\n- Rate limiting: Error shown in message bubble\n- Network errors: Error shown in message bubble\n- Streaming errors: Graceful fallback with error message\n\n### GitHub API Errors (when enabled)\n- Invalid PAT: Prompt to update token\n- Rate limiting: Show remaining requests\n- Not found (404): Repository/PR not found\n\n---\n\n### ⏳ Phase 8: Code Quality & UX Improvements (PENDING)\n\nIdentified during initial code review. These are non-blocking improvements to address after the Phase 7 polish work.\n\n#### Quality\n- [x] **ESLint v9 flat config** (`eslint.config.js`) — Added repository-level flat config so `npm run lint` works with ESLint 9.\n- [x] **`getPRFiles` pagination** (`src/services/github.ts:96`) — The GitHub API caps file lists at 100 per page. PRs with >100 changed files silently return incomplete data. Add pagination (loop until `response.data.length < perPage`) or at minimum show a warning banner in `PRViewer` when the file count equals the page limit.\n- [x] **Stable React keys in `DiffView`** (`src/components/PRViewer.tsx:41`) — Diff lines currently use array index as `key`. Replace with a content-based key (e.g. `` `${i}-${line.slice(0, 8)}` ``) to prevent React reusing DOM nodes incorrectly when switching between files.\n\n#### UX\n- [x] **Persist dark mode preference** (`src/App.tsx:10`) — Dark mode state resets on every page reload. Initialise from `localStorage` and respect the OS `prefers-color-scheme` media query:\n  ```ts\n  const [darkMode, setDarkMode] = useState(\n    () => localStorage.getItem('darkMode') === 'true'\n      || window.matchMedia('(prefers-color-scheme: dark)').matches\n  );\n  ```\n  Also persist the toggle: `localStorage.setItem('darkMode', String(!darkMode))` inside `toggleDarkMode`.\n- [x] **Wire up the Refresh button** (`src/components/Sidebar.tsx:111`) — The refresh `<button>` in the sidebar is rendered in GitHub mode but has no `onClick` handler. Either connect it to a `fetchPullRequests` thunk (part of Phase 7 GitHub UI work) or hide it with `{false && ...}` until that feature is ready, to avoid confusing users with a dead control.\n\n---\n\n## OpenSpec Alignment Notes (2026-03-14)\n\n- `openspec/changes/add-pr-summary-tab/tasks.md` was updated to capture quick-orientation behavior decisions from explore mode.\n- Summary behavior target: 2-4 line orientation section, adaptive `Focus Areas` with bounds `0..4`, and valid success output when focus areas are omitted for simple PRs.\n- Synced delta spec `openspec/changes/add-pr-summary-tab/specs/pr-review-summary/spec.md` into new main spec `openspec/specs/pr-review-summary/spec.md`.\n- Added change scaffold `openspec/changes/update-pr-review-summary-ui-readability/` with completed proposal, design, spec delta, and tasks artifacts for summary UI readability improvements.\n- Refined `update-pr-review-summary-ui-readability` scope to panelized Summary display: Orientation and each Focus Area render as separate cards styled like Comments/Reviews, with blue/yellow title accents and no spec contract changes.\n\n---\n\n## ✅ Phase 9: PR Summary Tab (COMPLETED)\n\n- [x] Extend `AppConfig` with summary fields: `summaryEnabled`, `summaryPrompt`, `summaryCommands`\n- [x] Add/export `DEFAULT_SUMMARY_PROMPT` and keep reset behavior prompt-only\n- [x] Add PR commits API loading (`getPRCommits`) and Redux state wiring\n- [x] Add summary lifecycle state in `prsSlice` (`status`, `content`, `generatedAt`, `error`)\n- [x] Implement summary orchestration utilities:\n  - per-PR+head+prompt cache keying\n  - sessionStorage read/write cache\n  - one-per-minute per-PR-head rate limiting\n  - empty textual diff detection\n- [x] Extend LLM service with structured summary prompt assembly (orientation + adaptive focus areas)\n- [x] Add Summary tab UI in `PRViewer` with loading/success/empty/error states and timestamp footer\n- [x] Wire summary generation on PR selection/load and keep summary separate from chat history/context\n- [x] Add/expand tests for config, GitHub service, PR slice, summary utilities, LLM prompt, Settings UI, and Summary tab rendering\n- [x] Update README and agent guidance for summary behavior, fallback states, and output contract\n\n---\n\n## OpenSpec Implementation Updates (2026-03-14)\n\n- [x] Completed OpenSpec change `update-pr-review-summary-ui-readability` implementation tasks (8/8) for panelized Summary tab readability updates.\n- [x] Updated Summary success rendering in `src/components/PRViewer.tsx` to show an `Orientation` panel and per-item `Focus Area N` panels with blue/yellow title accents.\n- [x] Kept summary generation flow and fallback state semantics unchanged (loading/empty/error behavior preserved).\n- [x] Updated `src/components/PRViewer.summary.test.tsx` assertions for orientation-only and orientation+focus-area panelized rendering.\n- [x] Validation run completed with `npm run lint && npm run build && npm run test`.\n\n## OpenSpec Explore Decision Updates (2026-03-16)\n\n- [x] Clarified `repository-watcher` UX scope: `repo-pr-list` renders in the left `PR Review` pane (not center chat area or right PR viewer pane).\n- [x] Captured sidebar navigator behavior: controls/watchlist view and repo list view with explicit Back action.\n- [x] Captured `Load PR` behavior parity with demo mode: when PR number is provided, show a list containing one selected PR.\n- [x] Updated change artifacts (`proposal.md`, `design.md`, `tasks.md`, `specs/repo-pr-list/spec.md`, `specs/watched-repos/spec.md`) to reflect the decision.\n\n## OpenSpec Implementation Updates (2026-03-16)\n\n- [x] Implemented `repository-watcher` change tasks end-to-end.\n- [x] Added watched repository state and persistence via `src/store/slices/watchedReposSlice.ts`.\n- [x] Added repository PR list loading in `src/store/slices/prsSlice.ts` using existing `listPullRequests()` integration.\n- [x] Added sidebar repo-list UI mode with Back navigation and new `src/components/PRList.tsx` component.\n- [x] Updated sidebar to support optional PR number flow (`Load PR` vs `Load All PRs`) and watchlist interactions.\n- [x] Added tests for watched repos, repository PR list loading, and sidebar list selection flows.\n- [x] Validation run completed with `npm run lint && npm run build && npm run test`.\n\n## OpenSpec Spec Sync Updates (2026-03-16)\n\n- [x] Synced change `repository-watcher` delta specs into new main specs for `repo-pr-list` and `watched-repos`.\n- [x] Created `openspec/specs/repo-pr-list/spec.md` from `openspec/changes/repository-watcher/specs/repo-pr-list/spec.md`.\n- [x] Created `openspec/specs/watched-repos/spec.md` from `openspec/changes/repository-watcher/specs/watched-repos/spec.md`.\n\n---\n\n## Code Review Hardening Tasks (2026-03-17)\n\n- [x] Task 1: Add stale-response guards in `prsSlice` so older PR resource responses cannot overwrite newer selection state.\n- [x] Task 2: Add regression tests for rapid PR switching race in `src/store/slices/prsSlice.test.ts`.\n- [x] Task 3: Add `Dialog.Description` in `src/components/SettingsDialog.tsx` to satisfy Radix dialog accessibility contract.\n- [x] Task 4: Update settings dialog tests to assert description semantics and eliminate warning output.\n- [ ] Task 5: Add chat stream request cancellation (`AbortController`) in `src/components/ChatWindow.tsx` and `src/services/llm.ts`.\n- [ ] Task 6: Add tests for stream cancellation behavior and UI streaming state cleanup.\n",
               "additions": 11,
+              "deletions": 0,
+              "status": "modified"
+            },
+            {
+              "file": "src/components/SettingsDialog.test.tsx",
+              "before": "import { configureStore } from '@reduxjs/toolkit';\nimport { Provider } from 'react-redux';\nimport { describe, expect, it } from 'vitest';\nimport { fireEvent, render, screen } from '@testing-library/react';\nimport { SettingsDialog } from './SettingsDialog';\nimport configReducer, { DEFAULT_SUMMARY_PROMPT } from '../store/slices/configSlice';\nimport prsReducer from '../store/slices/prsSlice';\nimport chatReducer from '../store/slices/chatSlice';\n\nfunction renderDialog() {\n  const store = configureStore({\n    reducer: {\n      config: configReducer,\n      prs: prsReducer,\n      chat: chatReducer,\n    },\n    preloadedState: {\n      config: {\n        config: {\n          githubPat: '',\n          llmApiKey: '',\n          githubInstance: 'github.com',\n          llmBackend: 'openai' as const,\n          llmEndpoint: 'https://api.openai.com/v1',\n          llmModel: 'gpt-4o',\n          demoMode: false,\n          summaryEnabled: true,\n          summaryPrompt: 'Custom summary prompt',\n          summaryCommands: 'Keep command A',\n        },\n      },\n    },\n  });\n\n  render(\n    <Provider store={store}>\n      <SettingsDialog />\n    </Provider>\n  );\n\n  return store;\n}\n\ndescribe('SettingsDialog summary controls', () => {\n  it('shows summary controls and saves updates', () => {\n    const store = renderDialog();\n    fireEvent.click(screen.getByRole('button', { name: /settings/i }));\n\n    const summaryPromptInput = screen.getByLabelText('Summary Prompt');\n    const summaryCommandsInput = screen.getByLabelText('Additional Summary Commands');\n    const summaryToggle = screen.getAllByRole('switch')[1];\n\n    fireEvent.change(summaryPromptInput, { target: { value: 'Updated prompt text' } });\n    fireEvent.change(summaryCommandsInput, { target: { value: 'Updated commands' } });\n    fireEvent.click(summaryToggle);\n\n    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));\n\n    const config = store.getState().config.config;\n    expect(config.summaryPrompt).toBe('Updated prompt text');\n    expect(config.summaryCommands).toBe('Updated commands');\n    expect(config.summaryEnabled).toBe(false);\n  });\n\n  it('reset summary prompt button does not reset additional commands', () => {\n    renderDialog();\n    fireEvent.click(screen.getByRole('button', { name: /settings/i }));\n\n    const summaryPromptInput = screen.getByLabelText('Summary Prompt') as HTMLTextAreaElement;\n    const summaryCommandsInput = screen.getByLabelText('Additional Summary Commands') as HTMLTextAreaElement;\n\n    expect(summaryPromptInput.value).toBe('Custom summary prompt');\n    expect(summaryCommandsInput.value).toBe('Keep command A');\n\n    fireEvent.click(screen.getByRole('button', { name: 'Reset Summary Prompt' }));\n\n    expect(summaryPromptInput.value).toBe(DEFAULT_SUMMARY_PROMPT);\n    expect(summaryCommandsInput.value).toBe('Keep command A');\n  });\n});\n",
+              "after": "import { configureStore } from '@reduxjs/toolkit';\nimport { Provider } from 'react-redux';\nimport { describe, expect, it } from 'vitest';\nimport { fireEvent, render, screen } from '@testing-library/react';\nimport { SettingsDialog } from './SettingsDialog';\nimport configReducer, { DEFAULT_SUMMARY_PROMPT } from '../store/slices/configSlice';\nimport prsReducer from '../store/slices/prsSlice';\nimport chatReducer from '../store/slices/chatSlice';\n\nfunction renderDialog() {\n  const store = configureStore({\n    reducer: {\n      config: configReducer,\n      prs: prsReducer,\n      chat: chatReducer,\n    },\n    preloadedState: {\n      config: {\n        config: {\n          githubPat: '',\n          llmApiKey: '',\n          githubInstance: 'github.com',\n          llmBackend: 'openai' as const,\n          llmEndpoint: 'https://api.openai.com/v1',\n          llmModel: 'gpt-4o',\n          demoMode: false,\n          summaryEnabled: true,\n          summaryPrompt: 'Custom summary prompt',\n          summaryCommands: 'Keep command A',\n        },\n      },\n    },\n  });\n\n  render(\n    <Provider store={store}>\n      <SettingsDialog />\n    </Provider>\n  );\n\n  return store;\n}\n\ndescribe('SettingsDialog summary controls', () => {\n  it('shows summary controls and saves updates', () => {\n    const store = renderDialog();\n    fireEvent.click(screen.getByRole('button', { name: /settings/i }));\n\n    expect(screen.getByRole('dialog')).toHaveAccessibleDescription(\n      /configure github access, llm connection details, and pr summary behavior/i\n    );\n\n    const summaryPromptInput = screen.getByLabelText('Summary Prompt');\n    const summaryCommandsInput = screen.getByLabelText('Additional Summary Commands');\n    const summaryToggle = screen.getAllByRole('switch')[1];\n\n    fireEvent.change(summaryPromptInput, { target: { value: 'Updated prompt text' } });\n    fireEvent.change(summaryCommandsInput, { target: { value: 'Updated commands' } });\n    fireEvent.click(summaryToggle);\n\n    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));\n\n    const config = store.getState().config.config;\n    expect(config.summaryPrompt).toBe('Updated prompt text');\n    expect(config.summaryCommands).toBe('Updated commands');\n    expect(config.summaryEnabled).toBe(false);\n  });\n\n  it('reset summary prompt button does not reset additional commands', () => {\n    renderDialog();\n    fireEvent.click(screen.getByRole('button', { name: /settings/i }));\n\n    const summaryPromptInput = screen.getByLabelText('Summary Prompt') as HTMLTextAreaElement;\n    const summaryCommandsInput = screen.getByLabelText('Additional Summary Commands') as HTMLTextAreaElement;\n\n    expect(summaryPromptInput.value).toBe('Custom summary prompt');\n    expect(summaryCommandsInput.value).toBe('Keep command A');\n\n    fireEvent.click(screen.getByRole('button', { name: 'Reset Summary Prompt' }));\n\n    expect(summaryPromptInput.value).toBe(DEFAULT_SUMMARY_PROMPT);\n    expect(summaryCommandsInput.value).toBe('Keep command A');\n  });\n});\n",
+              "additions": 4,
               "deletions": 0,
               "status": "modified"
             },
@@ -6013,7 +6021,814 @@
       "info": {
         "role": "assistant",
         "time": {
-          "created": 1773779042431
+          "created": 1773779042431,
+          "completed": 1773779049669
+        },
+        "parentID": "msg_cfd755aef001lBv1lo80nWg0HO",
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/home/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/home/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.016674,
+        "tokens": {
+          "total": 82675,
+          "input": 672,
+          "output": 83,
+          "reasoning": 0,
+          "cache": {
+            "read": 81920,
+            "write": 0
+          }
+        },
+        "finish": "tool-calls",
+        "id": "msg_cfd78407f001la0Z4TFEsXHt2h",
+        "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm"
+      },
+      "parts": [
+        {
+          "type": "step-start",
+          "snapshot": "5cf33a72efcaad6cb87c2e9e2b78ef01d7c73cd2",
+          "id": "prt_cfd784601001J8p3O6bz4X2WfU",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd78407f001la0Z4TFEsXHt2h"
+        },
+        {
+          "type": "tool",
+          "callID": "call_d8oA9AJaktxSxFZAJmjtt0IU",
+          "tool": "bash",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git add \"src/components/SettingsDialog.tsx\" \"plans/plan.md\" && git commit -m \"fix(settings): add dialog description for accessibility\" && git status --short --branch",
+              "workdir": "/home/mark/sandbox/personal/pr-review-chatbot",
+              "description": "Commits task 3 dialog accessibility change"
+            },
+            "output": "[main 989ed80] fix(settings): add dialog description for accessibility\n 2 files changed, 5 insertions(+), 1 deletion(-)\n## main...origin/main [ahead 3]\n",
+            "title": "Commits task 3 dialog accessibility change",
+            "metadata": {
+              "output": "[main 989ed80] fix(settings): add dialog description for accessibility\n 2 files changed, 5 insertions(+), 1 deletion(-)\n## main...origin/main [ahead 3]\n",
+              "exit": 0,
+              "description": "Commits task 3 dialog accessibility change",
+              "truncated": false
+            },
+            "time": {
+              "start": 1773779044899,
+              "end": 1773779049613
+            }
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "fc_00e1d1bd02aa237d0169b9b863f97081989f2c655d353c800d"
+            }
+          },
+          "id": "REDACTED",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd78407f001la0Z4TFEsXHt2h"
+        },
+        {
+          "type": "step-finish",
+          "reason": "tool-calls",
+          "snapshot": "5cf33a72efcaad6cb87c2e9e2b78ef01d7c73cd2",
+          "cost": 0.016674,
+          "tokens": {
+            "total": 82675,
+            "input": 672,
+            "output": 83,
+            "reasoning": 0,
+            "cache": {
+              "read": 81920,
+              "write": 0
+            }
+          },
+          "id": "prt_cfd785c92001g3DIID5rX8mhf1",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd78407f001la0Z4TFEsXHt2h"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "assistant",
+        "time": {
+          "created": 1773779049680,
+          "completed": 1773779051527
+        },
+        "parentID": "msg_cfd755aef001lBv1lo80nWg0HO",
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/home/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/home/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.015848,
+        "tokens": {
+          "total": 82787,
+          "input": 168,
+          "output": 59,
+          "reasoning": 20,
+          "cache": {
+            "read": 82560,
+            "write": 0
+          }
+        },
+        "finish": "tool-calls",
+        "id": "msg_cfd785cd0002QLsubtXBysEe7C",
+        "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm"
+      },
+      "parts": [
+        {
+          "type": "step-start",
+          "snapshot": "5cf33a72efcaad6cb87c2e9e2b78ef01d7c73cd2",
+          "id": "prt_cfd7860fc001fzm0DI2Qw7A4Kd",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd785cd0002QLsubtXBysEe7C"
+        },
+        {
+          "type": "reasoning",
+          "text": "**Updating tests for description semantics**",
+          "metadata": {
+            "opencode": {
+              "itemId": "rs_0f48998ef0862fc70169b9b86aa0408199b8bf84041572286a",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "time": {
+            "start": 1773779050750,
+            "end": 1773779051254
+          },
+          "id": "prt_cfd7860fe001lZwN1YHauTcTvy",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd785cd0002QLsubtXBysEe7C"
+        },
+        {
+          "type": "tool",
+          "callID": "call_3i0OsbB9bi5OeKsadLLpoP04",
+          "tool": "read",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/home/mark/sandbox/personal/pr-review-chatbot/src/components/SettingsDialog.test.tsx"
+            },
+            "output": "<path>/home/mark/sandbox/personal/pr-review-chatbot/src/components/SettingsDialog.test.tsx</path>\n<type>file</type>\n<content>1: import { configureStore } from '@reduxjs/toolkit';\n2: import { Provider } from 'react-redux';\n3: import { describe, expect, it } from 'vitest';\n4: import { fireEvent, render, screen } from '@testing-library/react';\n5: import { SettingsDialog } from './SettingsDialog';\n6: import configReducer, { DEFAULT_SUMMARY_PROMPT } from '../store/slices/configSlice';\n7: import prsReducer from '../store/slices/prsSlice';\n8: import chatReducer from '../store/slices/chatSlice';\n9: \n10: function renderDialog() {\n11:   const store = configureStore({\n12:     reducer: {\n13:       config: configReducer,\n14:       prs: prsReducer,\n15:       chat: chatReducer,\n16:     },\n17:     preloadedState: {\n18:       config: {\n19:         config: {\n20:           githubPat: '',\n21:           llmApiKey: '',\n22:           githubInstance: 'github.com',\n23:           llmBackend: 'openai' as const,\n24:           llmEndpoint: 'https://api.openai.com/v1',\n25:           llmModel: 'gpt-4o',\n26:           demoMode: false,\n27:           summaryEnabled: true,\n28:           summaryPrompt: 'Custom summary prompt',\n29:           summaryCommands: 'Keep command A',\n30:         },\n31:       },\n32:     },\n33:   });\n34: \n35:   render(\n36:     <Provider store={store}>\n37:       <SettingsDialog />\n38:     </Provider>\n39:   );\n40: \n41:   return store;\n42: }\n43: \n44: describe('SettingsDialog summary controls', () => {\n45:   it('shows summary controls and saves updates', () => {\n46:     const store = renderDialog();\n47:     fireEvent.click(screen.getByRole('button', { name: /settings/i }));\n48: \n49:     const summaryPromptInput = screen.getByLabelText('Summary Prompt');\n50:     const summaryCommandsInput = screen.getByLabelText('Additional Summary Commands');\n51:     const summaryToggle = screen.getAllByRole('switch')[1];\n52: \n53:     fireEvent.change(summaryPromptInput, { target: { value: 'Updated prompt text' } });\n54:     fireEvent.change(summaryCommandsInput, { target: { value: 'Updated commands' } });\n55:     fireEvent.click(summaryToggle);\n56: \n57:     fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));\n58: \n59:     const config = store.getState().config.config;\n60:     expect(config.summaryPrompt).toBe('Updated prompt text');\n61:     expect(config.summaryCommands).toBe('Updated commands');\n62:     expect(config.summaryEnabled).toBe(false);\n63:   });\n64: \n65:   it('reset summary prompt button does not reset additional commands', () => {\n66:     renderDialog();\n67:     fireEvent.click(screen.getByRole('button', { name: /settings/i }));\n68: \n69:     const summaryPromptInput = screen.getByLabelText('Summary Prompt') as HTMLTextAreaElement;\n70:     const summaryCommandsInput = screen.getByLabelText('Additional Summary Commands') as HTMLTextAreaElement;\n71: \n72:     expect(summaryPromptInput.value).toBe('Custom summary prompt');\n73:     expect(summaryCommandsInput.value).toBe('Keep command A');\n74: \n75:     fireEvent.click(screen.getByRole('button', { name: 'Reset Summary Prompt' }));\n76: \n77:     expect(summaryPromptInput.value).toBe(DEFAULT_SUMMARY_PROMPT);\n78:     expect(summaryCommandsInput.value).toBe('Keep command A');\n79:   });\n80: });\n\n(End of file - total 80 lines)\n</content>",
+            "title": "src/components/SettingsDialog.test.tsx",
+            "metadata": {
+              "preview": "import { configureStore } from '@reduxjs/toolkit';\nimport { Provider } from 'react-redux';\nimport { describe, expect, it } from 'vitest';\nimport { fireEvent, render, screen } from '@testing-library/react';\nimport { SettingsDialog } from './SettingsDialog';\nimport configReducer, { DEFAULT_SUMMARY_PROMPT } from '../store/slices/configSlice';\nimport prsReducer from '../store/slices/prsSlice';\nimport chatReducer from '../store/slices/chatSlice';\n\nfunction renderDialog() {\n  const store = configureStore({\n    reducer: {\n      config: configReducer,\n      prs: prsReducer,\n      chat: chatReducer,\n    },\n    preloadedState: {\n      config: {\n        config: {\n          githubPat: '',",
+              "truncated": false,
+              "loaded": []
+            },
+            "time": {
+              "start": 1773779051425,
+              "end": 1773779051438
+            }
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "fc_0f48998ef0862fc70169b9b86b20a08199ae4f4f4d6c068263"
+            }
+          },
+          "id": "prt_cfd7862f9001W0cD2D3oZrvZ8K",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd785cd0002QLsubtXBysEe7C"
+        },
+        {
+          "type": "step-finish",
+          "reason": "tool-calls",
+          "snapshot": "5cf33a72efcaad6cb87c2e9e2b78ef01d7c73cd2",
+          "cost": 0.015848,
+          "tokens": {
+            "total": 82787,
+            "input": 168,
+            "output": 59,
+            "reasoning": 20,
+            "cache": {
+              "read": 82560,
+              "write": 0
+            }
+          },
+          "id": "prt_cfd7863da001170o1acuvO61Nf",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd785cd0002QLsubtXBysEe7C"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "assistant",
+        "time": {
+          "created": 1773779051537,
+          "completed": 1773779058725
+        },
+        "parentID": "msg_cfd755aef001lBv1lo80nWg0HO",
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/home/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/home/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0214809,
+        "tokens": {
+          "total": 83931,
+          "input": 974,
+          "output": 269,
+          "reasoning": 110,
+          "cache": {
+            "read": 82688,
+            "write": 0
+          }
+        },
+        "finish": "tool-calls",
+        "id": "msg_cfd786411002G8KHJW80TFFDBx",
+        "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm"
+      },
+      "parts": [
+        {
+          "type": "step-start",
+          "snapshot": "5cf33a72efcaad6cb87c2e9e2b78ef01d7c73cd2",
+          "id": "prt_cfd7867c9001kbaAbstu5PHFb7",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd786411002G8KHJW80TFFDBx"
+        },
+        {
+          "type": "reasoning",
+          "text": "**Adding accessible description assertion**",
+          "metadata": {
+            "opencode": {
+              "itemId": "rs_0ae7ba59763af01d0169b9b86c72f081989d987ce36dee5f4f",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "time": {
+            "start": 1773779052595,
+            "end": 1773779054451
+          },
+          "id": "prt_cfd786833001zQfzIsjF3xPonT",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd786411002G8KHJW80TFFDBx"
+        },
+        {
+          "type": "tool",
+          "callID": "REDACTED",
+          "tool": "apply_patch",
+          "state": {
+            "status": "completed",
+            "input": {
+              "patchText": "*** Begin Patch\n*** Update File: /home/mark/sandbox/personal/pr-review-chatbot/src/components/SettingsDialog.test.tsx\n@@\n   it('shows summary controls and saves updates', () => {\n     const store = renderDialog();\n     fireEvent.click(screen.getByRole('button', { name: /settings/i }));\n+\n+    expect(screen.getByRole('dialog')).toHaveAccessibleDescription(\n+      /configure github access, llm connection details, and pr summary behavior/i\n+    );\n \n     const summaryPromptInput = screen.getByLabelText('Summary Prompt');\n*** End Patch"
+            },
+            "output": "Success. Updated the following files:\nM src/components/SettingsDialog.test.tsx",
+            "title": "Success. Updated the following files:\nM src/components/SettingsDialog.test.tsx",
+            "metadata": {
+              "diff": "Index: /home/mark/sandbox/personal/pr-review-chatbot/src/components/SettingsDialog.test.tsx\n===================================================================\n--- /home/mark/sandbox/personal/pr-review-chatbot/src/components/SettingsDialog.test.tsx\n+++ /home/mark/sandbox/personal/pr-review-chatbot/src/components/SettingsDialog.test.tsx\n@@ -45,8 +45,12 @@\n it('shows summary controls and saves updates', () => {\n   const store = renderDialog();\n   fireEvent.click(screen.getByRole('button', { name: /settings/i }));\n \n+  expect(screen.getByRole('dialog')).toHaveAccessibleDescription(\n+    /configure github access, llm connection details, and pr summary behavior/i\n+  );\n+\n   const summaryPromptInput = screen.getByLabelText('Summary Prompt');\n   const summaryCommandsInput = screen.getByLabelText('Additional Summary Commands');\n   const summaryToggle = screen.getAllByRole('switch')[1];\n \n\n",
+              "files": [
+                {
+                  "filePath": "/home/mark/sandbox/personal/pr-review-chatbot/src/components/SettingsDialog.test.tsx",
+                  "relativePath": "src/components/SettingsDialog.test.tsx",
+                  "type": "update",
+                  "diff": "Index: /home/mark/sandbox/personal/pr-review-chatbot/src/components/SettingsDialog.test.tsx\n===================================================================\n--- /home/mark/sandbox/personal/pr-review-chatbot/src/components/SettingsDialog.test.tsx\n+++ /home/mark/sandbox/personal/pr-review-chatbot/src/components/SettingsDialog.test.tsx\n@@ -45,8 +45,12 @@\n it('shows summary controls and saves updates', () => {\n   const store = renderDialog();\n   fireEvent.click(screen.getByRole('button', { name: /settings/i }));\n \n+  expect(screen.getByRole('dialog')).toHaveAccessibleDescription(\n+    /configure github access, llm connection details, and pr summary behavior/i\n+  );\n+\n   const summaryPromptInput = screen.getByLabelText('Summary Prompt');\n   const summaryCommandsInput = screen.getByLabelText('Additional Summary Commands');\n   const summaryToggle = screen.getAllByRole('switch')[1];\n \n",
+                  "before": "import { configureStore } from '@reduxjs/toolkit';\nimport { Provider } from 'react-redux';\nimport { describe, expect, it } from 'vitest';\nimport { fireEvent, render, screen } from '@testing-library/react';\nimport { SettingsDialog } from './SettingsDialog';\nimport configReducer, { DEFAULT_SUMMARY_PROMPT } from '../store/slices/configSlice';\nimport prsReducer from '../store/slices/prsSlice';\nimport chatReducer from '../store/slices/chatSlice';\n\nfunction renderDialog() {\n  const store = configureStore({\n    reducer: {\n      config: configReducer,\n      prs: prsReducer,\n      chat: chatReducer,\n    },\n    preloadedState: {\n      config: {\n        config: {\n          githubPat: '',\n          llmApiKey: '',\n          githubInstance: 'github.com',\n          llmBackend: 'openai' as const,\n          llmEndpoint: 'https://api.openai.com/v1',\n          llmModel: 'gpt-4o',\n          demoMode: false,\n          summaryEnabled: true,\n          summaryPrompt: 'Custom summary prompt',\n          summaryCommands: 'Keep command A',\n        },\n      },\n    },\n  });\n\n  render(\n    <Provider store={store}>\n      <SettingsDialog />\n    </Provider>\n  );\n\n  return store;\n}\n\ndescribe('SettingsDialog summary controls', () => {\n  it('shows summary controls and saves updates', () => {\n    const store = renderDialog();\n    fireEvent.click(screen.getByRole('button', { name: /settings/i }));\n\n    const summaryPromptInput = screen.getByLabelText('Summary Prompt');\n    const summaryCommandsInput = screen.getByLabelText('Additional Summary Commands');\n    const summaryToggle = screen.getAllByRole('switch')[1];\n\n    fireEvent.change(summaryPromptInput, { target: { value: 'Updated prompt text' } });\n    fireEvent.change(summaryCommandsInput, { target: { value: 'Updated commands' } });\n    fireEvent.click(summaryToggle);\n\n    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));\n\n    const config = store.getState().config.config;\n    expect(config.summaryPrompt).toBe('Updated prompt text');\n    expect(config.summaryCommands).toBe('Updated commands');\n    expect(config.summaryEnabled).toBe(false);\n  });\n\n  it('reset summary prompt button does not reset additional commands', () => {\n    renderDialog();\n    fireEvent.click(screen.getByRole('button', { name: /settings/i }));\n\n    const summaryPromptInput = screen.getByLabelText('Summary Prompt') as HTMLTextAreaElement;\n    const summaryCommandsInput = screen.getByLabelText('Additional Summary Commands') as HTMLTextAreaElement;\n\n    expect(summaryPromptInput.value).toBe('Custom summary prompt');\n    expect(summaryCommandsInput.value).toBe('Keep command A');\n\n    fireEvent.click(screen.getByRole('button', { name: 'Reset Summary Prompt' }));\n\n    expect(summaryPromptInput.value).toBe(DEFAULT_SUMMARY_PROMPT);\n    expect(summaryCommandsInput.value).toBe('Keep command A');\n  });\n});\n",
+                  "after": "import { configureStore } from '@reduxjs/toolkit';\nimport { Provider } from 'react-redux';\nimport { describe, expect, it } from 'vitest';\nimport { fireEvent, render, screen } from '@testing-library/react';\nimport { SettingsDialog } from './SettingsDialog';\nimport configReducer, { DEFAULT_SUMMARY_PROMPT } from '../store/slices/configSlice';\nimport prsReducer from '../store/slices/prsSlice';\nimport chatReducer from '../store/slices/chatSlice';\n\nfunction renderDialog() {\n  const store = configureStore({\n    reducer: {\n      config: configReducer,\n      prs: prsReducer,\n      chat: chatReducer,\n    },\n    preloadedState: {\n      config: {\n        config: {\n          githubPat: '',\n          llmApiKey: '',\n          githubInstance: 'github.com',\n          llmBackend: 'openai' as const,\n          llmEndpoint: 'https://api.openai.com/v1',\n          llmModel: 'gpt-4o',\n          demoMode: false,\n          summaryEnabled: true,\n          summaryPrompt: 'Custom summary prompt',\n          summaryCommands: 'Keep command A',\n        },\n      },\n    },\n  });\n\n  render(\n    <Provider store={store}>\n      <SettingsDialog />\n    </Provider>\n  );\n\n  return store;\n}\n\ndescribe('SettingsDialog summary controls', () => {\n  it('shows summary controls and saves updates', () => {\n    const store = renderDialog();\n    fireEvent.click(screen.getByRole('button', { name: /settings/i }));\n\n    expect(screen.getByRole('dialog')).toHaveAccessibleDescription(\n      /configure github access, llm connection details, and pr summary behavior/i\n    );\n\n    const summaryPromptInput = screen.getByLabelText('Summary Prompt');\n    const summaryCommandsInput = screen.getByLabelText('Additional Summary Commands');\n    const summaryToggle = screen.getAllByRole('switch')[1];\n\n    fireEvent.change(summaryPromptInput, { target: { value: 'Updated prompt text' } });\n    fireEvent.change(summaryCommandsInput, { target: { value: 'Updated commands' } });\n    fireEvent.click(summaryToggle);\n\n    fireEvent.click(screen.getByRole('button', { name: 'Save Changes' }));\n\n    const config = store.getState().config.config;\n    expect(config.summaryPrompt).toBe('Updated prompt text');\n    expect(config.summaryCommands).toBe('Updated commands');\n    expect(config.summaryEnabled).toBe(false);\n  });\n\n  it('reset summary prompt button does not reset additional commands', () => {\n    renderDialog();\n    fireEvent.click(screen.getByRole('button', { name: /settings/i }));\n\n    const summaryPromptInput = screen.getByLabelText('Summary Prompt') as HTMLTextAreaElement;\n    const summaryCommandsInput = screen.getByLabelText('Additional Summary Commands') as HTMLTextAreaElement;\n\n    expect(summaryPromptInput.value).toBe('Custom summary prompt');\n    expect(summaryCommandsInput.value).toBe('Keep command A');\n\n    fireEvent.click(screen.getByRole('button', { name: 'Reset Summary Prompt' }));\n\n    expect(summaryPromptInput.value).toBe(DEFAULT_SUMMARY_PROMPT);\n    expect(summaryCommandsInput.value).toBe('Keep command A');\n  });\n});\n",
+                  "additions": 4,
+                  "deletions": 0
+                }
+              ],
+              "diagnostics": {
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/services/github.ts": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/services/summary.ts": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/services/llm.ts": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/App.tsx": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/components/SettingsDialog.tsx": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/components/PRViewer.tsx": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/store/slices/prsSlice.ts": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/store/slices/chatSlice.ts": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/store/slices/configSlice.ts": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/components/ChatWindow.tsx": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/components/Sidebar.tsx": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/store/slices/watchedReposSlice.ts": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/store/slices/prsSlice.test.ts": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/components/SettingsDialog.test.tsx": []
+              },
+              "truncated": false
+            },
+            "time": {
+              "start": 1773779055649,
+              "end": 1773779058659
+            }
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "fc_0ae7ba59763af01d0169b9b86e5238819897fb8e809edcfaa2"
+            }
+          },
+          "id": "prt_cfd786f75001YMZdbprO5B2Pyg",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd786411002G8KHJW80TFFDBx"
+        },
+        {
+          "type": "step-finish",
+          "reason": "tool-calls",
+          "snapshot": "2651ffd8dc4181a8460c9ee9039a23a5b4a311ad",
+          "cost": 0.0214809,
+          "tokens": {
+            "total": 83931,
+            "input": 974,
+            "output": 269,
+            "reasoning": 110,
+            "cache": {
+              "read": 82688,
+              "write": 0
+            }
+          },
+          "id": "REDACTED",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd786411002G8KHJW80TFFDBx"
+        },
+        {
+          "type": "patch",
+          "hash": "5cf33a72efcaad6cb87c2e9e2b78ef01d7c73cd2",
+          "files": [
+            "/home/mark/sandbox/personal/pr-review-chatbot/src/components/SettingsDialog.test.tsx"
+          ],
+          "id": "prt_cfd788016001QfcSLXUClDpgvD",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd786411002G8KHJW80TFFDBx"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "assistant",
+        "time": {
+          "created": 1773779058742,
+          "completed": 1773779061116
+        },
+        "parentID": "msg_cfd755aef001lBv1lo80nWg0HO",
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/home/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/home/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0164325,
+        "tokens": {
+          "total": 84061,
+          "input": 118,
+          "output": 103,
+          "reasoning": 8,
+          "cache": {
+            "read": 83840,
+            "write": 0
+          }
+        },
+        "finish": "tool-calls",
+        "id": "msg_cfd788036002E44qf3L68VE4TM",
+        "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm"
+      },
+      "parts": [
+        {
+          "type": "step-start",
+          "snapshot": "2651ffd8dc4181a8460c9ee9039a23a5b4a311ad",
+          "id": "prt_cfd7883c7001sfSf0fh3tfW7lh",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd788036002E44qf3L68VE4TM"
+        },
+        {
+          "type": "reasoning",
+          "text": "**Updating plan checkbox**",
+          "metadata": {
+            "opencode": {
+              "itemId": "rs_0503ed7080223da30169b9b873b1cc8199820cb2f6070b0f83",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "time": {
+            "start": 1773779059843,
+            "end": 1773779060371
+          },
+          "id": "prt_cfd788483001rifI1yYmff2PaB",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd788036002E44qf3L68VE4TM"
+        },
+        {
+          "type": "tool",
+          "callID": "call_Bq8X0SXqV98n3b0q58Th4qXk",
+          "tool": "apply_patch",
+          "state": {
+            "status": "completed",
+            "input": {
+              "patchText": "*** Begin Patch\n*** Update File: /home/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n@@\n-- [ ] Task 4: Update settings dialog tests to assert description semantics and eliminate warning output.\n+- [x] Task 4: Update settings dialog tests to assert description semantics and eliminate warning output.\n*** End Patch"
+            },
+            "output": "Success. Updated the following files:\nM plans/plan.md",
+            "title": "Success. Updated the following files:\nM plans/plan.md",
+            "metadata": {
+              "diff": "Index: /home/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n===================================================================\n--- /home/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n+++ /home/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n@@ -307,7 +307,7 @@\n \n - [x] Task 1: Add stale-response guards in `prsSlice` so older PR resource responses cannot overwrite newer selection state.\n - [x] Task 2: Add regression tests for rapid PR switching race in `src/store/slices/prsSlice.test.ts`.\n - [x] Task 3: Add `Dialog.Description` in `src/components/SettingsDialog.tsx` to satisfy Radix dialog accessibility contract.\n-- [ ] Task 4: Update settings dialog tests to assert description semantics and eliminate warning output.\n+- [x] Task 4: Update settings dialog tests to assert description semantics and eliminate warning output.\n - [ ] Task 5: Add chat stream request cancellation (`AbortController`) in `src/components/ChatWindow.tsx` and `src/services/llm.ts`.\n - [ ] Task 6: Add tests for stream cancellation behavior and UI streaming state cleanup.\n\n",
+              "files": [
+                {
+                  "filePath": "/home/mark/sandbox/personal/pr-review-chatbot/plans/plan.md",
+                  "relativePath": "plans/plan.md",
+                  "type": "update",
+                  "diff": "Index: /home/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n===================================================================\n--- /home/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n+++ /home/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n@@ -307,7 +307,7 @@\n \n - [x] Task 1: Add stale-response guards in `prsSlice` so older PR resource responses cannot overwrite newer selection state.\n - [x] Task 2: Add regression tests for rapid PR switching race in `src/store/slices/prsSlice.test.ts`.\n - [x] Task 3: Add `Dialog.Description` in `src/components/SettingsDialog.tsx` to satisfy Radix dialog accessibility contract.\n-- [ ] Task 4: Update settings dialog tests to assert description semantics and eliminate warning output.\n+- [x] Task 4: Update settings dialog tests to assert description semantics and eliminate warning output.\n - [ ] Task 5: Add chat stream request cancellation (`AbortController`) in `src/components/ChatWindow.tsx` and `src/services/llm.ts`.\n - [ ] Task 6: Add tests for stream cancellation behavior and UI streaming state cleanup.\n",
+                  "before": "# PR Review Chatbot - Implementation Plan\n\n## Priority: UI and LLM Integration First\n**Key Change**: Use dummy data for PR content to allow immediate interaction with the LLM without needing GitHub API credentials. GitHub integration can be added later.\n\n---\n\n## Tech Stack\n- Vite + React 18 + TypeScript\n- Redux Toolkit for state management\n- Axios for HTTP\n- Tailwind CSS for styling\n- Radix UI for accessible components\n\n---\n\n## Implementation Phases\n\n### ✅ Phase 1: Project Setup (COMPLETED)\n- [x] Initialize Vite + React + TypeScript project\n- [x] Install dependencies (Redux Toolkit, Axios, Tailwind, Radix UI, react-markdown, react-syntax-highlighter, lucide-react)\n- [x] Configure Tailwind CSS with CSS variables for theming\n- [x] Set up project structure (`src/types`, `src/store`, `src/services`, `src/components`, `src/lib`)\n- [x] Create `vite-env.d.ts` for Vite environment type declarations\n- [x] Create `.env.example` with all configuration options\n- [x] Create `.gitignore`\n\n### ✅ Phase 2: UI Shell & Configuration (COMPLETED)\n- [x] Create Redux store (`src/store/index.ts`)\n- [x] Implement `configSlice.ts` — env var defaults + localStorage runtime overrides\n- [x] Implement `chatSlice.ts` — messages, streaming state\n- [x] Implement `prsSlice.ts` — selected PR, files, comments, reviews\n- [x] Create typed Redux hooks (`src/store/hooks.ts`)\n- [x] Create `SettingsDialog.tsx` — runtime config override with demo mode toggle\n- [x] Create main `App.tsx` layout (sidebar + chat + PR viewer panels)\n- [x] Dark mode toggle in top bar\n- [x] Collapsible sidebar and PR viewer panels\n\n### ✅ Phase 3: Chat Interface (COMPLETED)\n- [x] Build `ChatWindow.tsx` with message display\n- [x] User/assistant message bubbles with avatars\n- [x] Markdown rendering with `react-markdown` + `remark-gfm`\n- [x] Code syntax highlighting with `react-syntax-highlighter`\n- [x] Streaming response display (animated cursor)\n- [x] Auto-scroll to latest message\n- [x] Multi-line textarea input (auto-resize)\n- [x] Enter to send, Shift+Enter for new line\n- [x] Suggestion chips on empty state\n- [x] Clear conversation button\n- [x] Error display in message bubbles\n\n### ✅ Phase 4: LLM Integration (COMPLETED)\n- [x] Implement `LLMService` class in `src/services/llm.ts`\n- [x] OpenAI v1 API support (`/chat/completions`)\n- [x] LiteLLM Proxy support (same API format)\n- [x] Streaming via Server-Sent Events (SSE)\n- [x] `buildSystemPrompt()` — injects full PR context (metadata, diffs, comments, reviews)\n- [x] Connect LLM service to `ChatWindow` with streaming dispatch\n- [x] Error handling for API failures\n\n### ✅ Phase 5: Dummy Data & Demo Mode (COMPLETED)\n- [x] Create `src/services/dummyData.ts` with realistic sample PR\n  - Sample PR: JWT authentication feature (8 files, realistic diffs)\n  - Sample comments, review comments, and reviews\n- [x] Build `PRViewer.tsx` with:\n  - PR metadata header (state badge, author, branch, stats)\n  - Tabs: Files, Comments, Reviews\n  - Collapsible file items with diff view\n  - Diff syntax highlighting (green/red/blue lines)\n  - Status badges per file (added/modified/removed)\n- [x] Build `Sidebar.tsx` with demo mode toggle\n- [x] Auto-load dummy PR on startup in demo mode\n- [x] Demo mode toggle in sidebar and Settings dialog\n\n### ✅ Phase 6: GitHub Integration (COMPLETED)\n- [x] Implement `GitHubService` class in `src/services/github.ts`\n- [x] PAT (Bearer token) authentication\n- [x] Support for github.com (`https://api.github.com`)\n- [x] Support for GHES (`https://<host>/api/v3`)\n- [x] Methods: `listRepositories`, `searchRepositories`, `listPullRequests`, `getPullRequest`, `getPRFiles`, `getPRComments`, `getPRReviewComments`, `getPRReviews`, `validateToken`\n- [x] Token validation method\n\n### ✅ Phase 7: Polish (COMPLETED)\n- [x] Add loading states and loading indicators for GitHub API calls\n- [x] Add error handling for GitHub API failures (rate limiting, 404, auth errors)\n- [x] Polish UI/UX (animations, transitions)\n- [x] GitHub mode UI — allow entering repo/PR manually\n- [x] Context window management for very large PRs\n\n---\n\n## Documentation (COMPLETED)\n- [x] `README.md` — User-facing docs: quick start, configuration, LLM setup, GitHub setup, troubleshooting\n- [x] `agents.md` — Developer/agent docs: project structure, architecture, common tasks\n- [x] `.env.example` — Annotated environment variable reference\n\n---\n\n## Configuration\n\n### Environment Variables (with defaults)\n```\nVITE_GITHUB_PAT=          # GitHub Personal Access Token\nVITE_LLM_API_KEY=         # LLM API Key\nVITE_GITHUB_INSTANCE=     # \"github.com\" or URL for GHES\nVITE_LLM_BACKEND=         # \"openai\" or \"litellm\"\nVITE_LLM_ENDPOINT=        # API endpoint URL\nVITE_LLM_MODEL=           # Model name\nVITE_DEMO_MODE=           # \"true\" or \"false\"\n```\n\n### Runtime Override\nSettings dialog allows overriding env vars at runtime (persisted to localStorage).\n\n---\n\n## Architecture\n\n### Services\n```\nsrc/services/\n├── github.ts      # Fetch PRs, details, diffs, comments (supports GHES)\n├── llm.ts         # Unified interface for OpenAI v1 API + LiteLLM Proxy\n└── dummyData.ts   # Sample PR data for demo mode\n```\n\n### Redux Store\n```\nsrc/store/\n├── index.ts              # Store configuration\n├── hooks.ts              # Typed useAppDispatch / useAppSelector\n└── slices/\n    ├── configSlice.ts    # App config (env defaults + runtime overrides)\n    ├── prsSlice.ts       # Current PR data\n    └── chatSlice.ts      # Messages + streaming state\n```\n\n### Components\n```\nsrc/components/\n├── SettingsDialog.tsx   # Runtime config override\n├── Sidebar.tsx          # Repo/PR navigation (or demo mode toggle)\n├── ChatWindow.tsx       # Chat messages + input\n└── PRViewer.tsx         # File diffs, metadata\n```\n\n---\n\n## Data Types\n\n### GitHub PR\n```typescript\ninterface PullRequest {\n  id: number;\n  number: number;\n  title: string;\n  body: string | null;\n  state: 'open' | 'closed';\n  merged: boolean;\n  merged_at: string | null;\n  user: GitHubUser;\n  created_at: string;\n  updated_at: string;\n  head: { ref: string; sha: string; repo: { full_name: string } | null };\n  base: { ref: string; sha: string; repo: { full_name: string } };\n  url: string;\n  html_url: string;\n  diff_url: string;\n  additions: number;\n  deletions: number;\n  changed_files: number;\n  comments: number;\n  review_comments: number;\n  commits: number;\n  labels: Array<{ id: number; name: string; color: string }>;\n  requested_reviewers: GitHubUser[];\n}\n```\n\n### Chat Message\n```typescript\ninterface ChatMessage {\n  id: string;\n  role: 'user' | 'assistant' | 'system';\n  content: string;\n  timestamp: number;\n  isStreaming?: boolean;\n  error?: string;\n}\n```\n\n### App Config\n```typescript\ninterface AppConfig {\n  githubPat: string;\n  llmApiKey: string;\n  githubInstance: string;\n  llmBackend: 'openai' | 'litellm';\n  llmEndpoint: string;\n  llmModel: string;\n  demoMode: boolean;\n}\n```\n\n---\n\n## Error Handling\n\n### LLM API Errors\n- Invalid API key: Error shown in message bubble\n- Rate limiting: Error shown in message bubble\n- Network errors: Error shown in message bubble\n- Streaming errors: Graceful fallback with error message\n\n### GitHub API Errors (when enabled)\n- Invalid PAT: Prompt to update token\n- Rate limiting: Show remaining requests\n- Not found (404): Repository/PR not found\n\n---\n\n### ⏳ Phase 8: Code Quality & UX Improvements (PENDING)\n\nIdentified during initial code review. These are non-blocking improvements to address after the Phase 7 polish work.\n\n#### Quality\n- [x] **ESLint v9 flat config** (`eslint.config.js`) — Added repository-level flat config so `npm run lint` works with ESLint 9.\n- [x] **`getPRFiles` pagination** (`src/services/github.ts:96`) — The GitHub API caps file lists at 100 per page. PRs with >100 changed files silently return incomplete data. Add pagination (loop until `response.data.length < perPage`) or at minimum show a warning banner in `PRViewer` when the file count equals the page limit.\n- [x] **Stable React keys in `DiffView`** (`src/components/PRViewer.tsx:41`) — Diff lines currently use array index as `key`. Replace with a content-based key (e.g. `` `${i}-${line.slice(0, 8)}` ``) to prevent React reusing DOM nodes incorrectly when switching between files.\n\n#### UX\n- [x] **Persist dark mode preference** (`src/App.tsx:10`) — Dark mode state resets on every page reload. Initialise from `localStorage` and respect the OS `prefers-color-scheme` media query:\n  ```ts\n  const [darkMode, setDarkMode] = useState(\n    () => localStorage.getItem('darkMode') === 'true'\n      || window.matchMedia('(prefers-color-scheme: dark)').matches\n  );\n  ```\n  Also persist the toggle: `localStorage.setItem('darkMode', String(!darkMode))` inside `toggleDarkMode`.\n- [x] **Wire up the Refresh button** (`src/components/Sidebar.tsx:111`) — The refresh `<button>` in the sidebar is rendered in GitHub mode but has no `onClick` handler. Either connect it to a `fetchPullRequests` thunk (part of Phase 7 GitHub UI work) or hide it with `{false && ...}` until that feature is ready, to avoid confusing users with a dead control.\n\n---\n\n## OpenSpec Alignment Notes (2026-03-14)\n\n- `openspec/changes/add-pr-summary-tab/tasks.md` was updated to capture quick-orientation behavior decisions from explore mode.\n- Summary behavior target: 2-4 line orientation section, adaptive `Focus Areas` with bounds `0..4`, and valid success output when focus areas are omitted for simple PRs.\n- Synced delta spec `openspec/changes/add-pr-summary-tab/specs/pr-review-summary/spec.md` into new main spec `openspec/specs/pr-review-summary/spec.md`.\n- Added change scaffold `openspec/changes/update-pr-review-summary-ui-readability/` with completed proposal, design, spec delta, and tasks artifacts for summary UI readability improvements.\n- Refined `update-pr-review-summary-ui-readability` scope to panelized Summary display: Orientation and each Focus Area render as separate cards styled like Comments/Reviews, with blue/yellow title accents and no spec contract changes.\n\n---\n\n## ✅ Phase 9: PR Summary Tab (COMPLETED)\n\n- [x] Extend `AppConfig` with summary fields: `summaryEnabled`, `summaryPrompt`, `summaryCommands`\n- [x] Add/export `DEFAULT_SUMMARY_PROMPT` and keep reset behavior prompt-only\n- [x] Add PR commits API loading (`getPRCommits`) and Redux state wiring\n- [x] Add summary lifecycle state in `prsSlice` (`status`, `content`, `generatedAt`, `error`)\n- [x] Implement summary orchestration utilities:\n  - per-PR+head+prompt cache keying\n  - sessionStorage read/write cache\n  - one-per-minute per-PR-head rate limiting\n  - empty textual diff detection\n- [x] Extend LLM service with structured summary prompt assembly (orientation + adaptive focus areas)\n- [x] Add Summary tab UI in `PRViewer` with loading/success/empty/error states and timestamp footer\n- [x] Wire summary generation on PR selection/load and keep summary separate from chat history/context\n- [x] Add/expand tests for config, GitHub service, PR slice, summary utilities, LLM prompt, Settings UI, and Summary tab rendering\n- [x] Update README and agent guidance for summary behavior, fallback states, and output contract\n\n---\n\n## OpenSpec Implementation Updates (2026-03-14)\n\n- [x] Completed OpenSpec change `update-pr-review-summary-ui-readability` implementation tasks (8/8) for panelized Summary tab readability updates.\n- [x] Updated Summary success rendering in `src/components/PRViewer.tsx` to show an `Orientation` panel and per-item `Focus Area N` panels with blue/yellow title accents.\n- [x] Kept summary generation flow and fallback state semantics unchanged (loading/empty/error behavior preserved).\n- [x] Updated `src/components/PRViewer.summary.test.tsx` assertions for orientation-only and orientation+focus-area panelized rendering.\n- [x] Validation run completed with `npm run lint && npm run build && npm run test`.\n\n## OpenSpec Explore Decision Updates (2026-03-16)\n\n- [x] Clarified `repository-watcher` UX scope: `repo-pr-list` renders in the left `PR Review` pane (not center chat area or right PR viewer pane).\n- [x] Captured sidebar navigator behavior: controls/watchlist view and repo list view with explicit Back action.\n- [x] Captured `Load PR` behavior parity with demo mode: when PR number is provided, show a list containing one selected PR.\n- [x] Updated change artifacts (`proposal.md`, `design.md`, `tasks.md`, `specs/repo-pr-list/spec.md`, `specs/watched-repos/spec.md`) to reflect the decision.\n\n## OpenSpec Implementation Updates (2026-03-16)\n\n- [x] Implemented `repository-watcher` change tasks end-to-end.\n- [x] Added watched repository state and persistence via `src/store/slices/watchedReposSlice.ts`.\n- [x] Added repository PR list loading in `src/store/slices/prsSlice.ts` using existing `listPullRequests()` integration.\n- [x] Added sidebar repo-list UI mode with Back navigation and new `src/components/PRList.tsx` component.\n- [x] Updated sidebar to support optional PR number flow (`Load PR` vs `Load All PRs`) and watchlist interactions.\n- [x] Added tests for watched repos, repository PR list loading, and sidebar list selection flows.\n- [x] Validation run completed with `npm run lint && npm run build && npm run test`.\n\n## OpenSpec Spec Sync Updates (2026-03-16)\n\n- [x] Synced change `repository-watcher` delta specs into new main specs for `repo-pr-list` and `watched-repos`.\n- [x] Created `openspec/specs/repo-pr-list/spec.md` from `openspec/changes/repository-watcher/specs/repo-pr-list/spec.md`.\n- [x] Created `openspec/specs/watched-repos/spec.md` from `openspec/changes/repository-watcher/specs/watched-repos/spec.md`.\n\n---\n\n## Code Review Hardening Tasks (2026-03-17)\n\n- [x] Task 1: Add stale-response guards in `prsSlice` so older PR resource responses cannot overwrite newer selection state.\n- [x] Task 2: Add regression tests for rapid PR switching race in `src/store/slices/prsSlice.test.ts`.\n- [x] Task 3: Add `Dialog.Description` in `src/components/SettingsDialog.tsx` to satisfy Radix dialog accessibility contract.\n- [ ] Task 4: Update settings dialog tests to assert description semantics and eliminate warning output.\n- [ ] Task 5: Add chat stream request cancellation (`AbortController`) in `src/components/ChatWindow.tsx` and `src/services/llm.ts`.\n- [ ] Task 6: Add tests for stream cancellation behavior and UI streaming state cleanup.\n",
+                  "after": "# PR Review Chatbot - Implementation Plan\n\n## Priority: UI and LLM Integration First\n**Key Change**: Use dummy data for PR content to allow immediate interaction with the LLM without needing GitHub API credentials. GitHub integration can be added later.\n\n---\n\n## Tech Stack\n- Vite + React 18 + TypeScript\n- Redux Toolkit for state management\n- Axios for HTTP\n- Tailwind CSS for styling\n- Radix UI for accessible components\n\n---\n\n## Implementation Phases\n\n### ✅ Phase 1: Project Setup (COMPLETED)\n- [x] Initialize Vite + React + TypeScript project\n- [x] Install dependencies (Redux Toolkit, Axios, Tailwind, Radix UI, react-markdown, react-syntax-highlighter, lucide-react)\n- [x] Configure Tailwind CSS with CSS variables for theming\n- [x] Set up project structure (`src/types`, `src/store`, `src/services`, `src/components`, `src/lib`)\n- [x] Create `vite-env.d.ts` for Vite environment type declarations\n- [x] Create `.env.example` with all configuration options\n- [x] Create `.gitignore`\n\n### ✅ Phase 2: UI Shell & Configuration (COMPLETED)\n- [x] Create Redux store (`src/store/index.ts`)\n- [x] Implement `configSlice.ts` — env var defaults + localStorage runtime overrides\n- [x] Implement `chatSlice.ts` — messages, streaming state\n- [x] Implement `prsSlice.ts` — selected PR, files, comments, reviews\n- [x] Create typed Redux hooks (`src/store/hooks.ts`)\n- [x] Create `SettingsDialog.tsx` — runtime config override with demo mode toggle\n- [x] Create main `App.tsx` layout (sidebar + chat + PR viewer panels)\n- [x] Dark mode toggle in top bar\n- [x] Collapsible sidebar and PR viewer panels\n\n### ✅ Phase 3: Chat Interface (COMPLETED)\n- [x] Build `ChatWindow.tsx` with message display\n- [x] User/assistant message bubbles with avatars\n- [x] Markdown rendering with `react-markdown` + `remark-gfm`\n- [x] Code syntax highlighting with `react-syntax-highlighter`\n- [x] Streaming response display (animated cursor)\n- [x] Auto-scroll to latest message\n- [x] Multi-line textarea input (auto-resize)\n- [x] Enter to send, Shift+Enter for new line\n- [x] Suggestion chips on empty state\n- [x] Clear conversation button\n- [x] Error display in message bubbles\n\n### ✅ Phase 4: LLM Integration (COMPLETED)\n- [x] Implement `LLMService` class in `src/services/llm.ts`\n- [x] OpenAI v1 API support (`/chat/completions`)\n- [x] LiteLLM Proxy support (same API format)\n- [x] Streaming via Server-Sent Events (SSE)\n- [x] `buildSystemPrompt()` — injects full PR context (metadata, diffs, comments, reviews)\n- [x] Connect LLM service to `ChatWindow` with streaming dispatch\n- [x] Error handling for API failures\n\n### ✅ Phase 5: Dummy Data & Demo Mode (COMPLETED)\n- [x] Create `src/services/dummyData.ts` with realistic sample PR\n  - Sample PR: JWT authentication feature (8 files, realistic diffs)\n  - Sample comments, review comments, and reviews\n- [x] Build `PRViewer.tsx` with:\n  - PR metadata header (state badge, author, branch, stats)\n  - Tabs: Files, Comments, Reviews\n  - Collapsible file items with diff view\n  - Diff syntax highlighting (green/red/blue lines)\n  - Status badges per file (added/modified/removed)\n- [x] Build `Sidebar.tsx` with demo mode toggle\n- [x] Auto-load dummy PR on startup in demo mode\n- [x] Demo mode toggle in sidebar and Settings dialog\n\n### ✅ Phase 6: GitHub Integration (COMPLETED)\n- [x] Implement `GitHubService` class in `src/services/github.ts`\n- [x] PAT (Bearer token) authentication\n- [x] Support for github.com (`https://api.github.com`)\n- [x] Support for GHES (`https://<host>/api/v3`)\n- [x] Methods: `listRepositories`, `searchRepositories`, `listPullRequests`, `getPullRequest`, `getPRFiles`, `getPRComments`, `getPRReviewComments`, `getPRReviews`, `validateToken`\n- [x] Token validation method\n\n### ✅ Phase 7: Polish (COMPLETED)\n- [x] Add loading states and loading indicators for GitHub API calls\n- [x] Add error handling for GitHub API failures (rate limiting, 404, auth errors)\n- [x] Polish UI/UX (animations, transitions)\n- [x] GitHub mode UI — allow entering repo/PR manually\n- [x] Context window management for very large PRs\n\n---\n\n## Documentation (COMPLETED)\n- [x] `README.md` — User-facing docs: quick start, configuration, LLM setup, GitHub setup, troubleshooting\n- [x] `agents.md` — Developer/agent docs: project structure, architecture, common tasks\n- [x] `.env.example` — Annotated environment variable reference\n\n---\n\n## Configuration\n\n### Environment Variables (with defaults)\n```\nVITE_GITHUB_PAT=          # GitHub Personal Access Token\nVITE_LLM_API_KEY=         # LLM API Key\nVITE_GITHUB_INSTANCE=     # \"github.com\" or URL for GHES\nVITE_LLM_BACKEND=         # \"openai\" or \"litellm\"\nVITE_LLM_ENDPOINT=        # API endpoint URL\nVITE_LLM_MODEL=           # Model name\nVITE_DEMO_MODE=           # \"true\" or \"false\"\n```\n\n### Runtime Override\nSettings dialog allows overriding env vars at runtime (persisted to localStorage).\n\n---\n\n## Architecture\n\n### Services\n```\nsrc/services/\n├── github.ts      # Fetch PRs, details, diffs, comments (supports GHES)\n├── llm.ts         # Unified interface for OpenAI v1 API + LiteLLM Proxy\n└── dummyData.ts   # Sample PR data for demo mode\n```\n\n### Redux Store\n```\nsrc/store/\n├── index.ts              # Store configuration\n├── hooks.ts              # Typed useAppDispatch / useAppSelector\n└── slices/\n    ├── configSlice.ts    # App config (env defaults + runtime overrides)\n    ├── prsSlice.ts       # Current PR data\n    └── chatSlice.ts      # Messages + streaming state\n```\n\n### Components\n```\nsrc/components/\n├── SettingsDialog.tsx   # Runtime config override\n├── Sidebar.tsx          # Repo/PR navigation (or demo mode toggle)\n├── ChatWindow.tsx       # Chat messages + input\n└── PRViewer.tsx         # File diffs, metadata\n```\n\n---\n\n## Data Types\n\n### GitHub PR\n```typescript\ninterface PullRequest {\n  id: number;\n  number: number;\n  title: string;\n  body: string | null;\n  state: 'open' | 'closed';\n  merged: boolean;\n  merged_at: string | null;\n  user: GitHubUser;\n  created_at: string;\n  updated_at: string;\n  head: { ref: string; sha: string; repo: { full_name: string } | null };\n  base: { ref: string; sha: string; repo: { full_name: string } };\n  url: string;\n  html_url: string;\n  diff_url: string;\n  additions: number;\n  deletions: number;\n  changed_files: number;\n  comments: number;\n  review_comments: number;\n  commits: number;\n  labels: Array<{ id: number; name: string; color: string }>;\n  requested_reviewers: GitHubUser[];\n}\n```\n\n### Chat Message\n```typescript\ninterface ChatMessage {\n  id: string;\n  role: 'user' | 'assistant' | 'system';\n  content: string;\n  timestamp: number;\n  isStreaming?: boolean;\n  error?: string;\n}\n```\n\n### App Config\n```typescript\ninterface AppConfig {\n  githubPat: string;\n  llmApiKey: string;\n  githubInstance: string;\n  llmBackend: 'openai' | 'litellm';\n  llmEndpoint: string;\n  llmModel: string;\n  demoMode: boolean;\n}\n```\n\n---\n\n## Error Handling\n\n### LLM API Errors\n- Invalid API key: Error shown in message bubble\n- Rate limiting: Error shown in message bubble\n- Network errors: Error shown in message bubble\n- Streaming errors: Graceful fallback with error message\n\n### GitHub API Errors (when enabled)\n- Invalid PAT: Prompt to update token\n- Rate limiting: Show remaining requests\n- Not found (404): Repository/PR not found\n\n---\n\n### ⏳ Phase 8: Code Quality & UX Improvements (PENDING)\n\nIdentified during initial code review. These are non-blocking improvements to address after the Phase 7 polish work.\n\n#### Quality\n- [x] **ESLint v9 flat config** (`eslint.config.js`) — Added repository-level flat config so `npm run lint` works with ESLint 9.\n- [x] **`getPRFiles` pagination** (`src/services/github.ts:96`) — The GitHub API caps file lists at 100 per page. PRs with >100 changed files silently return incomplete data. Add pagination (loop until `response.data.length < perPage`) or at minimum show a warning banner in `PRViewer` when the file count equals the page limit.\n- [x] **Stable React keys in `DiffView`** (`src/components/PRViewer.tsx:41`) — Diff lines currently use array index as `key`. Replace with a content-based key (e.g. `` `${i}-${line.slice(0, 8)}` ``) to prevent React reusing DOM nodes incorrectly when switching between files.\n\n#### UX\n- [x] **Persist dark mode preference** (`src/App.tsx:10`) — Dark mode state resets on every page reload. Initialise from `localStorage` and respect the OS `prefers-color-scheme` media query:\n  ```ts\n  const [darkMode, setDarkMode] = useState(\n    () => localStorage.getItem('darkMode') === 'true'\n      || window.matchMedia('(prefers-color-scheme: dark)').matches\n  );\n  ```\n  Also persist the toggle: `localStorage.setItem('darkMode', String(!darkMode))` inside `toggleDarkMode`.\n- [x] **Wire up the Refresh button** (`src/components/Sidebar.tsx:111`) — The refresh `<button>` in the sidebar is rendered in GitHub mode but has no `onClick` handler. Either connect it to a `fetchPullRequests` thunk (part of Phase 7 GitHub UI work) or hide it with `{false && ...}` until that feature is ready, to avoid confusing users with a dead control.\n\n---\n\n## OpenSpec Alignment Notes (2026-03-14)\n\n- `openspec/changes/add-pr-summary-tab/tasks.md` was updated to capture quick-orientation behavior decisions from explore mode.\n- Summary behavior target: 2-4 line orientation section, adaptive `Focus Areas` with bounds `0..4`, and valid success output when focus areas are omitted for simple PRs.\n- Synced delta spec `openspec/changes/add-pr-summary-tab/specs/pr-review-summary/spec.md` into new main spec `openspec/specs/pr-review-summary/spec.md`.\n- Added change scaffold `openspec/changes/update-pr-review-summary-ui-readability/` with completed proposal, design, spec delta, and tasks artifacts for summary UI readability improvements.\n- Refined `update-pr-review-summary-ui-readability` scope to panelized Summary display: Orientation and each Focus Area render as separate cards styled like Comments/Reviews, with blue/yellow title accents and no spec contract changes.\n\n---\n\n## ✅ Phase 9: PR Summary Tab (COMPLETED)\n\n- [x] Extend `AppConfig` with summary fields: `summaryEnabled`, `summaryPrompt`, `summaryCommands`\n- [x] Add/export `DEFAULT_SUMMARY_PROMPT` and keep reset behavior prompt-only\n- [x] Add PR commits API loading (`getPRCommits`) and Redux state wiring\n- [x] Add summary lifecycle state in `prsSlice` (`status`, `content`, `generatedAt`, `error`)\n- [x] Implement summary orchestration utilities:\n  - per-PR+head+prompt cache keying\n  - sessionStorage read/write cache\n  - one-per-minute per-PR-head rate limiting\n  - empty textual diff detection\n- [x] Extend LLM service with structured summary prompt assembly (orientation + adaptive focus areas)\n- [x] Add Summary tab UI in `PRViewer` with loading/success/empty/error states and timestamp footer\n- [x] Wire summary generation on PR selection/load and keep summary separate from chat history/context\n- [x] Add/expand tests for config, GitHub service, PR slice, summary utilities, LLM prompt, Settings UI, and Summary tab rendering\n- [x] Update README and agent guidance for summary behavior, fallback states, and output contract\n\n---\n\n## OpenSpec Implementation Updates (2026-03-14)\n\n- [x] Completed OpenSpec change `update-pr-review-summary-ui-readability` implementation tasks (8/8) for panelized Summary tab readability updates.\n- [x] Updated Summary success rendering in `src/components/PRViewer.tsx` to show an `Orientation` panel and per-item `Focus Area N` panels with blue/yellow title accents.\n- [x] Kept summary generation flow and fallback state semantics unchanged (loading/empty/error behavior preserved).\n- [x] Updated `src/components/PRViewer.summary.test.tsx` assertions for orientation-only and orientation+focus-area panelized rendering.\n- [x] Validation run completed with `npm run lint && npm run build && npm run test`.\n\n## OpenSpec Explore Decision Updates (2026-03-16)\n\n- [x] Clarified `repository-watcher` UX scope: `repo-pr-list` renders in the left `PR Review` pane (not center chat area or right PR viewer pane).\n- [x] Captured sidebar navigator behavior: controls/watchlist view and repo list view with explicit Back action.\n- [x] Captured `Load PR` behavior parity with demo mode: when PR number is provided, show a list containing one selected PR.\n- [x] Updated change artifacts (`proposal.md`, `design.md`, `tasks.md`, `specs/repo-pr-list/spec.md`, `specs/watched-repos/spec.md`) to reflect the decision.\n\n## OpenSpec Implementation Updates (2026-03-16)\n\n- [x] Implemented `repository-watcher` change tasks end-to-end.\n- [x] Added watched repository state and persistence via `src/store/slices/watchedReposSlice.ts`.\n- [x] Added repository PR list loading in `src/store/slices/prsSlice.ts` using existing `listPullRequests()` integration.\n- [x] Added sidebar repo-list UI mode with Back navigation and new `src/components/PRList.tsx` component.\n- [x] Updated sidebar to support optional PR number flow (`Load PR` vs `Load All PRs`) and watchlist interactions.\n- [x] Added tests for watched repos, repository PR list loading, and sidebar list selection flows.\n- [x] Validation run completed with `npm run lint && npm run build && npm run test`.\n\n## OpenSpec Spec Sync Updates (2026-03-16)\n\n- [x] Synced change `repository-watcher` delta specs into new main specs for `repo-pr-list` and `watched-repos`.\n- [x] Created `openspec/specs/repo-pr-list/spec.md` from `openspec/changes/repository-watcher/specs/repo-pr-list/spec.md`.\n- [x] Created `openspec/specs/watched-repos/spec.md` from `openspec/changes/repository-watcher/specs/watched-repos/spec.md`.\n\n---\n\n## Code Review Hardening Tasks (2026-03-17)\n\n- [x] Task 1: Add stale-response guards in `prsSlice` so older PR resource responses cannot overwrite newer selection state.\n- [x] Task 2: Add regression tests for rapid PR switching race in `src/store/slices/prsSlice.test.ts`.\n- [x] Task 3: Add `Dialog.Description` in `src/components/SettingsDialog.tsx` to satisfy Radix dialog accessibility contract.\n- [x] Task 4: Update settings dialog tests to assert description semantics and eliminate warning output.\n- [ ] Task 5: Add chat stream request cancellation (`AbortController`) in `src/components/ChatWindow.tsx` and `src/services/llm.ts`.\n- [ ] Task 6: Add tests for stream cancellation behavior and UI streaming state cleanup.\n",
+                  "additions": 1,
+                  "deletions": 1
+                }
+              ],
+              "diagnostics": {
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/services/github.ts": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/services/summary.ts": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/services/llm.ts": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/App.tsx": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/components/SettingsDialog.tsx": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/components/PRViewer.tsx": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/store/slices/prsSlice.ts": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/store/slices/chatSlice.ts": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/store/slices/configSlice.ts": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/components/ChatWindow.tsx": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/components/Sidebar.tsx": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/store/slices/watchedReposSlice.ts": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/store/slices/prsSlice.test.ts": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/components/SettingsDialog.test.tsx": []
+              },
+              "truncated": false
+            },
+            "time": {
+              "start": 1773779060869,
+              "end": 1773779060877
+            }
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "fc_0503ed7080223da30169b9b8743de8819988976f98f2551134"
+            }
+          },
+          "id": "prt_cfd788694001uZViB5xfr529Q1",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd788036002E44qf3L68VE4TM"
+        },
+        {
+          "type": "step-finish",
+          "reason": "tool-calls",
+          "snapshot": "6d43c590f3bd9545c6f072f25a218bbdb37d77bb",
+          "cost": 0.0164325,
+          "tokens": {
+            "total": 84061,
+            "input": 118,
+            "output": 103,
+            "reasoning": 8,
+            "cache": {
+              "read": 83840,
+              "write": 0
+            }
+          },
+          "id": "REDACTED",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd788036002E44qf3L68VE4TM"
+        },
+        {
+          "type": "patch",
+          "hash": "2651ffd8dc4181a8460c9ee9039a23a5b4a311ad",
+          "files": [
+            "/home/mark/sandbox/personal/pr-review-chatbot/plans/plan.md"
+          ],
+          "id": "REDACTED",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd788036002E44qf3L68VE4TM"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "assistant",
+        "time": {
+          "created": 1773779061128,
+          "completed": 1773779075074
+        },
+        "parentID": "msg_cfd755aef001lBv1lo80nWg0HO",
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/home/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/home/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0166614,
+        "tokens": {
+          "total": 84202,
+          "input": 116,
+          "output": 118,
+          "reasoning": 8,
+          "cache": {
+            "read": 83968,
+            "write": 0
+          }
+        },
+        "finish": "tool-calls",
+        "id": "msg_cfd7889880015Q9pfSLH0cdNX3",
+        "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm"
+      },
+      "parts": [
+        {
+          "type": "step-start",
+          "snapshot": "6d43c590f3bd9545c6f072f25a218bbdb37d77bb",
+          "id": "prt_cfd788dd2001c3RH6kATiSdD7A",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd7889880015Q9pfSLH0cdNX3"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "metadata": {
+            "opencode": {
+              "itemId": "rs_0bc40c1ef15345b70169b9b87e1d048197b6786da928d0c704",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "time": {
+            "start": 1773779070288,
+            "end": 1773779071826
+          },
+          "id": "REDACTED",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd7889880015Q9pfSLH0cdNX3"
+        },
+        {
+          "type": "tool",
+          "callID": "REDACTED",
+          "tool": "bash",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "npm run lint",
+              "workdir": "/home/mark/sandbox/personal/pr-review-chatbot",
+              "description": "Runs ESLint after task 4 test updates"
+            },
+            "output": "\n> pr-review-chatbot@0.1.0 lint\n> eslint .\n\n",
+            "title": "Runs ESLint after task 4 test updates",
+            "metadata": {
+              "output": "\n> pr-review-chatbot@0.1.0 lint\n> eslint .\n\n",
+              "exit": 0,
+              "description": "Runs ESLint after task 4 test updates",
+              "truncated": false
+            },
+            "time": {
+              "start": 1773779071836,
+              "end": 1773779074365
+            }
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "fc_0bc40c1ef15345b70169b9b87f98ec819782ec5214883a091c"
+            }
+          },
+          "id": "REDACTED",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd7889880015Q9pfSLH0cdNX3"
+        },
+        {
+          "type": "tool",
+          "callID": "REDACTED",
+          "tool": "bash",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "npm run test",
+              "workdir": "/home/mark/sandbox/personal/pr-review-chatbot",
+              "description": "Runs Vitest after task 4 test updates"
+            },
+            "output": "\n> pr-review-chatbot@0.1.0 test\n> vitest run\n\n\n\u001b[1m\u001b[46m RUN \u001b[49m\u001b[22m \u001b[36mv4.0.18 \u001b[39m\u001b[90m/home/mark/sandbox/personal/pr-review-chatbot\u001b[39m\n\n \u001b[32m✓\u001b[39m src/services/summary.test.ts \u001b[2m(\u001b[22m\u001b[2m4 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 10\u001b[2mms\u001b[22m\u001b[39m\n(node:61038) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:61039) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n \u001b[32m✓\u001b[39m src/store/slices/configSlice.test.ts \u001b[2m(\u001b[22m\u001b[2m9 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 16\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/services/llm.test.ts \u001b[2m(\u001b[22m\u001b[2m25 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 22\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/lib/utils.test.ts \u001b[2m(\u001b[22m\u001b[2m16 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 53\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/store/slices/chatSlice.test.ts \u001b[2m(\u001b[22m\u001b[2m11 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 10\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/store/slices/watchedReposSlice.test.ts \u001b[2m(\u001b[22m\u001b[2m3 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 31\u001b[2mms\u001b[22m\u001b[39m\n(node:61005) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n \u001b[32m✓\u001b[39m src/components/PRViewer.test.ts \u001b[2m(\u001b[22m\u001b[2m2 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 4\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/store/slices/prsSlice.test.ts \u001b[2m(\u001b[22m\u001b[2m10 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 43\u001b[2mms\u001b[22m\u001b[39m\n(node:60997) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n \u001b[32m✓\u001b[39m src/services/github.test.ts \u001b[2m(\u001b[22m\u001b[2m16 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 16\u001b[2mms\u001b[22m\u001b[39m\n(node:60995) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n \u001b[32m✓\u001b[39m src/components/PRViewer.summary.test.tsx \u001b[2m(\u001b[22m\u001b[2m5 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 122\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/App.test.tsx \u001b[2m(\u001b[22m\u001b[2m3 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 67\u001b[2mms\u001b[22m\u001b[39m\n(node:60996) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n \u001b[32m✓\u001b[39m src/components/Sidebar.test.tsx \u001b[2m(\u001b[22m\u001b[2m3 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 249\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/components/SettingsDialog.test.tsx \u001b[2m(\u001b[22m\u001b[2m2 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[33m 653\u001b[2mms\u001b[22m\u001b[39m\n     \u001b[33m\u001b[2m✓\u001b[22m\u001b[39m shows summary controls and saves updates \u001b[33m 518\u001b[2mms\u001b[22m\u001b[39m\n\n\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[32m13 passed\u001b[39m\u001b[22m\u001b[90m (13)\u001b[39m\n\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[32m109 passed\u001b[39m\u001b[22m\u001b[90m (109)\u001b[39m\n\u001b[2m   Start at \u001b[22m 20:24:32\n\u001b[2m   Duration \u001b[22m 2.47s\u001b[2m (transform 1.75s, setup 1.15s, import 3.73s, tests 1.30s, environment 12.31s)\u001b[22m\n\n",
+            "title": "Runs Vitest after task 4 test updates",
+            "metadata": {
+              "output": "\n> pr-review-chatbot@0.1.0 test\n> vitest run\n\n\n\u001b[1m\u001b[46m RUN \u001b[49m\u001b[22m \u001b[36mv4.0.18 \u001b[39m\u001b[90m/home/mark/sandbox/personal/pr-review-chatbot\u001b[39m\n\n \u001b[32m✓\u001b[39m src/services/summary.test.ts \u001b[2m(\u001b[22m\u001b[2m4 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 10\u001b[2mms\u001b[22m\u001b[39m\n(node:61038) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:61039) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n \u001b[32m✓\u001b[39m src/store/slices/configSlice.test.ts \u001b[2m(\u001b[22m\u001b[2m9 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 16\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/services/llm.test.ts \u001b[2m(\u001b[22m\u001b[2m25 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 22\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/lib/utils.test.ts \u001b[2m(\u001b[22m\u001b[2m16 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 53\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/store/slices/chatSlice.test.ts \u001b[2m(\u001b[22m\u001b[2m11 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 10\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/store/slices/watchedReposSlice.test.ts \u001b[2m(\u001b[22m\u001b[2m3 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 31\u001b[2mms\u001b[22m\u001b[39m\n(node:61005) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n \u001b[32m✓\u001b[39m src/components/PRViewer.test.ts \u001b[2m(\u001b[22m\u001b[2m2 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 4\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/store/slices/prsSlice.test.ts \u001b[2m(\u001b[22m\u001b[2m10 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 43\u001b[2mms\u001b[22m\u001b[39m\n(node:60997) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n \u001b[32m✓\u001b[39m src/services/github.test.ts \u001b[2m(\u001b[22m\u001b[2m16 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 16\u001b[2mms\u001b[22m\u001b[39m\n(node:60995) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n \u001b[32m✓\u001b[39m src/components/PRViewer.summary.test.tsx \u001b[2m(\u001b[22m\u001b[2m5 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 122\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/App.test.tsx \u001b[2m(\u001b[22m\u001b[2m3 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 67\u001b[2mms\u001b[22m\u001b[39m\n(node:60996) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n \u001b[32m✓\u001b[39m src/components/Sidebar.test.tsx \u001b[2m(\u001b[22m\u001b[2m3 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 249\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/components/SettingsDialog.test.tsx \u001b[2m(\u001b[22m\u001b[2m2 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[33m 653\u001b[2mms\u001b[22m\u001b[39m\n     \u001b[33m\u001b[2m✓\u001b[22m\u001b[39m shows summary controls and saves updates \u001b[33m 518\u001b[2mms\u001b[22m\u001b[39m\n\n\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[32m13 passed\u001b[39m\u001b[22m\u001b[90m (13)\u001b[39m\n\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[32m109 passed\u001b[39m\u001b[22m\u001b[90m (109)\u001b[39m\n\u001b[2m   Start at \u001b[22m 20:24:32\n\u001b[2m   Duration \u001b[22m 2.47s\u001b[2m (transform 1.75s, setup 1.15s, import 3.73s, tests 1.30s, environment 12.31s)\u001b[22m\n\n",
+              "exit": 0,
+              "description": "Runs Vitest after task 4 test updates",
+              "truncated": false
+            },
+            "time": {
+              "start": 1773779071847,
+              "end": 1773779075027
+            }
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "fc_0bc40c1ef15345b70169b9b87f98fc8197b148f030be7ea815"
+            }
+          },
+          "id": "REDACTED",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd7889880015Q9pfSLH0cdNX3"
+        },
+        {
+          "type": "step-finish",
+          "reason": "tool-calls",
+          "snapshot": "6d43c590f3bd9545c6f072f25a218bbdb37d77bb",
+          "cost": 0.0166614,
+          "tokens": {
+            "total": 84202,
+            "input": 116,
+            "output": 118,
+            "reasoning": 8,
+            "cache": {
+              "read": 83968,
+              "write": 0
+            }
+          },
+          "id": "prt_cfd78bfd6001GsYsx8XgSpKg2E",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd7889880015Q9pfSLH0cdNX3"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "assistant",
+        "time": {
+          "created": 1773779075087,
+          "completed": 1773779078249
+        },
+        "parentID": "msg_cfd755aef001lBv1lo80nWg0HO",
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/home/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/home/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0197603,
+        "tokens": {
+          "total": 85773,
+          "input": 1514,
+          "output": 163,
+          "reasoning": 8,
+          "cache": {
+            "read": 84096,
+            "write": 0
+          }
+        },
+        "finish": "tool-calls",
+        "id": "msg_cfd78c00f002piV7RW96ZY7u9g",
+        "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm"
+      },
+      "parts": [
+        {
+          "type": "step-start",
+          "snapshot": "6d43c590f3bd9545c6f072f25a218bbdb37d77bb",
+          "id": "prt_cfd78c3d4001wyrLl06OAYf6NX",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd78c00f002piV7RW96ZY7u9g"
+        },
+        {
+          "type": "reasoning",
+          "text": "**Committing task4 changes**",
+          "metadata": {
+            "opencode": {
+              "itemId": "rs_0d59ae352ccff00d0169b9b8842814819ab9d82bfc1bed439f",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "time": {
+            "start": 1773779076330,
+            "end": 1773779078072
+          },
+          "id": "prt_cfd78c4ea001d5hxhd1DU0IVKM",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd78c00f002piV7RW96ZY7u9g"
+        },
+        {
+          "type": "tool",
+          "callID": "REDACTED",
+          "tool": "bash",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git status --short --branch",
+              "workdir": "/home/mark/sandbox/personal/pr-review-chatbot",
+              "description": "Shows status before task 4 commit"
+            },
+            "output": "## main...origin/main [ahead 3]\n M plans/plan.md\n M src/components/SettingsDialog.test.tsx\n",
+            "title": "Shows status before task 4 commit",
+            "metadata": {
+              "output": "## main...origin/main [ahead 3]\n M plans/plan.md\n M src/components/SettingsDialog.test.tsx\n",
+              "exit": 0,
+              "description": "Shows status before task 4 commit",
+              "truncated": false
+            },
+            "time": {
+              "start": 1773779078085,
+              "end": 1773779078137
+            }
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "fc_0d59ae352ccff00d0169b9b885eb7c819abd664073071b5370"
+            }
+          },
+          "id": "prt_cfd78cbbc001GS3mxizVcZMrXO",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd78c00f002piV7RW96ZY7u9g"
+        },
+        {
+          "type": "tool",
+          "callID": "REDACTED",
+          "tool": "bash",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git diff --staged && git diff",
+              "workdir": "/home/mark/sandbox/personal/pr-review-chatbot",
+              "description": "Shows task 4 diffs"
+            },
+            "output": "diff --git a/plans/plan.md b/plans/plan.md\nindex 15a1abb..289b5ac 100644\n--- a/plans/plan.md\n+++ b/plans/plan.md\n@@ -308,6 +308,6 @@ Identified during initial code review. These are non-blocking improvements to ad\n - [x] Task 1: Add stale-response guards in `prsSlice` so older PR resource responses cannot overwrite newer selection state.\n - [x] Task 2: Add regression tests for rapid PR switching race in `src/store/slices/prsSlice.test.ts`.\n - [x] Task 3: Add `Dialog.Description` in `src/components/SettingsDialog.tsx` to satisfy Radix dialog accessibility contract.\n-- [ ] Task 4: Update settings dialog tests to assert description semantics and eliminate warning output.\n+- [x] Task 4: Update settings dialog tests to assert description semantics and eliminate warning output.\n - [ ] Task 5: Add chat stream request cancellation (`AbortController`) in `src/components/ChatWindow.tsx` and `src/services/llm.ts`.\n - [ ] Task 6: Add tests for stream cancellation behavior and UI streaming state cleanup.\ndiff --git a/src/components/SettingsDialog.test.tsx b/src/components/SettingsDialog.test.tsx\nindex e91c0a7..e8015bf 100644\n--- a/src/components/SettingsDialog.test.tsx\n+++ b/src/components/SettingsDialog.test.tsx\n@@ -46,6 +46,10 @@ describe('SettingsDialog summary controls', () => {\n     const store = renderDialog();\n     fireEvent.click(screen.getByRole('button', { name: /settings/i }));\n \n+    expect(screen.getByRole('dialog')).toHaveAccessibleDescription(\n+      /configure github access, llm connection details, and pr summary behavior/i\n+    );\n+\n     const summaryPromptInput = screen.getByLabelText('Summary Prompt');\n     const summaryCommandsInput = screen.getByLabelText('Additional Summary Commands');\n     const summaryToggle = screen.getAllByRole('switch')[1];\n",
+            "title": "Shows task 4 diffs",
+            "metadata": {
+              "output": "diff --git a/plans/plan.md b/plans/plan.md\nindex 15a1abb..289b5ac 100644\n--- a/plans/plan.md\n+++ b/plans/plan.md\n@@ -308,6 +308,6 @@ Identified during initial code review. These are non-blocking improvements to ad\n - [x] Task 1: Add stale-response guards in `prsSlice` so older PR resource responses cannot overwrite newer selection state.\n - [x] Task 2: Add regression tests for rapid PR switching race in `src/store/slices/prsSlice.test.ts`.\n - [x] Task 3: Add `Dialog.Description` in `src/components/SettingsDialog.tsx` to satisfy Radix dialog accessibility contract.\n-- [ ] Task 4: Update settings dialog tests to assert description semantics and eliminate warning output.\n+- [x] Task 4: Update settings dialog tests to assert description semantics and eliminate warning output.\n - [ ] Task 5: Add chat stream request cancellation (`AbortController`) in `src/components/ChatWindow.tsx` and `src/services/llm.ts`.\n - [ ] Task 6: Add tests for stream cancellation behavior and UI streaming state cleanup.\ndiff --git a/src/components/SettingsDialog.test.tsx b/src/components/SettingsDialog.test.tsx\nindex e91c0a7..e8015bf 100644\n--- a/src/components/SettingsDialog.test.tsx\n+++ b/src/components/SettingsDialog.test.tsx\n@@ -46,6 +46,10 @@ describe('SettingsDialog summary controls', () => {\n     const store = renderDialog();\n     fireEvent.click(screen.getByRole('button', { name: /settings/i }));\n \n+    expect(screen.getByRole('dialog')).toHaveAccessibleDescription(\n+      /configure github access, llm connection details, and pr summary behavior/i\n+    );\n+\n     const summaryPromptInput = screen.getByLabelText('Summary Prompt');\n     const summaryCommandsInput = screen.getByLabelText('Additional Summary Commands');\n     const summaryToggle = screen.getAllByRole('switch')[1];\n",
+              "exit": 0,
+              "description": "Shows task 4 diffs",
+              "truncated": false
+            },
+            "time": {
+              "start": 1773779078106,
+              "end": 1773779078140
+            }
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "fc_0d59ae352ccff00d0169b9b885eb8c819a948e3ac235b2bf20"
+            }
+          },
+          "id": "prt_cfd78cbcd001wcFxEH443J1tzb",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd78c00f002piV7RW96ZY7u9g"
+        },
+        {
+          "type": "tool",
+          "callID": "call_VRdSe8vKGMpH8qKioeeYclYR",
+          "tool": "bash",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git log -5 --oneline",
+              "workdir": "/home/mark/sandbox/personal/pr-review-chatbot",
+              "description": "Shows recent commits"
+            },
+            "output": "989ed80 fix(settings): add dialog description for accessibility\n30fa759 test(prs): cover rapid PR switch response races\nd9bca60 fix(prs): ignore stale PR resource responses\n3a2dce9 Adds Opencode config\n00130cf Implement repository watcher sidebar flow and archive change\n",
+            "title": "Shows recent commits",
+            "metadata": {
+              "output": "989ed80 fix(settings): add dialog description for accessibility\n30fa759 test(prs): cover rapid PR switch response races\nd9bca60 fix(prs): ignore stale PR resource responses\n3a2dce9 Adds Opencode config\n00130cf Implement repository watcher sidebar flow and archive change\n",
+              "exit": 0,
+              "description": "Shows recent commits",
+              "truncated": false
+            },
+            "time": {
+              "start": 1773779078121,
+              "end": 1773779078143
+            }
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "fc_0d59ae352ccff00d0169b9b885eb94819a9855273f79289c44"
+            }
+          },
+          "id": "prt_cfd78cbe20012WzemE8H80qNU8",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd78c00f002piV7RW96ZY7u9g"
+        },
+        {
+          "type": "step-finish",
+          "reason": "tool-calls",
+          "snapshot": "6d43c590f3bd9545c6f072f25a218bbdb37d77bb",
+          "cost": 0.0197603,
+          "tokens": {
+            "total": 85773,
+            "input": 1514,
+            "output": 163,
+            "reasoning": 8,
+            "cache": {
+              "read": 84096,
+              "write": 0
+            }
+          },
+          "id": "prt_cfd78cc41001AeHQLy47vBns1x",
+          "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
+          "messageID": "msg_cfd78c00f002piV7RW96ZY7u9g"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "assistant",
+        "time": {
+          "created": 1773779078259
         },
         "parentID": "msg_cfd755aef001lBv1lo80nWg0HO",
         "modelID": "gpt-5.3-codex",
@@ -6034,44 +6849,44 @@
             "write": 0
           }
         },
-        "id": "msg_cfd78407f001la0Z4TFEsXHt2h",
+        "id": "msg_cfd78cc73002w4zEzf1SEItvB7",
         "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm"
       },
       "parts": [
         {
           "type": "step-start",
-          "snapshot": "5cf33a72efcaad6cb87c2e9e2b78ef01d7c73cd2",
-          "id": "prt_cfd784601001J8p3O6bz4X2WfU",
+          "snapshot": "6d43c590f3bd9545c6f072f25a218bbdb37d77bb",
+          "id": "prt_cfd78d02c001yvDshxQqI1BZdu",
           "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
-          "messageID": "msg_cfd78407f001la0Z4TFEsXHt2h"
+          "messageID": "msg_cfd78cc73002w4zEzf1SEItvB7"
         },
         {
           "type": "tool",
-          "callID": "call_d8oA9AJaktxSxFZAJmjtt0IU",
+          "callID": "call_jGs8a0pQkt0LubC7A8Xhck70",
           "tool": "bash",
           "state": {
             "status": "running",
             "input": {
-              "command": "git add \"src/components/SettingsDialog.tsx\" \"plans/plan.md\" && git commit -m \"fix(settings): add dialog description for accessibility\" && git status --short --branch",
+              "command": "git add \"src/components/SettingsDialog.test.tsx\" \"plans/plan.md\" && git commit -m \"test(settings): assert dialog accessible description\" && git status --short --branch",
               "workdir": "/home/mark/sandbox/personal/pr-review-chatbot",
-              "description": "Commits task 3 dialog accessibility change"
+              "description": "Commits task 4 settings dialog test updates"
             },
             "metadata": {
               "output": "",
-              "description": "Commits task 3 dialog accessibility change"
+              "description": "Commits task 4 settings dialog test updates"
             },
             "time": {
-              "start": 1773779044902
+              "start": 1773779080330
             }
           },
           "metadata": {
             "opencode": {
-              "itemId": "fc_00e1d1bd02aa237d0169b9b863f97081989f2c655d353c800d"
+              "itemId": "fc_043bfa482ca661080169b9b887391881969e49c7c20ceabfd4"
             }
           },
-          "id": "REDACTED",
+          "id": "prt_cfd78d0c2001zkMuSJ9UUcxe3b",
           "sessionID": "ses_302a28daaffea7CbnB7SX7YQFm",
-          "messageID": "msg_cfd78407f001la0Z4TFEsXHt2h"
+          "messageID": "msg_cfd78cc73002w4zEzf1SEItvB7"
         }
       ]
     }
