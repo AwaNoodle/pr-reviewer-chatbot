@@ -15,6 +15,8 @@ import prsReducer, {
   fetchPullRequest,
   fetchPRFiles,
   fetchPRComments,
+  fetchPRReviewComments,
+  fetchPRReviews,
   fetchPRCommits,
   fetchRepositoryPRList,
   generatePRSummary,
@@ -158,6 +160,14 @@ const emptyState = {
     commits: null,
     prList: null,
   },
+  latestRequestKeyByResource: {
+    metadata: null,
+    files: null,
+    comments: null,
+    reviewComments: null,
+    reviews: null,
+    commits: null,
+  },
 };
 
 type MockGitHubService = {
@@ -169,6 +179,17 @@ type MockGitHubService = {
   getPRReviews: ReturnType<typeof vi.fn>;
   getPRCommits: ReturnType<typeof vi.fn>;
 };
+
+function createDeferred<T>() {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+
+  return { promise, resolve, reject };
+}
 
 function makeStore() {
   return configureStore({
@@ -351,6 +372,113 @@ describe('prsSlice', () => {
       await pending;
       expect(store.getState().prs.summary.status).toBe('success');
       expect(store.getState().prs.summary.content).toContain('Generated summary output');
+    });
+
+    it('keeps latest PR resource data when older requests resolve later', async () => {
+      const store = makeStore();
+      const service = setupMockService();
+
+      const prA = {
+        ...mockPR,
+        id: 101,
+        number: 101,
+        title: 'PR A',
+        head: { ...mockPR.head, sha: 'sha-a' },
+      };
+      const prB = {
+        ...mockPR,
+        id: 202,
+        number: 202,
+        title: 'PR B',
+        head: { ...mockPR.head, sha: 'sha-b' },
+      };
+
+      const fileA = { ...mockFile, sha: 'file-a', filename: 'src/a.ts' };
+      const fileB = { ...mockFile, sha: 'file-b', filename: 'src/b.ts' };
+      const commentA = { ...mockComment, id: 101, body: 'comment-a' };
+      const commentB = { ...mockComment, id: 202, body: 'comment-b' };
+      const reviewCommentA = { ...mockReviewComment, id: 301, body: 'review-comment-a' };
+      const reviewCommentB = { ...mockReviewComment, id: 302, body: 'review-comment-b' };
+      const reviewA = { ...mockReview, id: 401, body: 'review-a' };
+      const reviewB = { ...mockReview, id: 402, body: 'review-b' };
+      const commitA = { ...mockCommit, sha: 'commit-a', commit: { message: 'commit-a' } };
+      const commitB = { ...mockCommit, sha: 'commit-b', commit: { message: 'commit-b' } };
+
+      const deferred = {
+        metadataA: createDeferred<PullRequest>(),
+        metadataB: createDeferred<PullRequest>(),
+        filesA: createDeferred<PRFile[]>(),
+        filesB: createDeferred<PRFile[]>(),
+        commentsA: createDeferred<PRComment[]>(),
+        commentsB: createDeferred<PRComment[]>(),
+        reviewCommentsA: createDeferred<PRReviewComment[]>(),
+        reviewCommentsB: createDeferred<PRReviewComment[]>(),
+        reviewsA: createDeferred<PRReview[]>(),
+        reviewsB: createDeferred<PRReview[]>(),
+        commitsA: createDeferred<PRCommit[]>(),
+        commitsB: createDeferred<PRCommit[]>(),
+      };
+
+      service.getPullRequest.mockImplementation((_owner: string, _repo: string, prNumber: number) =>
+        prNumber === 101 ? deferred.metadataA.promise : deferred.metadataB.promise
+      );
+      service.getPRFiles.mockImplementation((_owner: string, _repo: string, prNumber: number) =>
+        prNumber === 101 ? deferred.filesA.promise : deferred.filesB.promise
+      );
+      service.getPRComments.mockImplementation((_owner: string, _repo: string, prNumber: number) =>
+        prNumber === 101 ? deferred.commentsA.promise : deferred.commentsB.promise
+      );
+      service.getPRReviewComments.mockImplementation((_owner: string, _repo: string, prNumber: number) =>
+        prNumber === 101 ? deferred.reviewCommentsA.promise : deferred.reviewCommentsB.promise
+      );
+      service.getPRReviews.mockImplementation((_owner: string, _repo: string, prNumber: number) =>
+        prNumber === 101 ? deferred.reviewsA.promise : deferred.reviewsB.promise
+      );
+      service.getPRCommits.mockImplementation((_owner: string, _repo: string, prNumber: number) =>
+        prNumber === 101 ? deferred.commitsA.promise : deferred.commitsB.promise
+      );
+
+      const requestA = {
+        metadata: store.dispatch(fetchPullRequest({ owner: 'org', repo: 'repo', prNumber: 101 })),
+        files: store.dispatch(fetchPRFiles({ owner: 'org', repo: 'repo', prNumber: 101 })),
+        comments: store.dispatch(fetchPRComments({ owner: 'org', repo: 'repo', prNumber: 101 })),
+        reviewComments: store.dispatch(fetchPRReviewComments({ owner: 'org', repo: 'repo', prNumber: 101 })),
+        reviews: store.dispatch(fetchPRReviews({ owner: 'org', repo: 'repo', prNumber: 101 })),
+        commits: store.dispatch(fetchPRCommits({ owner: 'org', repo: 'repo', prNumber: 101 })),
+      };
+
+      const requestB = {
+        metadata: store.dispatch(fetchPullRequest({ owner: 'org', repo: 'repo', prNumber: 202 })),
+        files: store.dispatch(fetchPRFiles({ owner: 'org', repo: 'repo', prNumber: 202 })),
+        comments: store.dispatch(fetchPRComments({ owner: 'org', repo: 'repo', prNumber: 202 })),
+        reviewComments: store.dispatch(fetchPRReviewComments({ owner: 'org', repo: 'repo', prNumber: 202 })),
+        reviews: store.dispatch(fetchPRReviews({ owner: 'org', repo: 'repo', prNumber: 202 })),
+        commits: store.dispatch(fetchPRCommits({ owner: 'org', repo: 'repo', prNumber: 202 })),
+      };
+
+      deferred.metadataB.resolve(prB);
+      deferred.filesB.resolve([fileB]);
+      deferred.commentsB.resolve([commentB]);
+      deferred.reviewCommentsB.resolve([reviewCommentB]);
+      deferred.reviewsB.resolve([reviewB]);
+      deferred.commitsB.resolve([commitB]);
+      await Promise.all(Object.values(requestB));
+
+      deferred.metadataA.resolve(prA);
+      deferred.filesA.resolve([fileA]);
+      deferred.commentsA.resolve([commentA]);
+      deferred.reviewCommentsA.resolve([reviewCommentA]);
+      deferred.reviewsA.resolve([reviewA]);
+      deferred.commitsA.resolve([commitA]);
+      await Promise.all(Object.values(requestA));
+
+      const state = store.getState().prs;
+      expect(state.selectedPR?.number).toBe(202);
+      expect(state.files[0]?.filename).toBe('src/b.ts');
+      expect(state.comments[0]?.body).toBe('comment-b');
+      expect(state.reviewComments[0]?.body).toBe('review-comment-b');
+      expect(state.reviews[0]?.body).toBe('review-b');
+      expect(state.commits[0]?.sha).toBe('commit-b');
     });
   });
 });
