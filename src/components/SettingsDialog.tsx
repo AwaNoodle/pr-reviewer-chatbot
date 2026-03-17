@@ -152,6 +152,10 @@ export function SettingsDialog() {
             </Dialog.Close>
           </div>
 
+          <Dialog.Description className="text-sm text-muted-foreground mb-6">
+            Configure GitHub access, LLM connection details, and PR summary behavior.
+          </Dialog.Description>
+
           <div className="space-y-6">
             {/* Demo Mode Toggle */}
             <div className="flex items-center justify-between rounded-lg border border-border p-4">
