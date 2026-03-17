@@ -8,6 +8,8 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "docker:build": "docker build -t pr-review-chatbot:local .",
+    "docker:run": "docker run --rm -p 8080:80 pr-review-chatbot:local",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage"

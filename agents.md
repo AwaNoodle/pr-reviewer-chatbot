@@ -112,7 +112,25 @@ npm run dev       # Start dev server (http://localhost:5173)
 npm run lint      # Run ESLint (flat config in eslint.config.js)
 npm run build     # TypeScript check + production build
 npm run preview   # Preview production build
+npm run docker:build # Build Docker image locally
+npm run docker:run   # Run Docker image locally on :8080
 ```
+
+## CI/CD and Distribution
+
+- CI workflow: `.github/workflows/build.yml`
+  - Runs `npm ci`, `npm run lint`, `npm test`, and `npm run build` on pushes/PRs to `main`.
+- Docker release workflow: `.github/workflows/docker-release.yml`
+  - Triggers on GitHub Release `published`.
+  - Publishes image to `ghcr.io/<owner>/<repo>`.
+  - Computes image tags as semver-distance:
+    - primary: `vX.Y.Z-N` (latest reachable semver tag + commit distance)
+    - fallback: `v0.0.0-N` when no semver tags exist
+    - traceability: `sha-<shortsha>`
+- Docker runtime setup:
+  - `Dockerfile` uses multi-stage Node build + nginx runtime.
+  - `nginx.conf` serves SPA routes via `try_files ... /index.html`.
+  - `.dockerignore` excludes local build, VCS, and env artifacts from build context.
 
 ## Common Tasks for AI Agents
 

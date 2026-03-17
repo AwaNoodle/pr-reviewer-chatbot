@@ -99,6 +99,14 @@ function makeStore() {
           commits: null,
           prList: null,
         },
+        latestRequestKeyByResource: {
+          metadata: null,
+          files: null,
+          comments: null,
+          reviewComments: null,
+          reviews: null,
+          commits: null,
+        },
       },
     },
   });

@@ -216,6 +216,43 @@ npx serve dist
 python3 -m http.server 8080 --directory dist
 ```
 
+### Docker (Local)
+
+Build and run the production image locally:
+
+```bash
+npm run docker:build
+npm run docker:run
+```
+
+Or run the equivalent Docker commands directly:
+
+```bash
+docker build -t pr-review-chatbot:local .
+docker run --rm -p 8080:80 pr-review-chatbot:local
+```
+
+Open [http://localhost:8080](http://localhost:8080).
+
+### Docker (GHCR)
+
+Pull and run a published release image:
+
+```bash
+docker pull ghcr.io/<owner>/<repo>:vX.Y.Z-N
+docker run --rm -p 8080:80 ghcr.io/<owner>/<repo>:vX.Y.Z-N
+```
+
+Tag format for release images:
+
+- `vX.Y.Z-N` where:
+  - `vX.Y.Z` is the most recent semver tag reachable from `HEAD`
+  - `N` is commit distance from that tag
+- Fallback when no semver tag exists: `v0.0.0-N`
+- Additional trace tag: `sha-<shortsha>`
+
+Images are published by GitHub Actions when a GitHub Release is published.
+
 ---
 
 ## Using the App
@@ -334,6 +371,13 @@ You need to set an LLM API key. Click ⚙️ Settings and fill in the **API Key*
 
 ### CORS errors with LiteLLM
 If you see CORS errors when using a local LiteLLM proxy, add CORS headers to your proxy configuration or use a browser extension to disable CORS for development.
+
+---
+
+## Distribution Options
+
+- **Docker + GHCR (current):** Best for consistent cross-platform runs in CI, servers, and developer machines.
+- **Tauri desktop app (alternative):** Good next step if you want native installers for macOS/Linux/Windows with a smaller runtime footprint than Electron.
 
 ---
 

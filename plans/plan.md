@@ -311,3 +311,11 @@ Identified during initial code review. These are non-blocking improvements to ad
 - [x] Task 4: Update settings dialog tests to assert description semantics and eliminate warning output.
 - [x] Task 5: Add chat stream request cancellation (`AbortController`) in `src/components/ChatWindow.tsx` and `src/services/llm.ts`.
 - [x] Task 6: Add tests for stream cancellation behavior and UI streaming state cleanup.
+
+## Distribution and Release Automation (2026-03-17)
+
+- [x] Added multi-stage Docker image build with static asset runtime (`Dockerfile`) and SPA-safe nginx config (`nginx.conf`).
+- [x] Added `.dockerignore` and npm helper scripts (`docker:build`, `docker:run`) for local image usage.
+- [x] Added release-triggered GHCR publish workflow (`.github/workflows/docker-release.yml`) with semver-distance tagging (`vX.Y.Z-N`) and fallback (`v0.0.0-N`).
+- [x] Updated CI workflow (`.github/workflows/build.yml`) to run lint, tests, and production build.
+- [x] Updated `README.md` with local Docker usage, GHCR usage, tagging semantics, and distribution alternatives.
