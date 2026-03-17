@@ -1,0 +1,13 @@
+To make it easier to use, this project could be distributed via a docker image. Create a plan to add a docker image, github action to build it, npm build action, and documentation for usage. The image should be tagged with distance from the last semver tag. Ask me any questions you need to understand this request better. Offer options and alternative if you have a better option for distribution (for example, can it be packaged as an app for osx/linux)?
+
+---
+
+Use fall back of v0.0.0-N. There is a v1.0.0 tag on this repo
+
+---
+
+Execute the plan. Review the code before finishing each stage. Ensure tests pass. Commit when complete.
+
+---
+
+Execute

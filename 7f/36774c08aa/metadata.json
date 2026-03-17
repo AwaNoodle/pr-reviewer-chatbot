@@ -1,0 +1,35 @@
+{
+  "cli_version": "0.5.0",
+  "checkpoint_id": "7f36774c08aa",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    ".dockerignore",
+    ".github/workflows/build.yml",
+    ".github/workflows/docker-release.yml",
+    "Dockerfile",
+    "README.md",
+    "agents.md",
+    "nginx.conf",
+    "package.json",
+    "plans/plan.md",
+    "src/components/PRViewer.summary.test.tsx",
+    "src/store/slices/watchedReposSlice.test.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/7f/36774c08aa/0/metadata.json",
+      "transcript": "/7f/36774c08aa/0/full.jsonl",
+      "content_hash": "/7f/36774c08aa/0/content_hash.txt",
+      "prompt": "/7f/36774c08aa/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 239927,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 2361216,
+    "output_tokens": 11902,
+    "api_call_count": 39
+  }
+}
