@@ -1,0 +1,23 @@
+{
+  "cli_version": "0.5.0",
+  "checkpoint_id": "11d4a3b897dd",
+  "session_id": "ses_302a28daaffea7CbnB7SX7YQFm",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-17T20:27:22.34041422Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [],
+  "agent": "OpenCode",
+  "model": "gpt-5.3-codex",
+  "turn_id": "e8a33326ab37",
+  "token_usage": {
+    "input_tokens": 134495,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 2168320,
+    "output_tokens": 14210,
+    "api_call_count": 41
+  },
+  "session_metrics": {
+    "turn_count": 3
+  }
+}
