@@ -46,6 +46,10 @@ describe('SettingsDialog summary controls', () => {
     const store = renderDialog();
     fireEvent.click(screen.getByRole('button', { name: /settings/i }));
 
+    expect(screen.getByRole('dialog')).toHaveAccessibleDescription(
+      /configure github access, llm connection details, and pr summary behavior/i
+    );
+
     const summaryPromptInput = screen.getByLabelText('Summary Prompt');
     const summaryCommandsInput = screen.getByLabelText('Additional Summary Commands');
     const summaryToggle = screen.getAllByRole('switch')[1];
