@@ -7,13 +7,13 @@
     "title": "LLM Key Warning: 4xx Handling & Tests Adjustment",
     "version": "1.2.27",
     "summary": {
-      "additions": 131,
+      "additions": 137,
       "deletions": 48,
       "files": 6
     },
     "time": {
       "created": 1773869177389,
-      "updated": 1773870136887
+      "updated": 1773873675716
     }
   },
   "messages": [
@@ -5655,6 +5655,774 @@
           "id": "REDACTED",
           "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
           "messageID": "msg_d02e63dc7002GEuoummSsbXoQR"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "user",
+        "time": {
+          "created": 1773873614576
+        },
+        "summary": {
+          "diffs": [
+            {
+              "file": "plans/plan.md",
+              "before": "# PR Review Chatbot - Implementation Plan\n\n## Priority: UI and LLM Integration First\n**Key Change**: Use dummy data for PR content to allow immediate interaction with the LLM without needing GitHub API credentials. GitHub integration can be added later.\n\n---\n\n## Tech Stack\n- Vite + React 18 + TypeScript\n- Redux Toolkit for state management\n- Axios for HTTP\n- Tailwind CSS for styling\n- Radix UI for accessible components\n\n---\n\n## Implementation Phases\n\n### ✅ Phase 1: Project Setup (COMPLETED)\n- [x] Initialize Vite + React + TypeScript project\n- [x] Install dependencies (Redux Toolkit, Axios, Tailwind, Radix UI, react-markdown, react-syntax-highlighter, lucide-react)\n- [x] Configure Tailwind CSS with CSS variables for theming\n- [x] Set up project structure (`src/types`, `src/store`, `src/services`, `src/components`, `src/lib`)\n- [x] Create `vite-env.d.ts` for Vite environment type declarations\n- [x] Create `.env.example` with all configuration options\n- [x] Create `.gitignore`\n\n### ✅ Phase 2: UI Shell & Configuration (COMPLETED)\n- [x] Create Redux store (`src/store/index.ts`)\n- [x] Implement `configSlice.ts` — env var defaults + localStorage runtime overrides\n- [x] Implement `chatSlice.ts` — messages, streaming state\n- [x] Implement `prsSlice.ts` — selected PR, files, comments, reviews\n- [x] Create typed Redux hooks (`src/store/hooks.ts`)\n- [x] Create `SettingsDialog.tsx` — runtime config override with demo mode toggle\n- [x] Create main `App.tsx` layout (sidebar + chat + PR viewer panels)\n- [x] Dark mode toggle in top bar\n- [x] Collapsible sidebar and PR viewer panels\n\n### ✅ Phase 3: Chat Interface (COMPLETED)\n- [x] Build `ChatWindow.tsx` with message display\n- [x] User/assistant message bubbles with avatars\n- [x] Markdown rendering with `react-markdown` + `remark-gfm`\n- [x] Code syntax highlighting with `react-syntax-highlighter`\n- [x] Streaming response display (animated cursor)\n- [x] Auto-scroll to latest message\n- [x] Multi-line textarea input (auto-resize)\n- [x] Enter to send, Shift+Enter for new line\n- [x] Suggestion chips on empty state\n- [x] Clear conversation button\n- [x] Error display in message bubbles\n\n### ✅ Phase 4: LLM Integration (COMPLETED)\n- [x] Implement `LLMService` class in `src/services/llm.ts`\n- [x] OpenAI v1 API support (`/chat/completions`)\n- [x] LiteLLM Proxy support (same API format)\n- [x] Streaming via Server-Sent Events (SSE)\n- [x] `buildSystemPrompt()` — injects full PR context (metadata, diffs, comments, reviews)\n- [x] Connect LLM service to `ChatWindow` with streaming dispatch\n- [x] Error handling for API failures\n\n### ✅ Phase 5: Dummy Data & Demo Mode (COMPLETED)\n- [x] Create `src/services/dummyData.ts` with realistic sample PR\n  - Sample PR: JWT authentication feature (8 files, realistic diffs)\n  - Sample comments, review comments, and reviews\n- [x] Build `PRViewer.tsx` with:\n  - PR metadata header (state badge, author, branch, stats)\n  - Tabs: Files, Comments, Reviews\n  - Collapsible file items with diff view\n  - Diff syntax highlighting (green/red/blue lines)\n  - Status badges per file (added/modified/removed)\n- [x] Build `Sidebar.tsx` with demo mode toggle\n- [x] Auto-load dummy PR on startup in demo mode\n- [x] Demo mode toggle in sidebar and Settings dialog\n\n### ✅ Phase 6: GitHub Integration (COMPLETED)\n- [x] Implement `GitHubService` class in `src/services/github.ts`\n- [x] PAT (Bearer token) authentication\n- [x] Support for github.com (`https://api.github.com`)\n- [x] Support for GHES (`https://<host>/api/v3`)\n- [x] Methods: `listRepositories`, `searchRepositories`, `listPullRequests`, `getPullRequest`, `getPRFiles`, `getPRComments`, `getPRReviewComments`, `getPRReviews`, `validateToken`\n- [x] Token validation method\n\n### ✅ Phase 7: Polish (COMPLETED)\n- [x] Add loading states and loading indicators for GitHub API calls\n- [x] Add error handling for GitHub API failures (rate limiting, 404, auth errors)\n- [x] Polish UI/UX (animations, transitions)\n- [x] GitHub mode UI — allow entering repo/PR manually\n- [x] Context window management for very large PRs\n\n---\n\n## Documentation (COMPLETED)\n- [x] `README.md` — User-facing docs: quick start, configuration, LLM setup, GitHub setup, troubleshooting\n- [x] `agents.md` — Developer/agent docs: project structure, architecture, common tasks\n- [x] `.env.example` — Annotated environment variable reference\n\n---\n\n## Configuration\n\n### Environment Variables (with defaults)\n```\nVITE_GITHUB_PAT=          # GitHub Personal Access Token\nVITE_LLM_API_KEY=         # LLM API Key\nVITE_GITHUB_INSTANCE=     # \"github.com\" or URL for GHES\nVITE_LLM_BACKEND=         # \"openai\" or \"litellm\"\nVITE_LLM_ENDPOINT=        # API endpoint URL\nVITE_LLM_MODEL=           # Model name\nVITE_DEMO_MODE=           # \"true\" or \"false\"\n```\n\n### Runtime Override\nSettings dialog allows overriding env vars at runtime (persisted to localStorage).\n\n---\n\n## Architecture\n\n### Services\n```\nsrc/services/\n├── github.ts      # Fetch PRs, details, diffs, comments (supports GHES)\n├── llm.ts         # Unified interface for OpenAI v1 API + LiteLLM Proxy\n└── dummyData.ts   # Sample PR data for demo mode\n```\n\n### Redux Store\n```\nsrc/store/\n├── index.ts              # Store configuration\n├── hooks.ts              # Typed useAppDispatch / useAppSelector\n└── slices/\n    ├── configSlice.ts    # App config (env defaults + runtime overrides)\n    ├── prsSlice.ts       # Current PR data\n    └── chatSlice.ts      # Messages + streaming state\n```\n\n### Components\n```\nsrc/components/\n├── SettingsDialog.tsx   # Runtime config override\n├── Sidebar.tsx          # Repo/PR navigation (or demo mode toggle)\n├── ChatWindow.tsx       # Chat messages + input\n└── PRViewer.tsx         # File diffs, metadata\n```\n\n---\n\n## Data Types\n\n### GitHub PR\n```typescript\ninterface PullRequest {\n  id: number;\n  number: number;\n  title: string;\n  body: string | null;\n  state: 'open' | 'closed';\n  merged: boolean;\n  merged_at: string | null;\n  user: GitHubUser;\n  created_at: string;\n  updated_at: string;\n  head: { ref: string; sha: string; repo: { full_name: string } | null };\n  base: { ref: string; sha: string; repo: { full_name: string } };\n  url: string;\n  html_url: string;\n  diff_url: string;\n  additions: number;\n  deletions: number;\n  changed_files: number;\n  comments: number;\n  review_comments: number;\n  commits: number;\n  labels: Array<{ id: number; name: string; color: string }>;\n  requested_reviewers: GitHubUser[];\n}\n```\n\n### Chat Message\n```typescript\ninterface ChatMessage {\n  id: string;\n  role: 'user' | 'assistant' | 'system';\n  content: string;\n  timestamp: number;\n  isStreaming?: boolean;\n  error?: string;\n}\n```\n\n### App Config\n```typescript\ninterface AppConfig {\n  githubPat: string;\n  llmApiKey: string;\n  githubInstance: string;\n  llmBackend: 'openai' | 'litellm';\n  llmEndpoint: string;\n  llmModel: string;\n  demoMode: boolean;\n}\n```\n\n---\n\n## Error Handling\n\n### LLM API Errors\n- Invalid API key: Error shown in message bubble\n- Rate limiting: Error shown in message bubble\n- Network errors: Error shown in message bubble\n- Streaming errors: Graceful fallback with error message\n\n### GitHub API Errors (when enabled)\n- Invalid PAT: Prompt to update token\n- Rate limiting: Show remaining requests\n- Not found (404): Repository/PR not found\n\n---\n\n### ⏳ Phase 8: Code Quality & UX Improvements (PENDING)\n\nIdentified during initial code review. These are non-blocking improvements to address after the Phase 7 polish work.\n\n#### Quality\n- [x] **ESLint v9 flat config** (`eslint.config.js`) — Added repository-level flat config so `npm run lint` works with ESLint 9.\n- [x] **`getPRFiles` pagination** (`src/services/github.ts:96`) — The GitHub API caps file lists at 100 per page. PRs with >100 changed files silently return incomplete data. Add pagination (loop until `response.data.length < perPage`) or at minimum show a warning banner in `PRViewer` when the file count equals the page limit.\n- [x] **Stable React keys in `DiffView`** (`src/components/PRViewer.tsx:41`) — Diff lines currently use array index as `key`. Replace with a content-based key (e.g. `` `${i}-${line.slice(0, 8)}` ``) to prevent React reusing DOM nodes incorrectly when switching between files.\n\n#### UX\n- [x] **Persist dark mode preference** (`src/App.tsx:10`) — Dark mode state resets on every page reload. Initialise from `localStorage` and respect the OS `prefers-color-scheme` media query:\n  ```ts\n  const [darkMode, setDarkMode] = useState(\n    () => localStorage.getItem('darkMode') === 'true'\n      || window.matchMedia('(prefers-color-scheme: dark)').matches\n  );\n  ```\n  Also persist the toggle: `localStorage.setItem('darkMode', String(!darkMode))` inside `toggleDarkMode`.\n- [x] **Wire up the Refresh button** (`src/components/Sidebar.tsx:111`) — The refresh `<button>` in the sidebar is rendered in GitHub mode but has no `onClick` handler. Either connect it to a `fetchPullRequests` thunk (part of Phase 7 GitHub UI work) or hide it with `{false && ...}` until that feature is ready, to avoid confusing users with a dead control.\n\n---\n\n## OpenSpec Alignment Notes (2026-03-14)\n\n- `openspec/changes/add-pr-summary-tab/tasks.md` was updated to capture quick-orientation behavior decisions from explore mode.\n- Summary behavior target: 2-4 line orientation section, adaptive `Focus Areas` with bounds `0..4`, and valid success output when focus areas are omitted for simple PRs.\n- Synced delta spec `openspec/changes/add-pr-summary-tab/specs/pr-review-summary/spec.md` into new main spec `openspec/specs/pr-review-summary/spec.md`.\n- Added change scaffold `openspec/changes/update-pr-review-summary-ui-readability/` with completed proposal, design, spec delta, and tasks artifacts for summary UI readability improvements.\n- Refined `update-pr-review-summary-ui-readability` scope to panelized Summary display: Orientation and each Focus Area render as separate cards styled like Comments/Reviews, with blue/yellow title accents and no spec contract changes.\n\n---\n\n## ✅ Phase 9: PR Summary Tab (COMPLETED)\n\n- [x] Extend `AppConfig` with summary fields: `summaryEnabled`, `summaryPrompt`, `summaryCommands`\n- [x] Add/export `DEFAULT_SUMMARY_PROMPT` and keep reset behavior prompt-only\n- [x] Add PR commits API loading (`getPRCommits`) and Redux state wiring\n- [x] Add summary lifecycle state in `prsSlice` (`status`, `content`, `generatedAt`, `error`)\n- [x] Implement summary orchestration utilities:\n  - per-PR+head+prompt cache keying\n  - sessionStorage read/write cache\n  - one-per-minute per-PR-head rate limiting\n  - empty textual diff detection\n- [x] Extend LLM service with structured summary prompt assembly (orientation + adaptive focus areas)\n- [x] Add Summary tab UI in `PRViewer` with loading/success/empty/error states and timestamp footer\n- [x] Wire summary generation on PR selection/load and keep summary separate from chat history/context\n- [x] Add/expand tests for config, GitHub service, PR slice, summary utilities, LLM prompt, Settings UI, and Summary tab rendering\n- [x] Update README and agent guidance for summary behavior, fallback states, and output contract\n\n---\n\n## OpenSpec Implementation Updates (2026-03-14)\n\n- [x] Completed OpenSpec change `update-pr-review-summary-ui-readability` implementation tasks (8/8) for panelized Summary tab readability updates.\n- [x] Updated Summary success rendering in `src/components/PRViewer.tsx` to show an `Orientation` panel and per-item `Focus Area N` panels with blue/yellow title accents.\n- [x] Kept summary generation flow and fallback state semantics unchanged (loading/empty/error behavior preserved).\n- [x] Updated `src/components/PRViewer.summary.test.tsx` assertions for orientation-only and orientation+focus-area panelized rendering.\n- [x] Validation run completed with `npm run lint && npm run build && npm run test`.\n\n## OpenSpec Explore Decision Updates (2026-03-16)\n\n- [x] Clarified `repository-watcher` UX scope: `repo-pr-list` renders in the left `PR Review` pane (not center chat area or right PR viewer pane).\n- [x] Captured sidebar navigator behavior: controls/watchlist view and repo list view with explicit Back action.\n- [x] Captured `Load PR` behavior parity with demo mode: when PR number is provided, show a list containing one selected PR.\n- [x] Updated change artifacts (`proposal.md`, `design.md`, `tasks.md`, `specs/repo-pr-list/spec.md`, `specs/watched-repos/spec.md`) to reflect the decision.\n\n## OpenSpec Implementation Updates (2026-03-16)\n\n- [x] Implemented `repository-watcher` change tasks end-to-end.\n- [x] Added watched repository state and persistence via `src/store/slices/watchedReposSlice.ts`.\n- [x] Added repository PR list loading in `src/store/slices/prsSlice.ts` using existing `listPullRequests()` integration.\n- [x] Added sidebar repo-list UI mode with Back navigation and new `src/components/PRList.tsx` component.\n- [x] Updated sidebar to support optional PR number flow (`Load PR` vs `Load All PRs`) and watchlist interactions.\n- [x] Added tests for watched repos, repository PR list loading, and sidebar list selection flows.\n- [x] Validation run completed with `npm run lint && npm run build && npm run test`.\n\n## OpenSpec Spec Sync Updates (2026-03-16)\n\n- [x] Synced change `repository-watcher` delta specs into new main specs for `repo-pr-list` and `watched-repos`.\n- [x] Created `openspec/specs/repo-pr-list/spec.md` from `openspec/changes/repository-watcher/specs/repo-pr-list/spec.md`.\n- [x] Created `openspec/specs/watched-repos/spec.md` from `openspec/changes/repository-watcher/specs/watched-repos/spec.md`.\n\n---\n\n## Code Review Hardening Tasks (2026-03-17)\n\n- [x] Task 1: Add stale-response guards in `prsSlice` so older PR resource responses cannot overwrite newer selection state.\n- [x] Task 2: Add regression tests for rapid PR switching race in `src/store/slices/prsSlice.test.ts`.\n- [x] Task 3: Add `Dialog.Description` in `src/components/SettingsDialog.tsx` to satisfy Radix dialog accessibility contract.\n- [x] Task 4: Update settings dialog tests to assert description semantics and eliminate warning output.\n- [x] Task 5: Add chat stream request cancellation (`AbortController`) in `src/components/ChatWindow.tsx` and `src/services/llm.ts`.\n- [x] Task 6: Add tests for stream cancellation behavior and UI streaming state cleanup.\n\n## Distribution and Release Automation (2026-03-17)\n\n- [x] Added multi-stage Docker image build with static asset runtime (`Dockerfile`) and SPA-safe nginx config (`nginx.conf`).\n- [x] Added `.dockerignore` and npm helper scripts (`docker:build`, `docker:run`) for local image usage.\n- [x] Added release-triggered GHCR publish workflow (`.github/workflows/docker-release.yml`) with semver-distance tagging (`vX.Y.Z-N`) and fallback (`v0.0.0-N`).\n- [x] Updated CI workflow (`.github/workflows/build.yml`) to run lint, tests, and production build.\n- [x] Updated `README.md` with local Docker usage, GHCR usage, tagging semantics, and distribution alternatives.\n\n## LLM Key Warning Cleanup (2026-03-18)\n\n- [x] Verified non-OK LLM provider responses (including 4xx) are thrown by `LLMService` and surfaced in chat error bubbles.\n- [x] Removed chat footer warning that required configuring an LLM key in settings.\n- [x] Added tests to lock behavior for optional API key UI and 4xx error surfacing.\n\n## Frontend Bundle Split Pass 1 (2026-03-18)\n\n- [x] Extracted assistant markdown + syntax highlighting rendering into lazy-loaded `src/components/AssistantMarkdown.tsx`.\n- [x] Updated `ChatWindow` to load assistant markdown renderer via `React.lazy` and `Suspense`.\n- [x] Added lightweight fallback UI in assistant bubbles while markdown chunk loads.\n",
+              "after": "# PR Review Chatbot - Implementation Plan\n\n## Priority: UI and LLM Integration First\n**Key Change**: Use dummy data for PR content to allow immediate interaction with the LLM without needing GitHub API credentials. GitHub integration can be added later.\n\n---\n\n## Tech Stack\n- Vite + React 18 + TypeScript\n- Redux Toolkit for state management\n- Axios for HTTP\n- Tailwind CSS for styling\n- Radix UI for accessible components\n\n---\n\n## Implementation Phases\n\n### ✅ Phase 1: Project Setup (COMPLETED)\n- [x] Initialize Vite + React + TypeScript project\n- [x] Install dependencies (Redux Toolkit, Axios, Tailwind, Radix UI, react-markdown, react-syntax-highlighter, lucide-react)\n- [x] Configure Tailwind CSS with CSS variables for theming\n- [x] Set up project structure (`src/types`, `src/store`, `src/services`, `src/components`, `src/lib`)\n- [x] Create `vite-env.d.ts` for Vite environment type declarations\n- [x] Create `.env.example` with all configuration options\n- [x] Create `.gitignore`\n\n### ✅ Phase 2: UI Shell & Configuration (COMPLETED)\n- [x] Create Redux store (`src/store/index.ts`)\n- [x] Implement `configSlice.ts` — env var defaults + localStorage runtime overrides\n- [x] Implement `chatSlice.ts` — messages, streaming state\n- [x] Implement `prsSlice.ts` — selected PR, files, comments, reviews\n- [x] Create typed Redux hooks (`src/store/hooks.ts`)\n- [x] Create `SettingsDialog.tsx` — runtime config override with demo mode toggle\n- [x] Create main `App.tsx` layout (sidebar + chat + PR viewer panels)\n- [x] Dark mode toggle in top bar\n- [x] Collapsible sidebar and PR viewer panels\n\n### ✅ Phase 3: Chat Interface (COMPLETED)\n- [x] Build `ChatWindow.tsx` with message display\n- [x] User/assistant message bubbles with avatars\n- [x] Markdown rendering with `react-markdown` + `remark-gfm`\n- [x] Code syntax highlighting with `react-syntax-highlighter`\n- [x] Streaming response display (animated cursor)\n- [x] Auto-scroll to latest message\n- [x] Multi-line textarea input (auto-resize)\n- [x] Enter to send, Shift+Enter for new line\n- [x] Suggestion chips on empty state\n- [x] Clear conversation button\n- [x] Error display in message bubbles\n\n### ✅ Phase 4: LLM Integration (COMPLETED)\n- [x] Implement `LLMService` class in `src/services/llm.ts`\n- [x] OpenAI v1 API support (`/chat/completions`)\n- [x] LiteLLM Proxy support (same API format)\n- [x] Streaming via Server-Sent Events (SSE)\n- [x] `buildSystemPrompt()` — injects full PR context (metadata, diffs, comments, reviews)\n- [x] Connect LLM service to `ChatWindow` with streaming dispatch\n- [x] Error handling for API failures\n\n### ✅ Phase 5: Dummy Data & Demo Mode (COMPLETED)\n- [x] Create `src/services/dummyData.ts` with realistic sample PR\n  - Sample PR: JWT authentication feature (8 files, realistic diffs)\n  - Sample comments, review comments, and reviews\n- [x] Build `PRViewer.tsx` with:\n  - PR metadata header (state badge, author, branch, stats)\n  - Tabs: Files, Comments, Reviews\n  - Collapsible file items with diff view\n  - Diff syntax highlighting (green/red/blue lines)\n  - Status badges per file (added/modified/removed)\n- [x] Build `Sidebar.tsx` with demo mode toggle\n- [x] Auto-load dummy PR on startup in demo mode\n- [x] Demo mode toggle in sidebar and Settings dialog\n\n### ✅ Phase 6: GitHub Integration (COMPLETED)\n- [x] Implement `GitHubService` class in `src/services/github.ts`\n- [x] PAT (Bearer token) authentication\n- [x] Support for github.com (`https://api.github.com`)\n- [x] Support for GHES (`https://<host>/api/v3`)\n- [x] Methods: `listRepositories`, `searchRepositories`, `listPullRequests`, `getPullRequest`, `getPRFiles`, `getPRComments`, `getPRReviewComments`, `getPRReviews`, `validateToken`\n- [x] Token validation method\n\n### ✅ Phase 7: Polish (COMPLETED)\n- [x] Add loading states and loading indicators for GitHub API calls\n- [x] Add error handling for GitHub API failures (rate limiting, 404, auth errors)\n- [x] Polish UI/UX (animations, transitions)\n- [x] GitHub mode UI — allow entering repo/PR manually\n- [x] Context window management for very large PRs\n\n---\n\n## Documentation (COMPLETED)\n- [x] `README.md` — User-facing docs: quick start, configuration, LLM setup, GitHub setup, troubleshooting\n- [x] `agents.md` — Developer/agent docs: project structure, architecture, common tasks\n- [x] `.env.example` — Annotated environment variable reference\n\n---\n\n## Configuration\n\n### Environment Variables (with defaults)\n```\nVITE_GITHUB_PAT=          # GitHub Personal Access Token\nVITE_LLM_API_KEY=         # LLM API Key\nVITE_GITHUB_INSTANCE=     # \"github.com\" or URL for GHES\nVITE_LLM_BACKEND=         # \"openai\" or \"litellm\"\nVITE_LLM_ENDPOINT=        # API endpoint URL\nVITE_LLM_MODEL=           # Model name\nVITE_DEMO_MODE=           # \"true\" or \"false\"\n```\n\n### Runtime Override\nSettings dialog allows overriding env vars at runtime (persisted to localStorage).\n\n---\n\n## Architecture\n\n### Services\n```\nsrc/services/\n├── github.ts      # Fetch PRs, details, diffs, comments (supports GHES)\n├── llm.ts         # Unified interface for OpenAI v1 API + LiteLLM Proxy\n└── dummyData.ts   # Sample PR data for demo mode\n```\n\n### Redux Store\n```\nsrc/store/\n├── index.ts              # Store configuration\n├── hooks.ts              # Typed useAppDispatch / useAppSelector\n└── slices/\n    ├── configSlice.ts    # App config (env defaults + runtime overrides)\n    ├── prsSlice.ts       # Current PR data\n    └── chatSlice.ts      # Messages + streaming state\n```\n\n### Components\n```\nsrc/components/\n├── SettingsDialog.tsx   # Runtime config override\n├── Sidebar.tsx          # Repo/PR navigation (or demo mode toggle)\n├── ChatWindow.tsx       # Chat messages + input\n└── PRViewer.tsx         # File diffs, metadata\n```\n\n---\n\n## Data Types\n\n### GitHub PR\n```typescript\ninterface PullRequest {\n  id: number;\n  number: number;\n  title: string;\n  body: string | null;\n  state: 'open' | 'closed';\n  merged: boolean;\n  merged_at: string | null;\n  user: GitHubUser;\n  created_at: string;\n  updated_at: string;\n  head: { ref: string; sha: string; repo: { full_name: string } | null };\n  base: { ref: string; sha: string; repo: { full_name: string } };\n  url: string;\n  html_url: string;\n  diff_url: string;\n  additions: number;\n  deletions: number;\n  changed_files: number;\n  comments: number;\n  review_comments: number;\n  commits: number;\n  labels: Array<{ id: number; name: string; color: string }>;\n  requested_reviewers: GitHubUser[];\n}\n```\n\n### Chat Message\n```typescript\ninterface ChatMessage {\n  id: string;\n  role: 'user' | 'assistant' | 'system';\n  content: string;\n  timestamp: number;\n  isStreaming?: boolean;\n  error?: string;\n}\n```\n\n### App Config\n```typescript\ninterface AppConfig {\n  githubPat: string;\n  llmApiKey: string;\n  githubInstance: string;\n  llmBackend: 'openai' | 'litellm';\n  llmEndpoint: string;\n  llmModel: string;\n  demoMode: boolean;\n}\n```\n\n---\n\n## Error Handling\n\n### LLM API Errors\n- Invalid API key: Error shown in message bubble\n- Rate limiting: Error shown in message bubble\n- Network errors: Error shown in message bubble\n- Streaming errors: Graceful fallback with error message\n\n### GitHub API Errors (when enabled)\n- Invalid PAT: Prompt to update token\n- Rate limiting: Show remaining requests\n- Not found (404): Repository/PR not found\n\n---\n\n### ⏳ Phase 8: Code Quality & UX Improvements (PENDING)\n\nIdentified during initial code review. These are non-blocking improvements to address after the Phase 7 polish work.\n\n#### Quality\n- [x] **ESLint v9 flat config** (`eslint.config.js`) — Added repository-level flat config so `npm run lint` works with ESLint 9.\n- [x] **`getPRFiles` pagination** (`src/services/github.ts:96`) — The GitHub API caps file lists at 100 per page. PRs with >100 changed files silently return incomplete data. Add pagination (loop until `response.data.length < perPage`) or at minimum show a warning banner in `PRViewer` when the file count equals the page limit.\n- [x] **Stable React keys in `DiffView`** (`src/components/PRViewer.tsx:41`) — Diff lines currently use array index as `key`. Replace with a content-based key (e.g. `` `${i}-${line.slice(0, 8)}` ``) to prevent React reusing DOM nodes incorrectly when switching between files.\n\n#### UX\n- [x] **Persist dark mode preference** (`src/App.tsx:10`) — Dark mode state resets on every page reload. Initialise from `localStorage` and respect the OS `prefers-color-scheme` media query:\n  ```ts\n  const [darkMode, setDarkMode] = useState(\n    () => localStorage.getItem('darkMode') === 'true'\n      || window.matchMedia('(prefers-color-scheme: dark)').matches\n  );\n  ```\n  Also persist the toggle: `localStorage.setItem('darkMode', String(!darkMode))` inside `toggleDarkMode`.\n- [x] **Wire up the Refresh button** (`src/components/Sidebar.tsx:111`) — The refresh `<button>` in the sidebar is rendered in GitHub mode but has no `onClick` handler. Either connect it to a `fetchPullRequests` thunk (part of Phase 7 GitHub UI work) or hide it with `{false && ...}` until that feature is ready, to avoid confusing users with a dead control.\n\n---\n\n## OpenSpec Alignment Notes (2026-03-14)\n\n- `openspec/changes/add-pr-summary-tab/tasks.md` was updated to capture quick-orientation behavior decisions from explore mode.\n- Summary behavior target: 2-4 line orientation section, adaptive `Focus Areas` with bounds `0..4`, and valid success output when focus areas are omitted for simple PRs.\n- Synced delta spec `openspec/changes/add-pr-summary-tab/specs/pr-review-summary/spec.md` into new main spec `openspec/specs/pr-review-summary/spec.md`.\n- Added change scaffold `openspec/changes/update-pr-review-summary-ui-readability/` with completed proposal, design, spec delta, and tasks artifacts for summary UI readability improvements.\n- Refined `update-pr-review-summary-ui-readability` scope to panelized Summary display: Orientation and each Focus Area render as separate cards styled like Comments/Reviews, with blue/yellow title accents and no spec contract changes.\n\n---\n\n## ✅ Phase 9: PR Summary Tab (COMPLETED)\n\n- [x] Extend `AppConfig` with summary fields: `summaryEnabled`, `summaryPrompt`, `summaryCommands`\n- [x] Add/export `DEFAULT_SUMMARY_PROMPT` and keep reset behavior prompt-only\n- [x] Add PR commits API loading (`getPRCommits`) and Redux state wiring\n- [x] Add summary lifecycle state in `prsSlice` (`status`, `content`, `generatedAt`, `error`)\n- [x] Implement summary orchestration utilities:\n  - per-PR+head+prompt cache keying\n  - sessionStorage read/write cache\n  - one-per-minute per-PR-head rate limiting\n  - empty textual diff detection\n- [x] Extend LLM service with structured summary prompt assembly (orientation + adaptive focus areas)\n- [x] Add Summary tab UI in `PRViewer` with loading/success/empty/error states and timestamp footer\n- [x] Wire summary generation on PR selection/load and keep summary separate from chat history/context\n- [x] Add/expand tests for config, GitHub service, PR slice, summary utilities, LLM prompt, Settings UI, and Summary tab rendering\n- [x] Update README and agent guidance for summary behavior, fallback states, and output contract\n\n---\n\n## OpenSpec Implementation Updates (2026-03-14)\n\n- [x] Completed OpenSpec change `update-pr-review-summary-ui-readability` implementation tasks (8/8) for panelized Summary tab readability updates.\n- [x] Updated Summary success rendering in `src/components/PRViewer.tsx` to show an `Orientation` panel and per-item `Focus Area N` panels with blue/yellow title accents.\n- [x] Kept summary generation flow and fallback state semantics unchanged (loading/empty/error behavior preserved).\n- [x] Updated `src/components/PRViewer.summary.test.tsx` assertions for orientation-only and orientation+focus-area panelized rendering.\n- [x] Validation run completed with `npm run lint && npm run build && npm run test`.\n\n## OpenSpec Explore Decision Updates (2026-03-16)\n\n- [x] Clarified `repository-watcher` UX scope: `repo-pr-list` renders in the left `PR Review` pane (not center chat area or right PR viewer pane).\n- [x] Captured sidebar navigator behavior: controls/watchlist view and repo list view with explicit Back action.\n- [x] Captured `Load PR` behavior parity with demo mode: when PR number is provided, show a list containing one selected PR.\n- [x] Updated change artifacts (`proposal.md`, `design.md`, `tasks.md`, `specs/repo-pr-list/spec.md`, `specs/watched-repos/spec.md`) to reflect the decision.\n\n## OpenSpec Implementation Updates (2026-03-16)\n\n- [x] Implemented `repository-watcher` change tasks end-to-end.\n- [x] Added watched repository state and persistence via `src/store/slices/watchedReposSlice.ts`.\n- [x] Added repository PR list loading in `src/store/slices/prsSlice.ts` using existing `listPullRequests()` integration.\n- [x] Added sidebar repo-list UI mode with Back navigation and new `src/components/PRList.tsx` component.\n- [x] Updated sidebar to support optional PR number flow (`Load PR` vs `Load All PRs`) and watchlist interactions.\n- [x] Added tests for watched repos, repository PR list loading, and sidebar list selection flows.\n- [x] Validation run completed with `npm run lint && npm run build && npm run test`.\n\n## OpenSpec Spec Sync Updates (2026-03-16)\n\n- [x] Synced change `repository-watcher` delta specs into new main specs for `repo-pr-list` and `watched-repos`.\n- [x] Created `openspec/specs/repo-pr-list/spec.md` from `openspec/changes/repository-watcher/specs/repo-pr-list/spec.md`.\n- [x] Created `openspec/specs/watched-repos/spec.md` from `openspec/changes/repository-watcher/specs/watched-repos/spec.md`.\n\n---\n\n## Code Review Hardening Tasks (2026-03-17)\n\n- [x] Task 1: Add stale-response guards in `prsSlice` so older PR resource responses cannot overwrite newer selection state.\n- [x] Task 2: Add regression tests for rapid PR switching race in `src/store/slices/prsSlice.test.ts`.\n- [x] Task 3: Add `Dialog.Description` in `src/components/SettingsDialog.tsx` to satisfy Radix dialog accessibility contract.\n- [x] Task 4: Update settings dialog tests to assert description semantics and eliminate warning output.\n- [x] Task 5: Add chat stream request cancellation (`AbortController`) in `src/components/ChatWindow.tsx` and `src/services/llm.ts`.\n- [x] Task 6: Add tests for stream cancellation behavior and UI streaming state cleanup.\n\n## Distribution and Release Automation (2026-03-17)\n\n- [x] Added multi-stage Docker image build with static asset runtime (`Dockerfile`) and SPA-safe nginx config (`nginx.conf`).\n- [x] Added `.dockerignore` and npm helper scripts (`docker:build`, `docker:run`) for local image usage.\n- [x] Added release-triggered GHCR publish workflow (`.github/workflows/docker-release.yml`) with semver-distance tagging (`vX.Y.Z-N`) and fallback (`v0.0.0-N`).\n- [x] Updated CI workflow (`.github/workflows/build.yml`) to run lint, tests, and production build.\n- [x] Updated `README.md` with local Docker usage, GHCR usage, tagging semantics, and distribution alternatives.\n\n## LLM Key Warning Cleanup (2026-03-18)\n\n- [x] Verified non-OK LLM provider responses (including 4xx) are thrown by `LLMService` and surfaced in chat error bubbles.\n- [x] Removed chat footer warning that required configuring an LLM key in settings.\n- [x] Added tests to lock behavior for optional API key UI and 4xx error surfacing.\n\n## Frontend Bundle Split Pass 1 (2026-03-18)\n\n- [x] Extracted assistant markdown + syntax highlighting rendering into lazy-loaded `src/components/AssistantMarkdown.tsx`.\n- [x] Updated `ChatWindow` to load assistant markdown renderer via `React.lazy` and `Suspense`.\n- [x] Added lightweight fallback UI in assistant bubbles while markdown chunk loads.\n\n## Frontend Bundle Split Follow-ups (OPEN)\n\n- [ ] Pass 2: Lazy-load PR summary markdown rendering path in `src/components/PRViewer.tsx` (`SummaryPanel`) to reduce initial bundle size further.\n- [ ] Split syntax highlighting payload in `src/components/AssistantMarkdown.tsx` (language/style loading strategy) to shrink lazy chunk size.\n- [ ] Evaluate `vite.config.ts` manual chunking (`build.rollupOptions.output.manualChunks`) for stable vendor chunk boundaries and improved cacheability.\n",
+              "additions": 6,
+              "deletions": 0,
+              "status": "modified"
+            }
+          ]
+        },
+        "agent": "build",
+        "model": {
+          "providerID": "opencode",
+          "modelID": "gpt-5.3-codex"
+        },
+        "id": "msg_d031b4ee4001YJq9aq4O6JzPPb",
+        "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "Add the next steps as open items in the plan",
+          "id": "prt_d031b4ee4002uMzLACrQzwr5dS",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031b4ee4001YJq9aq4O6JzPPb"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "assistant",
+        "time": {
+          "created": 1773873614595,
+          "completed": 1773873621743
+        },
+        "parentID": "msg_d031b4ee4001YJq9aq4O6JzPPb",
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/home/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/home/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.1159935,
+        "tokens": {
+          "total": 63769,
+          "input": 63466,
+          "output": 303,
+          "reasoning": 49,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        },
+        "finish": "tool-calls",
+        "id": "msg_d031b4f03002BACCQ1fQmW62Q7",
+        "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc"
+      },
+      "parts": [
+        {
+          "type": "step-start",
+          "snapshot": "b199e45e6e77e544e82839ac962fe3861c9ba913",
+          "id": "prt_d031b54fe001JaC3WZcTvkanZu",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031b4f03002BACCQ1fQmW62Q7"
+        },
+        {
+          "type": "reasoning",
+          "text": "**Adding open items in docs**",
+          "metadata": {
+            "opencode": {
+              "itemId": "rs_0bd61341983c4c580169bb29d117b081989928259664827a24",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "time": {
+            "start": 1773873617231,
+            "end": 1773873618563
+          },
+          "id": "REDACTED",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031b4f03002BACCQ1fQmW62Q7"
+        },
+        {
+          "type": "tool",
+          "callID": "call_Lz1tiQwQm7HwNeKHJUFpzFhn",
+          "tool": "apply_patch",
+          "state": {
+            "status": "completed",
+            "input": {
+              "patchText": "*** Begin Patch\n*** Update File: /home/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n@@\n ## Frontend Bundle Split Pass 1 (2026-03-18)\n \n - [x] Extracted assistant markdown + syntax highlighting rendering into lazy-loaded `src/components/AssistantMarkdown.tsx`.\n - [x] Updated `ChatWindow` to load assistant markdown renderer via `React.lazy` and `Suspense`.\n - [x] Added lightweight fallback UI in assistant bubbles while markdown chunk loads.\n+\n+## Frontend Bundle Split Follow-ups (OPEN)\n+\n+- [ ] Pass 2: Lazy-load PR summary markdown rendering path in `src/components/PRViewer.tsx` (`SummaryPanel`) to reduce initial bundle size further.\n+- [ ] Split syntax highlighting payload in `src/components/AssistantMarkdown.tsx` (language/style loading strategy) to shrink lazy chunk size.\n+- [ ] Evaluate `vite.config.ts` manual chunking (`build.rollupOptions.output.manualChunks`) for stable vendor chunk boundaries and improved cacheability.\n*** End Patch"
+            },
+            "output": "Success. Updated the following files:\nM plans/plan.md",
+            "title": "Success. Updated the following files:\nM plans/plan.md",
+            "metadata": {
+              "diff": "Index: /home/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n===================================================================\n--- /home/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n+++ /home/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n@@ -330,4 +330,10 @@\n \n - [x] Extracted assistant markdown + syntax highlighting rendering into lazy-loaded `src/components/AssistantMarkdown.tsx`.\n - [x] Updated `ChatWindow` to load assistant markdown renderer via `React.lazy` and `Suspense`.\n - [x] Added lightweight fallback UI in assistant bubbles while markdown chunk loads.\n+\n+## Frontend Bundle Split Follow-ups (OPEN)\n+\n+- [ ] Pass 2: Lazy-load PR summary markdown rendering path in `src/components/PRViewer.tsx` (`SummaryPanel`) to reduce initial bundle size further.\n+- [ ] Split syntax highlighting payload in `src/components/AssistantMarkdown.tsx` (language/style loading strategy) to shrink lazy chunk size.\n+- [ ] Evaluate `vite.config.ts` manual chunking (`build.rollupOptions.output.manualChunks`) for stable vendor chunk boundaries and improved cacheability.\n\n",
+              "files": [
+                {
+                  "filePath": "/home/mark/sandbox/personal/pr-review-chatbot/plans/plan.md",
+                  "relativePath": "plans/plan.md",
+                  "type": "update",
+                  "diff": "Index: /home/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n===================================================================\n--- /home/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n+++ /home/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n@@ -330,4 +330,10 @@\n \n - [x] Extracted assistant markdown + syntax highlighting rendering into lazy-loaded `src/components/AssistantMarkdown.tsx`.\n - [x] Updated `ChatWindow` to load assistant markdown renderer via `React.lazy` and `Suspense`.\n - [x] Added lightweight fallback UI in assistant bubbles while markdown chunk loads.\n+\n+## Frontend Bundle Split Follow-ups (OPEN)\n+\n+- [ ] Pass 2: Lazy-load PR summary markdown rendering path in `src/components/PRViewer.tsx` (`SummaryPanel`) to reduce initial bundle size further.\n+- [ ] Split syntax highlighting payload in `src/components/AssistantMarkdown.tsx` (language/style loading strategy) to shrink lazy chunk size.\n+- [ ] Evaluate `vite.config.ts` manual chunking (`build.rollupOptions.output.manualChunks`) for stable vendor chunk boundaries and improved cacheability.\n",
+                  "before": "# PR Review Chatbot - Implementation Plan\n\n## Priority: UI and LLM Integration First\n**Key Change**: Use dummy data for PR content to allow immediate interaction with the LLM without needing GitHub API credentials. GitHub integration can be added later.\n\n---\n\n## Tech Stack\n- Vite + React 18 + TypeScript\n- Redux Toolkit for state management\n- Axios for HTTP\n- Tailwind CSS for styling\n- Radix UI for accessible components\n\n---\n\n## Implementation Phases\n\n### ✅ Phase 1: Project Setup (COMPLETED)\n- [x] Initialize Vite + React + TypeScript project\n- [x] Install dependencies (Redux Toolkit, Axios, Tailwind, Radix UI, react-markdown, react-syntax-highlighter, lucide-react)\n- [x] Configure Tailwind CSS with CSS variables for theming\n- [x] Set up project structure (`src/types`, `src/store`, `src/services`, `src/components`, `src/lib`)\n- [x] Create `vite-env.d.ts` for Vite environment type declarations\n- [x] Create `.env.example` with all configuration options\n- [x] Create `.gitignore`\n\n### ✅ Phase 2: UI Shell & Configuration (COMPLETED)\n- [x] Create Redux store (`src/store/index.ts`)\n- [x] Implement `configSlice.ts` — env var defaults + localStorage runtime overrides\n- [x] Implement `chatSlice.ts` — messages, streaming state\n- [x] Implement `prsSlice.ts` — selected PR, files, comments, reviews\n- [x] Create typed Redux hooks (`src/store/hooks.ts`)\n- [x] Create `SettingsDialog.tsx` — runtime config override with demo mode toggle\n- [x] Create main `App.tsx` layout (sidebar + chat + PR viewer panels)\n- [x] Dark mode toggle in top bar\n- [x] Collapsible sidebar and PR viewer panels\n\n### ✅ Phase 3: Chat Interface (COMPLETED)\n- [x] Build `ChatWindow.tsx` with message display\n- [x] User/assistant message bubbles with avatars\n- [x] Markdown rendering with `react-markdown` + `remark-gfm`\n- [x] Code syntax highlighting with `react-syntax-highlighter`\n- [x] Streaming response display (animated cursor)\n- [x] Auto-scroll to latest message\n- [x] Multi-line textarea input (auto-resize)\n- [x] Enter to send, Shift+Enter for new line\n- [x] Suggestion chips on empty state\n- [x] Clear conversation button\n- [x] Error display in message bubbles\n\n### ✅ Phase 4: LLM Integration (COMPLETED)\n- [x] Implement `LLMService` class in `src/services/llm.ts`\n- [x] OpenAI v1 API support (`/chat/completions`)\n- [x] LiteLLM Proxy support (same API format)\n- [x] Streaming via Server-Sent Events (SSE)\n- [x] `buildSystemPrompt()` — injects full PR context (metadata, diffs, comments, reviews)\n- [x] Connect LLM service to `ChatWindow` with streaming dispatch\n- [x] Error handling for API failures\n\n### ✅ Phase 5: Dummy Data & Demo Mode (COMPLETED)\n- [x] Create `src/services/dummyData.ts` with realistic sample PR\n  - Sample PR: JWT authentication feature (8 files, realistic diffs)\n  - Sample comments, review comments, and reviews\n- [x] Build `PRViewer.tsx` with:\n  - PR metadata header (state badge, author, branch, stats)\n  - Tabs: Files, Comments, Reviews\n  - Collapsible file items with diff view\n  - Diff syntax highlighting (green/red/blue lines)\n  - Status badges per file (added/modified/removed)\n- [x] Build `Sidebar.tsx` with demo mode toggle\n- [x] Auto-load dummy PR on startup in demo mode\n- [x] Demo mode toggle in sidebar and Settings dialog\n\n### ✅ Phase 6: GitHub Integration (COMPLETED)\n- [x] Implement `GitHubService` class in `src/services/github.ts`\n- [x] PAT (Bearer token) authentication\n- [x] Support for github.com (`https://api.github.com`)\n- [x] Support for GHES (`https://<host>/api/v3`)\n- [x] Methods: `listRepositories`, `searchRepositories`, `listPullRequests`, `getPullRequest`, `getPRFiles`, `getPRComments`, `getPRReviewComments`, `getPRReviews`, `validateToken`\n- [x] Token validation method\n\n### ✅ Phase 7: Polish (COMPLETED)\n- [x] Add loading states and loading indicators for GitHub API calls\n- [x] Add error handling for GitHub API failures (rate limiting, 404, auth errors)\n- [x] Polish UI/UX (animations, transitions)\n- [x] GitHub mode UI — allow entering repo/PR manually\n- [x] Context window management for very large PRs\n\n---\n\n## Documentation (COMPLETED)\n- [x] `README.md` — User-facing docs: quick start, configuration, LLM setup, GitHub setup, troubleshooting\n- [x] `agents.md` — Developer/agent docs: project structure, architecture, common tasks\n- [x] `.env.example` — Annotated environment variable reference\n\n---\n\n## Configuration\n\n### Environment Variables (with defaults)\n```\nVITE_GITHUB_PAT=          # GitHub Personal Access Token\nVITE_LLM_API_KEY=         # LLM API Key\nVITE_GITHUB_INSTANCE=     # \"github.com\" or URL for GHES\nVITE_LLM_BACKEND=         # \"openai\" or \"litellm\"\nVITE_LLM_ENDPOINT=        # API endpoint URL\nVITE_LLM_MODEL=           # Model name\nVITE_DEMO_MODE=           # \"true\" or \"false\"\n```\n\n### Runtime Override\nSettings dialog allows overriding env vars at runtime (persisted to localStorage).\n\n---\n\n## Architecture\n\n### Services\n```\nsrc/services/\n├── github.ts      # Fetch PRs, details, diffs, comments (supports GHES)\n├── llm.ts         # Unified interface for OpenAI v1 API + LiteLLM Proxy\n└── dummyData.ts   # Sample PR data for demo mode\n```\n\n### Redux Store\n```\nsrc/store/\n├── index.ts              # Store configuration\n├── hooks.ts              # Typed useAppDispatch / useAppSelector\n└── slices/\n    ├── configSlice.ts    # App config (env defaults + runtime overrides)\n    ├── prsSlice.ts       # Current PR data\n    └── chatSlice.ts      # Messages + streaming state\n```\n\n### Components\n```\nsrc/components/\n├── SettingsDialog.tsx   # Runtime config override\n├── Sidebar.tsx          # Repo/PR navigation (or demo mode toggle)\n├── ChatWindow.tsx       # Chat messages + input\n└── PRViewer.tsx         # File diffs, metadata\n```\n\n---\n\n## Data Types\n\n### GitHub PR\n```typescript\ninterface PullRequest {\n  id: number;\n  number: number;\n  title: string;\n  body: string | null;\n  state: 'open' | 'closed';\n  merged: boolean;\n  merged_at: string | null;\n  user: GitHubUser;\n  created_at: string;\n  updated_at: string;\n  head: { ref: string; sha: string; repo: { full_name: string } | null };\n  base: { ref: string; sha: string; repo: { full_name: string } };\n  url: string;\n  html_url: string;\n  diff_url: string;\n  additions: number;\n  deletions: number;\n  changed_files: number;\n  comments: number;\n  review_comments: number;\n  commits: number;\n  labels: Array<{ id: number; name: string; color: string }>;\n  requested_reviewers: GitHubUser[];\n}\n```\n\n### Chat Message\n```typescript\ninterface ChatMessage {\n  id: string;\n  role: 'user' | 'assistant' | 'system';\n  content: string;\n  timestamp: number;\n  isStreaming?: boolean;\n  error?: string;\n}\n```\n\n### App Config\n```typescript\ninterface AppConfig {\n  githubPat: string;\n  llmApiKey: string;\n  githubInstance: string;\n  llmBackend: 'openai' | 'litellm';\n  llmEndpoint: string;\n  llmModel: string;\n  demoMode: boolean;\n}\n```\n\n---\n\n## Error Handling\n\n### LLM API Errors\n- Invalid API key: Error shown in message bubble\n- Rate limiting: Error shown in message bubble\n- Network errors: Error shown in message bubble\n- Streaming errors: Graceful fallback with error message\n\n### GitHub API Errors (when enabled)\n- Invalid PAT: Prompt to update token\n- Rate limiting: Show remaining requests\n- Not found (404): Repository/PR not found\n\n---\n\n### ⏳ Phase 8: Code Quality & UX Improvements (PENDING)\n\nIdentified during initial code review. These are non-blocking improvements to address after the Phase 7 polish work.\n\n#### Quality\n- [x] **ESLint v9 flat config** (`eslint.config.js`) — Added repository-level flat config so `npm run lint` works with ESLint 9.\n- [x] **`getPRFiles` pagination** (`src/services/github.ts:96`) — The GitHub API caps file lists at 100 per page. PRs with >100 changed files silently return incomplete data. Add pagination (loop until `response.data.length < perPage`) or at minimum show a warning banner in `PRViewer` when the file count equals the page limit.\n- [x] **Stable React keys in `DiffView`** (`src/components/PRViewer.tsx:41`) — Diff lines currently use array index as `key`. Replace with a content-based key (e.g. `` `${i}-${line.slice(0, 8)}` ``) to prevent React reusing DOM nodes incorrectly when switching between files.\n\n#### UX\n- [x] **Persist dark mode preference** (`src/App.tsx:10`) — Dark mode state resets on every page reload. Initialise from `localStorage` and respect the OS `prefers-color-scheme` media query:\n  ```ts\n  const [darkMode, setDarkMode] = useState(\n    () => localStorage.getItem('darkMode') === 'true'\n      || window.matchMedia('(prefers-color-scheme: dark)').matches\n  );\n  ```\n  Also persist the toggle: `localStorage.setItem('darkMode', String(!darkMode))` inside `toggleDarkMode`.\n- [x] **Wire up the Refresh button** (`src/components/Sidebar.tsx:111`) — The refresh `<button>` in the sidebar is rendered in GitHub mode but has no `onClick` handler. Either connect it to a `fetchPullRequests` thunk (part of Phase 7 GitHub UI work) or hide it with `{false && ...}` until that feature is ready, to avoid confusing users with a dead control.\n\n---\n\n## OpenSpec Alignment Notes (2026-03-14)\n\n- `openspec/changes/add-pr-summary-tab/tasks.md` was updated to capture quick-orientation behavior decisions from explore mode.\n- Summary behavior target: 2-4 line orientation section, adaptive `Focus Areas` with bounds `0..4`, and valid success output when focus areas are omitted for simple PRs.\n- Synced delta spec `openspec/changes/add-pr-summary-tab/specs/pr-review-summary/spec.md` into new main spec `openspec/specs/pr-review-summary/spec.md`.\n- Added change scaffold `openspec/changes/update-pr-review-summary-ui-readability/` with completed proposal, design, spec delta, and tasks artifacts for summary UI readability improvements.\n- Refined `update-pr-review-summary-ui-readability` scope to panelized Summary display: Orientation and each Focus Area render as separate cards styled like Comments/Reviews, with blue/yellow title accents and no spec contract changes.\n\n---\n\n## ✅ Phase 9: PR Summary Tab (COMPLETED)\n\n- [x] Extend `AppConfig` with summary fields: `summaryEnabled`, `summaryPrompt`, `summaryCommands`\n- [x] Add/export `DEFAULT_SUMMARY_PROMPT` and keep reset behavior prompt-only\n- [x] Add PR commits API loading (`getPRCommits`) and Redux state wiring\n- [x] Add summary lifecycle state in `prsSlice` (`status`, `content`, `generatedAt`, `error`)\n- [x] Implement summary orchestration utilities:\n  - per-PR+head+prompt cache keying\n  - sessionStorage read/write cache\n  - one-per-minute per-PR-head rate limiting\n  - empty textual diff detection\n- [x] Extend LLM service with structured summary prompt assembly (orientation + adaptive focus areas)\n- [x] Add Summary tab UI in `PRViewer` with loading/success/empty/error states and timestamp footer\n- [x] Wire summary generation on PR selection/load and keep summary separate from chat history/context\n- [x] Add/expand tests for config, GitHub service, PR slice, summary utilities, LLM prompt, Settings UI, and Summary tab rendering\n- [x] Update README and agent guidance for summary behavior, fallback states, and output contract\n\n---\n\n## OpenSpec Implementation Updates (2026-03-14)\n\n- [x] Completed OpenSpec change `update-pr-review-summary-ui-readability` implementation tasks (8/8) for panelized Summary tab readability updates.\n- [x] Updated Summary success rendering in `src/components/PRViewer.tsx` to show an `Orientation` panel and per-item `Focus Area N` panels with blue/yellow title accents.\n- [x] Kept summary generation flow and fallback state semantics unchanged (loading/empty/error behavior preserved).\n- [x] Updated `src/components/PRViewer.summary.test.tsx` assertions for orientation-only and orientation+focus-area panelized rendering.\n- [x] Validation run completed with `npm run lint && npm run build && npm run test`.\n\n## OpenSpec Explore Decision Updates (2026-03-16)\n\n- [x] Clarified `repository-watcher` UX scope: `repo-pr-list` renders in the left `PR Review` pane (not center chat area or right PR viewer pane).\n- [x] Captured sidebar navigator behavior: controls/watchlist view and repo list view with explicit Back action.\n- [x] Captured `Load PR` behavior parity with demo mode: when PR number is provided, show a list containing one selected PR.\n- [x] Updated change artifacts (`proposal.md`, `design.md`, `tasks.md`, `specs/repo-pr-list/spec.md`, `specs/watched-repos/spec.md`) to reflect the decision.\n\n## OpenSpec Implementation Updates (2026-03-16)\n\n- [x] Implemented `repository-watcher` change tasks end-to-end.\n- [x] Added watched repository state and persistence via `src/store/slices/watchedReposSlice.ts`.\n- [x] Added repository PR list loading in `src/store/slices/prsSlice.ts` using existing `listPullRequests()` integration.\n- [x] Added sidebar repo-list UI mode with Back navigation and new `src/components/PRList.tsx` component.\n- [x] Updated sidebar to support optional PR number flow (`Load PR` vs `Load All PRs`) and watchlist interactions.\n- [x] Added tests for watched repos, repository PR list loading, and sidebar list selection flows.\n- [x] Validation run completed with `npm run lint && npm run build && npm run test`.\n\n## OpenSpec Spec Sync Updates (2026-03-16)\n\n- [x] Synced change `repository-watcher` delta specs into new main specs for `repo-pr-list` and `watched-repos`.\n- [x] Created `openspec/specs/repo-pr-list/spec.md` from `openspec/changes/repository-watcher/specs/repo-pr-list/spec.md`.\n- [x] Created `openspec/specs/watched-repos/spec.md` from `openspec/changes/repository-watcher/specs/watched-repos/spec.md`.\n\n---\n\n## Code Review Hardening Tasks (2026-03-17)\n\n- [x] Task 1: Add stale-response guards in `prsSlice` so older PR resource responses cannot overwrite newer selection state.\n- [x] Task 2: Add regression tests for rapid PR switching race in `src/store/slices/prsSlice.test.ts`.\n- [x] Task 3: Add `Dialog.Description` in `src/components/SettingsDialog.tsx` to satisfy Radix dialog accessibility contract.\n- [x] Task 4: Update settings dialog tests to assert description semantics and eliminate warning output.\n- [x] Task 5: Add chat stream request cancellation (`AbortController`) in `src/components/ChatWindow.tsx` and `src/services/llm.ts`.\n- [x] Task 6: Add tests for stream cancellation behavior and UI streaming state cleanup.\n\n## Distribution and Release Automation (2026-03-17)\n\n- [x] Added multi-stage Docker image build with static asset runtime (`Dockerfile`) and SPA-safe nginx config (`nginx.conf`).\n- [x] Added `.dockerignore` and npm helper scripts (`docker:build`, `docker:run`) for local image usage.\n- [x] Added release-triggered GHCR publish workflow (`.github/workflows/docker-release.yml`) with semver-distance tagging (`vX.Y.Z-N`) and fallback (`v0.0.0-N`).\n- [x] Updated CI workflow (`.github/workflows/build.yml`) to run lint, tests, and production build.\n- [x] Updated `README.md` with local Docker usage, GHCR usage, tagging semantics, and distribution alternatives.\n\n## LLM Key Warning Cleanup (2026-03-18)\n\n- [x] Verified non-OK LLM provider responses (including 4xx) are thrown by `LLMService` and surfaced in chat error bubbles.\n- [x] Removed chat footer warning that required configuring an LLM key in settings.\n- [x] Added tests to lock behavior for optional API key UI and 4xx error surfacing.\n\n## Frontend Bundle Split Pass 1 (2026-03-18)\n\n- [x] Extracted assistant markdown + syntax highlighting rendering into lazy-loaded `src/components/AssistantMarkdown.tsx`.\n- [x] Updated `ChatWindow` to load assistant markdown renderer via `React.lazy` and `Suspense`.\n- [x] Added lightweight fallback UI in assistant bubbles while markdown chunk loads.\n",
+                  "after": "# PR Review Chatbot - Implementation Plan\n\n## Priority: UI and LLM Integration First\n**Key Change**: Use dummy data for PR content to allow immediate interaction with the LLM without needing GitHub API credentials. GitHub integration can be added later.\n\n---\n\n## Tech Stack\n- Vite + React 18 + TypeScript\n- Redux Toolkit for state management\n- Axios for HTTP\n- Tailwind CSS for styling\n- Radix UI for accessible components\n\n---\n\n## Implementation Phases\n\n### ✅ Phase 1: Project Setup (COMPLETED)\n- [x] Initialize Vite + React + TypeScript project\n- [x] Install dependencies (Redux Toolkit, Axios, Tailwind, Radix UI, react-markdown, react-syntax-highlighter, lucide-react)\n- [x] Configure Tailwind CSS with CSS variables for theming\n- [x] Set up project structure (`src/types`, `src/store`, `src/services`, `src/components`, `src/lib`)\n- [x] Create `vite-env.d.ts` for Vite environment type declarations\n- [x] Create `.env.example` with all configuration options\n- [x] Create `.gitignore`\n\n### ✅ Phase 2: UI Shell & Configuration (COMPLETED)\n- [x] Create Redux store (`src/store/index.ts`)\n- [x] Implement `configSlice.ts` — env var defaults + localStorage runtime overrides\n- [x] Implement `chatSlice.ts` — messages, streaming state\n- [x] Implement `prsSlice.ts` — selected PR, files, comments, reviews\n- [x] Create typed Redux hooks (`src/store/hooks.ts`)\n- [x] Create `SettingsDialog.tsx` — runtime config override with demo mode toggle\n- [x] Create main `App.tsx` layout (sidebar + chat + PR viewer panels)\n- [x] Dark mode toggle in top bar\n- [x] Collapsible sidebar and PR viewer panels\n\n### ✅ Phase 3: Chat Interface (COMPLETED)\n- [x] Build `ChatWindow.tsx` with message display\n- [x] User/assistant message bubbles with avatars\n- [x] Markdown rendering with `react-markdown` + `remark-gfm`\n- [x] Code syntax highlighting with `react-syntax-highlighter`\n- [x] Streaming response display (animated cursor)\n- [x] Auto-scroll to latest message\n- [x] Multi-line textarea input (auto-resize)\n- [x] Enter to send, Shift+Enter for new line\n- [x] Suggestion chips on empty state\n- [x] Clear conversation button\n- [x] Error display in message bubbles\n\n### ✅ Phase 4: LLM Integration (COMPLETED)\n- [x] Implement `LLMService` class in `src/services/llm.ts`\n- [x] OpenAI v1 API support (`/chat/completions`)\n- [x] LiteLLM Proxy support (same API format)\n- [x] Streaming via Server-Sent Events (SSE)\n- [x] `buildSystemPrompt()` — injects full PR context (metadata, diffs, comments, reviews)\n- [x] Connect LLM service to `ChatWindow` with streaming dispatch\n- [x] Error handling for API failures\n\n### ✅ Phase 5: Dummy Data & Demo Mode (COMPLETED)\n- [x] Create `src/services/dummyData.ts` with realistic sample PR\n  - Sample PR: JWT authentication feature (8 files, realistic diffs)\n  - Sample comments, review comments, and reviews\n- [x] Build `PRViewer.tsx` with:\n  - PR metadata header (state badge, author, branch, stats)\n  - Tabs: Files, Comments, Reviews\n  - Collapsible file items with diff view\n  - Diff syntax highlighting (green/red/blue lines)\n  - Status badges per file (added/modified/removed)\n- [x] Build `Sidebar.tsx` with demo mode toggle\n- [x] Auto-load dummy PR on startup in demo mode\n- [x] Demo mode toggle in sidebar and Settings dialog\n\n### ✅ Phase 6: GitHub Integration (COMPLETED)\n- [x] Implement `GitHubService` class in `src/services/github.ts`\n- [x] PAT (Bearer token) authentication\n- [x] Support for github.com (`https://api.github.com`)\n- [x] Support for GHES (`https://<host>/api/v3`)\n- [x] Methods: `listRepositories`, `searchRepositories`, `listPullRequests`, `getPullRequest`, `getPRFiles`, `getPRComments`, `getPRReviewComments`, `getPRReviews`, `validateToken`\n- [x] Token validation method\n\n### ✅ Phase 7: Polish (COMPLETED)\n- [x] Add loading states and loading indicators for GitHub API calls\n- [x] Add error handling for GitHub API failures (rate limiting, 404, auth errors)\n- [x] Polish UI/UX (animations, transitions)\n- [x] GitHub mode UI — allow entering repo/PR manually\n- [x] Context window management for very large PRs\n\n---\n\n## Documentation (COMPLETED)\n- [x] `README.md` — User-facing docs: quick start, configuration, LLM setup, GitHub setup, troubleshooting\n- [x] `agents.md` — Developer/agent docs: project structure, architecture, common tasks\n- [x] `.env.example` — Annotated environment variable reference\n\n---\n\n## Configuration\n\n### Environment Variables (with defaults)\n```\nVITE_GITHUB_PAT=          # GitHub Personal Access Token\nVITE_LLM_API_KEY=         # LLM API Key\nVITE_GITHUB_INSTANCE=     # \"github.com\" or URL for GHES\nVITE_LLM_BACKEND=         # \"openai\" or \"litellm\"\nVITE_LLM_ENDPOINT=        # API endpoint URL\nVITE_LLM_MODEL=           # Model name\nVITE_DEMO_MODE=           # \"true\" or \"false\"\n```\n\n### Runtime Override\nSettings dialog allows overriding env vars at runtime (persisted to localStorage).\n\n---\n\n## Architecture\n\n### Services\n```\nsrc/services/\n├── github.ts      # Fetch PRs, details, diffs, comments (supports GHES)\n├── llm.ts         # Unified interface for OpenAI v1 API + LiteLLM Proxy\n└── dummyData.ts   # Sample PR data for demo mode\n```\n\n### Redux Store\n```\nsrc/store/\n├── index.ts              # Store configuration\n├── hooks.ts              # Typed useAppDispatch / useAppSelector\n└── slices/\n    ├── configSlice.ts    # App config (env defaults + runtime overrides)\n    ├── prsSlice.ts       # Current PR data\n    └── chatSlice.ts      # Messages + streaming state\n```\n\n### Components\n```\nsrc/components/\n├── SettingsDialog.tsx   # Runtime config override\n├── Sidebar.tsx          # Repo/PR navigation (or demo mode toggle)\n├── ChatWindow.tsx       # Chat messages + input\n└── PRViewer.tsx         # File diffs, metadata\n```\n\n---\n\n## Data Types\n\n### GitHub PR\n```typescript\ninterface PullRequest {\n  id: number;\n  number: number;\n  title: string;\n  body: string | null;\n  state: 'open' | 'closed';\n  merged: boolean;\n  merged_at: string | null;\n  user: GitHubUser;\n  created_at: string;\n  updated_at: string;\n  head: { ref: string; sha: string; repo: { full_name: string } | null };\n  base: { ref: string; sha: string; repo: { full_name: string } };\n  url: string;\n  html_url: string;\n  diff_url: string;\n  additions: number;\n  deletions: number;\n  changed_files: number;\n  comments: number;\n  review_comments: number;\n  commits: number;\n  labels: Array<{ id: number; name: string; color: string }>;\n  requested_reviewers: GitHubUser[];\n}\n```\n\n### Chat Message\n```typescript\ninterface ChatMessage {\n  id: string;\n  role: 'user' | 'assistant' | 'system';\n  content: string;\n  timestamp: number;\n  isStreaming?: boolean;\n  error?: string;\n}\n```\n\n### App Config\n```typescript\ninterface AppConfig {\n  githubPat: string;\n  llmApiKey: string;\n  githubInstance: string;\n  llmBackend: 'openai' | 'litellm';\n  llmEndpoint: string;\n  llmModel: string;\n  demoMode: boolean;\n}\n```\n\n---\n\n## Error Handling\n\n### LLM API Errors\n- Invalid API key: Error shown in message bubble\n- Rate limiting: Error shown in message bubble\n- Network errors: Error shown in message bubble\n- Streaming errors: Graceful fallback with error message\n\n### GitHub API Errors (when enabled)\n- Invalid PAT: Prompt to update token\n- Rate limiting: Show remaining requests\n- Not found (404): Repository/PR not found\n\n---\n\n### ⏳ Phase 8: Code Quality & UX Improvements (PENDING)\n\nIdentified during initial code review. These are non-blocking improvements to address after the Phase 7 polish work.\n\n#### Quality\n- [x] **ESLint v9 flat config** (`eslint.config.js`) — Added repository-level flat config so `npm run lint` works with ESLint 9.\n- [x] **`getPRFiles` pagination** (`src/services/github.ts:96`) — The GitHub API caps file lists at 100 per page. PRs with >100 changed files silently return incomplete data. Add pagination (loop until `response.data.length < perPage`) or at minimum show a warning banner in `PRViewer` when the file count equals the page limit.\n- [x] **Stable React keys in `DiffView`** (`src/components/PRViewer.tsx:41`) — Diff lines currently use array index as `key`. Replace with a content-based key (e.g. `` `${i}-${line.slice(0, 8)}` ``) to prevent React reusing DOM nodes incorrectly when switching between files.\n\n#### UX\n- [x] **Persist dark mode preference** (`src/App.tsx:10`) — Dark mode state resets on every page reload. Initialise from `localStorage` and respect the OS `prefers-color-scheme` media query:\n  ```ts\n  const [darkMode, setDarkMode] = useState(\n    () => localStorage.getItem('darkMode') === 'true'\n      || window.matchMedia('(prefers-color-scheme: dark)').matches\n  );\n  ```\n  Also persist the toggle: `localStorage.setItem('darkMode', String(!darkMode))` inside `toggleDarkMode`.\n- [x] **Wire up the Refresh button** (`src/components/Sidebar.tsx:111`) — The refresh `<button>` in the sidebar is rendered in GitHub mode but has no `onClick` handler. Either connect it to a `fetchPullRequests` thunk (part of Phase 7 GitHub UI work) or hide it with `{false && ...}` until that feature is ready, to avoid confusing users with a dead control.\n\n---\n\n## OpenSpec Alignment Notes (2026-03-14)\n\n- `openspec/changes/add-pr-summary-tab/tasks.md` was updated to capture quick-orientation behavior decisions from explore mode.\n- Summary behavior target: 2-4 line orientation section, adaptive `Focus Areas` with bounds `0..4`, and valid success output when focus areas are omitted for simple PRs.\n- Synced delta spec `openspec/changes/add-pr-summary-tab/specs/pr-review-summary/spec.md` into new main spec `openspec/specs/pr-review-summary/spec.md`.\n- Added change scaffold `openspec/changes/update-pr-review-summary-ui-readability/` with completed proposal, design, spec delta, and tasks artifacts for summary UI readability improvements.\n- Refined `update-pr-review-summary-ui-readability` scope to panelized Summary display: Orientation and each Focus Area render as separate cards styled like Comments/Reviews, with blue/yellow title accents and no spec contract changes.\n\n---\n\n## ✅ Phase 9: PR Summary Tab (COMPLETED)\n\n- [x] Extend `AppConfig` with summary fields: `summaryEnabled`, `summaryPrompt`, `summaryCommands`\n- [x] Add/export `DEFAULT_SUMMARY_PROMPT` and keep reset behavior prompt-only\n- [x] Add PR commits API loading (`getPRCommits`) and Redux state wiring\n- [x] Add summary lifecycle state in `prsSlice` (`status`, `content`, `generatedAt`, `error`)\n- [x] Implement summary orchestration utilities:\n  - per-PR+head+prompt cache keying\n  - sessionStorage read/write cache\n  - one-per-minute per-PR-head rate limiting\n  - empty textual diff detection\n- [x] Extend LLM service with structured summary prompt assembly (orientation + adaptive focus areas)\n- [x] Add Summary tab UI in `PRViewer` with loading/success/empty/error states and timestamp footer\n- [x] Wire summary generation on PR selection/load and keep summary separate from chat history/context\n- [x] Add/expand tests for config, GitHub service, PR slice, summary utilities, LLM prompt, Settings UI, and Summary tab rendering\n- [x] Update README and agent guidance for summary behavior, fallback states, and output contract\n\n---\n\n## OpenSpec Implementation Updates (2026-03-14)\n\n- [x] Completed OpenSpec change `update-pr-review-summary-ui-readability` implementation tasks (8/8) for panelized Summary tab readability updates.\n- [x] Updated Summary success rendering in `src/components/PRViewer.tsx` to show an `Orientation` panel and per-item `Focus Area N` panels with blue/yellow title accents.\n- [x] Kept summary generation flow and fallback state semantics unchanged (loading/empty/error behavior preserved).\n- [x] Updated `src/components/PRViewer.summary.test.tsx` assertions for orientation-only and orientation+focus-area panelized rendering.\n- [x] Validation run completed with `npm run lint && npm run build && npm run test`.\n\n## OpenSpec Explore Decision Updates (2026-03-16)\n\n- [x] Clarified `repository-watcher` UX scope: `repo-pr-list` renders in the left `PR Review` pane (not center chat area or right PR viewer pane).\n- [x] Captured sidebar navigator behavior: controls/watchlist view and repo list view with explicit Back action.\n- [x] Captured `Load PR` behavior parity with demo mode: when PR number is provided, show a list containing one selected PR.\n- [x] Updated change artifacts (`proposal.md`, `design.md`, `tasks.md`, `specs/repo-pr-list/spec.md`, `specs/watched-repos/spec.md`) to reflect the decision.\n\n## OpenSpec Implementation Updates (2026-03-16)\n\n- [x] Implemented `repository-watcher` change tasks end-to-end.\n- [x] Added watched repository state and persistence via `src/store/slices/watchedReposSlice.ts`.\n- [x] Added repository PR list loading in `src/store/slices/prsSlice.ts` using existing `listPullRequests()` integration.\n- [x] Added sidebar repo-list UI mode with Back navigation and new `src/components/PRList.tsx` component.\n- [x] Updated sidebar to support optional PR number flow (`Load PR` vs `Load All PRs`) and watchlist interactions.\n- [x] Added tests for watched repos, repository PR list loading, and sidebar list selection flows.\n- [x] Validation run completed with `npm run lint && npm run build && npm run test`.\n\n## OpenSpec Spec Sync Updates (2026-03-16)\n\n- [x] Synced change `repository-watcher` delta specs into new main specs for `repo-pr-list` and `watched-repos`.\n- [x] Created `openspec/specs/repo-pr-list/spec.md` from `openspec/changes/repository-watcher/specs/repo-pr-list/spec.md`.\n- [x] Created `openspec/specs/watched-repos/spec.md` from `openspec/changes/repository-watcher/specs/watched-repos/spec.md`.\n\n---\n\n## Code Review Hardening Tasks (2026-03-17)\n\n- [x] Task 1: Add stale-response guards in `prsSlice` so older PR resource responses cannot overwrite newer selection state.\n- [x] Task 2: Add regression tests for rapid PR switching race in `src/store/slices/prsSlice.test.ts`.\n- [x] Task 3: Add `Dialog.Description` in `src/components/SettingsDialog.tsx` to satisfy Radix dialog accessibility contract.\n- [x] Task 4: Update settings dialog tests to assert description semantics and eliminate warning output.\n- [x] Task 5: Add chat stream request cancellation (`AbortController`) in `src/components/ChatWindow.tsx` and `src/services/llm.ts`.\n- [x] Task 6: Add tests for stream cancellation behavior and UI streaming state cleanup.\n\n## Distribution and Release Automation (2026-03-17)\n\n- [x] Added multi-stage Docker image build with static asset runtime (`Dockerfile`) and SPA-safe nginx config (`nginx.conf`).\n- [x] Added `.dockerignore` and npm helper scripts (`docker:build`, `docker:run`) for local image usage.\n- [x] Added release-triggered GHCR publish workflow (`.github/workflows/docker-release.yml`) with semver-distance tagging (`vX.Y.Z-N`) and fallback (`v0.0.0-N`).\n- [x] Updated CI workflow (`.github/workflows/build.yml`) to run lint, tests, and production build.\n- [x] Updated `README.md` with local Docker usage, GHCR usage, tagging semantics, and distribution alternatives.\n\n## LLM Key Warning Cleanup (2026-03-18)\n\n- [x] Verified non-OK LLM provider responses (including 4xx) are thrown by `LLMService` and surfaced in chat error bubbles.\n- [x] Removed chat footer warning that required configuring an LLM key in settings.\n- [x] Added tests to lock behavior for optional API key UI and 4xx error surfacing.\n\n## Frontend Bundle Split Pass 1 (2026-03-18)\n\n- [x] Extracted assistant markdown + syntax highlighting rendering into lazy-loaded `src/components/AssistantMarkdown.tsx`.\n- [x] Updated `ChatWindow` to load assistant markdown renderer via `React.lazy` and `Suspense`.\n- [x] Added lightweight fallback UI in assistant bubbles while markdown chunk loads.\n\n## Frontend Bundle Split Follow-ups (OPEN)\n\n- [ ] Pass 2: Lazy-load PR summary markdown rendering path in `src/components/PRViewer.tsx` (`SummaryPanel`) to reduce initial bundle size further.\n- [ ] Split syntax highlighting payload in `src/components/AssistantMarkdown.tsx` (language/style loading strategy) to shrink lazy chunk size.\n- [ ] Evaluate `vite.config.ts` manual chunking (`build.rollupOptions.output.manualChunks`) for stable vendor chunk boundaries and improved cacheability.\n",
+                  "additions": 6,
+                  "deletions": 0
+                }
+              ],
+              "diagnostics": {
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/components/SettingsDialog.tsx": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/components/ChatWindow.tsx": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/store/slices/configSlice.ts": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/types/index.ts": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/store/slices/configSlice.test.ts": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/services/llm.ts": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/components/ChatWindow.test.tsx": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/components/Sidebar.tsx": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/components/SettingsDialog.test.tsx": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/services/llm.test.ts": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/store/slices/chatSlice.ts": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/store/slices/chatSlice.test.ts": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/components/PRViewer.tsx": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/App.tsx": [],
+                "/home/mark/sandbox/personal/pr-review-chatbot/src/components/AssistantMarkdown.tsx": []
+              },
+              "truncated": false
+            },
+            "time": {
+              "start": 1773873621599,
+              "end": 1773873621610
+            }
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "fc_0bd61341983c4c580169bb29d25940819886c89fd45daa3576"
+            }
+          },
+          "id": "prt_d031b5e86001hrdxc5NTRIpDQJ",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031b4f03002BACCQ1fQmW62Q7"
+        },
+        {
+          "type": "step-finish",
+          "reason": "tool-calls",
+          "snapshot": "b16ff23ec6d68822bdad3ede473be6ab65822502",
+          "cost": 0.1159935,
+          "tokens": {
+            "total": 63769,
+            "input": 63466,
+            "output": 303,
+            "reasoning": 49,
+            "cache": {
+              "read": 0,
+              "write": 0
+            }
+          },
+          "id": "prt_d031b6ab5001ZIqUYP3z31bb5e",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031b4f03002BACCQ1fQmW62Q7"
+        },
+        {
+          "type": "patch",
+          "hash": "b199e45e6e77e544e82839ac962fe3861c9ba913",
+          "files": [
+            "/home/mark/sandbox/personal/pr-review-chatbot/plans/plan.md"
+          ],
+          "id": "prt_d031b6ae0001NtnFfWWe7eEWjj",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031b4f03002BACCQ1fQmW62Q7"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "assistant",
+        "time": {
+          "created": 1773873621761,
+          "completed": 1773873623953
+        },
+        "parentID": "msg_d031b4ee4001YJq9aq4O6JzPPb",
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/home/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/home/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0126448,
+        "tokens": {
+          "total": 63878,
+          "input": 176,
+          "output": 86,
+          "reasoning": 0,
+          "cache": {
+            "read": 63616,
+            "write": 0
+          }
+        },
+        "finish": "stop",
+        "id": "msg_d031b6b01002fIVrAWO98ojv46",
+        "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc"
+      },
+      "parts": [
+        {
+          "type": "step-start",
+          "snapshot": "b16ff23ec6d68822bdad3ede473be6ab65822502",
+          "id": "prt_d031b6f01001wjdhuIaCGIJGRx",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031b6b01002fIVrAWO98ojv46"
+        },
+        {
+          "type": "text",
+          "text": "Added them as open follow-up items in `plans/plan.md`.\n\n- New section: `Frontend Bundle Split Follow-ups (OPEN)`\n- Added unchecked items for:\n  - Pass 2 lazy-loading in `src/components/PRViewer.tsx`\n  - Splitting syntax-highlighting payload in `src/components/AssistantMarkdown.tsx`\n  - Evaluating `manualChunks` in `vite.config.ts`",
+          "time": {
+            "start": 1773873623818,
+            "end": 1773873623818
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "msg_0699a6e75734aae50169bb29d6b0508197b61b686dcd4e903b"
+            }
+          },
+          "id": "prt_d031b6f0a001AMyTOL3DNNaQwT",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031b6b01002fIVrAWO98ojv46"
+        },
+        {
+          "type": "step-finish",
+          "reason": "stop",
+          "snapshot": "b16ff23ec6d68822bdad3ede473be6ab65822502",
+          "cost": 0.0126448,
+          "tokens": {
+            "total": 63878,
+            "input": 176,
+            "output": 86,
+            "reasoning": 0,
+            "cache": {
+              "read": 63616,
+              "write": 0
+            }
+          },
+          "id": "prt_d031b734000194ZWKxlHgMyTgK",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031b6b01002fIVrAWO98ojv46"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "user",
+        "time": {
+          "created": 1773873646368
+        },
+        "summary": {
+          "diffs": []
+        },
+        "agent": "build",
+        "model": {
+          "providerID": "opencode",
+          "modelID": "gpt-5.3-codex"
+        },
+        "id": "msg_d031bcb15001zW2BbtRMCb4Jyo",
+        "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "Commit the changes",
+          "id": "prt_d031bcb1600120I1NHGA2A3wSJ",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031bcb15001zW2BbtRMCb4Jyo"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "assistant",
+        "time": {
+          "created": 1773873646384,
+          "completed": 1773873649601
+        },
+        "parentID": "msg_d031bcb15001zW2BbtRMCb4Jyo",
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/home/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/home/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0157598,
+        "tokens": {
+          "total": 64004,
+          "input": 860,
+          "output": 168,
+          "reasoning": 63,
+          "cache": {
+            "read": 62976,
+            "write": 0
+          }
+        },
+        "finish": "tool-calls",
+        "id": "msg_d031bcb30002hqJU8B6MjMMohd",
+        "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc"
+      },
+      "parts": [
+        {
+          "type": "step-start",
+          "snapshot": "b16ff23ec6d68822bdad3ede473be6ab65822502",
+          "id": "prt_d031bcf63001RsCKJLFfXZTp3t",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031bcb30002hqJU8B6MjMMohd"
+        },
+        {
+          "type": "reasoning",
+          "text": "**Verifying repository status before commit**",
+          "metadata": {
+            "opencode": {
+              "itemId": "rs_0ea0fe8179ffc4de0169bb29ef6020819b92f9944ce2117a8d",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "time": {
+            "start": 1773873647484,
+            "end": 1773873649386
+          },
+          "id": "prt_d031bcf7b001KK10c7JhOSGHOb",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031bcb30002hqJU8B6MjMMohd"
+        },
+        {
+          "type": "tool",
+          "callID": "call_Z3mBcgIRaDDhXacrq8BRTFN5",
+          "tool": "bash",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git status --short",
+              "description": "Show changed and untracked files"
+            },
+            "output": " M agents.md\n M plans/plan.md\n M src/components/ChatWindow.tsx\n?? src/components/AssistantMarkdown.tsx\n",
+            "title": "Show changed and untracked files",
+            "metadata": {
+              "output": " M agents.md\n M plans/plan.md\n M src/components/ChatWindow.tsx\n?? src/components/AssistantMarkdown.tsx\n",
+              "exit": 0,
+              "description": "Show changed and untracked files",
+              "truncated": false
+            },
+            "time": {
+              "start": 1773873649394,
+              "end": 1773873649411
+            }
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "fc_0ea0fe8179ffc4de0169bb29f13e44819ba53695c98eed3afc"
+            }
+          },
+          "id": "prt_d031bd6ec001MgsRpegeLK4NZ7",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031bcb30002hqJU8B6MjMMohd"
+        },
+        {
+          "type": "tool",
+          "callID": "call_t4LA3k2nGguP2RG9ucgxUo1Z",
+          "tool": "bash",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git diff --staged && git diff",
+              "description": "Show staged and unstaged changes"
+            },
+            "output": "diff --git a/agents.md b/agents.md\nindex 105c70f..ae4a052 100644\n--- a/agents.md\n+++ b/agents.md\n@@ -61,6 +61,7 @@ src/\n - Configurable endpoint, model, and API key\n - API key is optional for providers/endpoints that do not require auth\n - HTTP API failures (including provider 4xx errors) are surfaced in assistant message bubbles\n+- Assistant markdown rendering (markdown + syntax highlighting) is lazy-loaded to reduce initial bundle cost; chat shows a lightweight fallback while that chunk loads\n - Separate summary prompt assembly path (`buildSummaryPrompt`) for orientation-first PR kickoff summaries\n \n ### GitHub Integration\ndiff --git a/plans/plan.md b/plans/plan.md\nindex f6795d7..96ba5db 100644\n--- a/plans/plan.md\n+++ b/plans/plan.md\n@@ -325,3 +325,15 @@ Identified during initial code review. These are non-blocking improvements to ad\n - [x] Verified non-OK LLM provider responses (including 4xx) are thrown by `LLMService` and surfaced in chat error bubbles.\n - [x] Removed chat footer warning that required configuring an LLM key in settings.\n - [x] Added tests to lock behavior for optional API key UI and 4xx error surfacing.\n+\n+## Frontend Bundle Split Pass 1 (2026-03-18)\n+\n+- [x] Extracted assistant markdown + syntax highlighting rendering into lazy-loaded `src/components/AssistantMarkdown.tsx`.\n+- [x] Updated `ChatWindow` to load assistant markdown renderer via `React.lazy` and `Suspense`.\n+- [x] Added lightweight fallback UI in assistant bubbles while markdown chunk loads.\n+\n+## Frontend Bundle Split Follow-ups (OPEN)\n+\n+- [ ] Pass 2: Lazy-load PR summary markdown rendering path in `src/components/PRViewer.tsx` (`SummaryPanel`) to reduce initial bundle size further.\n+- [ ] Split syntax highlighting payload in `src/components/AssistantMarkdown.tsx` (language/style loading strategy) to shrink lazy chunk size.\n+- [ ] Evaluate `vite.config.ts` manual chunking (`build.rollupOptions.output.manualChunks`) for stable vendor chunk boundaries and improved cacheability.\ndiff --git a/src/components/ChatWindow.tsx b/src/components/ChatWindow.tsx\nindex b1500b6..c317e9d 100644\n--- a/src/components/ChatWindow.tsx\n+++ b/src/components/ChatWindow.tsx\n@@ -1,9 +1,5 @@\n-import { useEffect, useRef, useCallback } from 'react';\n+import { useEffect, useRef, useCallback, useState, lazy, Suspense } from 'react';\n import { Send, Trash2, Loader2, AlertCircle } from 'lucide-react';\n-import ReactMarkdown from 'react-markdown';\n-import remarkGfm from 'remark-gfm';\n-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';\n-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';\n import { useAppDispatch, useAppSelector } from '../store/hooks';\n import {\n   addMessage,\n@@ -17,7 +13,8 @@ import { createLLMService } from '../services/llm';\n import { dummyPRContext } from '../services/dummyData';\n import { cn, generateId } from '../lib/utils';\n import type { ChatMessage, PRContext } from '../types';\n-import { useState } from 'react';\n+\n+const AssistantMarkdown = lazy(() => import('./AssistantMarkdown'));\n \n interface MessageBubbleProps {\n   message: ChatMessage;\n@@ -57,39 +54,17 @@ function MessageBubble({ message }: MessageBubbleProps) {\n         ) : isUser ? (\n           <p className=\"whitespace-pre-wrap\">{message.content}</p>\n         ) : (\n-          <div className=\"prose prose-sm dark:prose-invert max-w-none\">\n-            <ReactMarkdown\n-              remarkPlugins={[remarkGfm]}\n-              components={{\n-                code({ className, children, ...props }) {\n-                  const match = /language-(\\w+)/.exec(className ?? '');\n-                  const isInline = !match;\n-                  return isInline ? (\n-                    <code\n-                      className=\"bg-background/50 rounded px-1 py-0.5 font-mono text-xs\"\n-                      {...props}\n-                    >\n-                      {children}\n-                    </code>\n-                  ) : (\n-                    <SyntaxHighlighter\n-                      style={oneDark}\n-                      language={match[1]}\n-                      PreTag=\"div\"\n-                      className=\"rounded-md text-xs\"\n-                    >\n-                      {String(children).replace(/\\n$/, '')}\n-                    </SyntaxHighlighter>\n-                  );\n-                },\n-              }}\n-            >\n-              {message.content}\n-            </ReactMarkdown>\n-            {message.isStreaming && (\n-              <span className=\"inline-block w-1.5 h-4 bg-current animate-pulse ml-0.5\" />\n-            )}\n-          </div>\n+          <Suspense\n+            fallback={\n+              <div className=\"space-y-2 min-w-[180px]\" aria-live=\"polite\">\n+                <p className=\"text-xs text-muted-foreground\">Rendering response...</p>\n+                <div className=\"h-2.5 w-full rounded bg-muted/70 animate-pulse\" />\n+                <div className=\"h-2.5 w-4/5 rounded bg-muted/70 animate-pulse\" />\n+              </div>\n+            }\n+          >\n+            <AssistantMarkdown content={message.content} isStreaming={message.isStreaming} />\n+          </Suspense>\n         )}\n       </div>\n     </div>\n",
+            "title": "Show staged and unstaged changes",
+            "metadata": {
+              "output": "diff --git a/agents.md b/agents.md\nindex 105c70f..ae4a052 100644\n--- a/agents.md\n+++ b/agents.md\n@@ -61,6 +61,7 @@ src/\n - Configurable endpoint, model, and API key\n - API key is optional for providers/endpoints that do not require auth\n - HTTP API failures (including provider 4xx errors) are surfaced in assistant message bubbles\n+- Assistant markdown rendering (markdown + syntax highlighting) is lazy-loaded to reduce initial bundle cost; chat shows a lightweight fallback while that chunk loads\n - Separate summary prompt assembly path (`buildSummaryPrompt`) for orientation-first PR kickoff summaries\n \n ### GitHub Integration\ndiff --git a/plans/plan.md b/plans/plan.md\nindex f6795d7..96ba5db 100644\n--- a/plans/plan.md\n+++ b/plans/plan.md\n@@ -325,3 +325,15 @@ Identified during initial code review. These are non-blocking improvements to ad\n - [x] Verified non-OK LLM provider responses (including 4xx) are thrown by `LLMService` and surfaced in chat error bubbles.\n - [x] Removed chat footer warning that required configuring an LLM key in settings.\n - [x] Added tests to lock behavior for optional API key UI and 4xx error surfacing.\n+\n+## Frontend Bundle Split Pass 1 (2026-03-18)\n+\n+- [x] Extracted assistant markdown + syntax highlighting rendering into lazy-loaded `src/components/AssistantMarkdown.tsx`.\n+- [x] Updated `ChatWindow` to load assistant markdown renderer via `React.lazy` and `Suspense`.\n+- [x] Added lightweight fallback UI in assistant bubbles while markdown chunk loads.\n+\n+## Frontend Bundle Split Follow-ups (OPEN)\n+\n+- [ ] Pass 2: Lazy-load PR summary markdown rendering path in `src/components/PRViewer.tsx` (`SummaryPanel`) to reduce initial bundle size further.\n+- [ ] Split syntax highlighting payload in `src/components/AssistantMarkdown.tsx` (language/style loading strategy) to shrink lazy chunk size.\n+- [ ] Evaluate `vite.config.ts` manual chunking (`build.rollupOptions.output.manualChunks`) for stable vendor chunk boundaries and improved cacheability.\ndiff --git a/src/components/ChatWindow.tsx b/src/components/ChatWindow.tsx\nindex b1500b6..c317e9d 100644\n--- a/src/components/ChatWindow.tsx\n+++ b/src/components/ChatWindow.tsx\n@@ -1,9 +1,5 @@\n-import { useEffect, useRef, useCallback } from 'react';\n+import { useEffect, useRef, useCallback, useState, lazy, Suspense } from 'react';\n import { Send, Trash2, Loader2, AlertCircle } from 'lucide-react';\n-import ReactMarkdown from 'react-markdown';\n-import remarkGfm from 'remark-gfm';\n-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';\n-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';\n import { useAppDispatch, useAppSelector } from '../store/hooks';\n import {\n   addMessage,\n@@ -17,7 +13,8 @@ import { createLLMService } from '../services/llm';\n import { dummyPRContext } from '../services/dummyData';\n import { cn, generateId } from '../lib/utils';\n import type { ChatMessage, PRContext } from '../types';\n-import { useState } from 'react';\n+\n+const AssistantMarkdown = lazy(() => import('./AssistantMarkdown'));\n \n interface MessageBubbleProps {\n   message: ChatMessage;\n@@ -57,39 +54,17 @@ function MessageBubble({ message }: MessageBubbleProps) {\n         ) : isUser ? (\n           <p className=\"whitespace-pre-wrap\">{message.content}</p>\n         ) : (\n-          <div className=\"prose prose-sm dark:prose-invert max-w-none\">\n-            <ReactMarkdown\n-              remarkPlugins={[remarkGfm]}\n-              components={{\n-                code({ className, children, ...props }) {\n-                  const match = /language-(\\w+)/.exec(className ?? '');\n-                  const isInline = !match;\n-                  return isInline ? (\n-                    <code\n-                      className=\"bg-background/50 rounded px-1 py-0.5 font-mono text-xs\"\n-                      {...props}\n-                    >\n-                      {children}\n-                    </code>\n-                  ) : (\n-                    <SyntaxHighlighter\n-                      style={oneDark}\n-                      language={match[1]}\n-                      PreTag=\"div\"\n-                      className=\"rounded-md text-xs\"\n-                    >\n-                      {String(children).replace(/\\n$/, '')}\n-                    </SyntaxHighlighter>\n-                  );\n-                },\n-              }}\n-            >\n-              {message.content}\n-            </ReactMarkdown>\n-            {message.isStreaming && (\n-              <span className=\"inline-block w-1.5 h-4 bg-current animate-pulse ml-0.5\" />\n-            )}\n-          </div>\n+          <Suspense\n+            fallback={\n+              <div className=\"space-y-2 min-w-[180px]\" aria-live=\"polite\">\n+                <p className=\"text-xs text-muted-foreground\">Rendering response...</p>\n+                <div className=\"h-2.5 w-full rounded bg-muted/70 animate-pulse\" />\n+                <div className=\"h-2.5 w-4/5 rounded bg-muted/70 animate-pulse\" />\n+              </div>\n+            }\n+          >\n+            <AssistantMarkdown content={message.content} isStreaming={message.isStreaming} />\n+          </Suspense>\n         )}\n       </div>\n     </div>\n",
+              "exit": 0,
+              "description": "Show staged and unstaged changes",
+              "truncated": false
+            },
+            "time": {
+              "start": 1773873649402,
+              "end": 1773873649421
+            }
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "fc_0ea0fe8179ffc4de0169bb29f13e54819ba34901d96cea64c8"
+            }
+          },
+          "id": "prt_d031bd6f6001bcNnGT8WTaoYYk",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031bcb30002hqJU8B6MjMMohd"
+        },
+        {
+          "type": "tool",
+          "callID": "call_YfgFkJAaNBeRTvGas4YBP3pW",
+          "tool": "bash",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git log -6 --oneline",
+              "description": "Show recent commit messages"
+            },
+            "output": "8730abd fix(chat): drop required-key warning and lock 4xx error visibility\ne68617b build(distribution): add Docker release workflow and GHCR docs\n319b548 test(chat): verify stream abort on PR switch\ndaf9f9f fix(chat): abort in-flight streams on context changes\n1c82d6b test(settings): assert dialog accessible description\n989ed80 fix(settings): add dialog description for accessibility\n",
+            "title": "Show recent commit messages",
+            "metadata": {
+              "output": "8730abd fix(chat): drop required-key warning and lock 4xx error visibility\ne68617b build(distribution): add Docker release workflow and GHCR docs\n319b548 test(chat): verify stream abort on PR switch\ndaf9f9f fix(chat): abort in-flight streams on context changes\n1c82d6b test(settings): assert dialog accessible description\n989ed80 fix(settings): add dialog description for accessibility\n",
+              "exit": 0,
+              "description": "Show recent commit messages",
+              "truncated": false
+            },
+            "time": {
+              "start": 1773873649440,
+              "end": 1773873649455
+            }
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "fc_0ea0fe8179ffc4de0169bb29f13e5c819b8d7a1750be98ffe2"
+            }
+          },
+          "id": "REDACTED",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031bcb30002hqJU8B6MjMMohd"
+        },
+        {
+          "type": "step-finish",
+          "reason": "tool-calls",
+          "snapshot": "b16ff23ec6d68822bdad3ede473be6ab65822502",
+          "cost": 0.0157598,
+          "tokens": {
+            "total": 64004,
+            "input": 860,
+            "output": 168,
+            "reasoning": 63,
+            "cache": {
+              "read": 62976,
+              "write": 0
+            }
+          },
+          "id": "prt_d031bd791001b2ioRgbNuiMwR3",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031bcb30002hqJU8B6MjMMohd"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "assistant",
+        "time": {
+          "created": 1773873649615,
+          "completed": 1773873669575
+        },
+        "parentID": "msg_d031bcb15001zW2BbtRMCb4Jyo",
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/home/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/home/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.01890595,
+        "tokens": {
+          "total": 65594,
+          "input": 1653,
+          "output": 197,
+          "reasoning": 150,
+          "cache": {
+            "read": 63744,
+            "write": 0
+          }
+        },
+        "finish": "tool-calls",
+        "id": "msg_d031bd7cf002qG7pFjWs7uuseo",
+        "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc"
+      },
+      "parts": [
+        {
+          "type": "step-start",
+          "snapshot": "b16ff23ec6d68822bdad3ede473be6ab65822502",
+          "id": "prt_d031bdc980014EFyFRF9zFg6Fp",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031bd7cf002qG7pFjWs7uuseo"
+        },
+        {
+          "type": "reasoning",
+          "text": "**Confirming tests before commit**",
+          "metadata": {
+            "opencode": {
+              "itemId": "rs_07ec97d38d35b3550169bb29f2af44819a90e08fbd08e93cd6",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "time": {
+            "start": 1773873650842,
+            "end": 1773873653845
+          },
+          "id": "prt_d031bdc9a001oCYl56iDD4Q7i7",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031bd7cf002qG7pFjWs7uuseo"
+        },
+        {
+          "type": "tool",
+          "callID": "REDACTED",
+          "tool": "bash",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "npm run lint -- --max-warnings=0 && npm run test && npm run build",
+              "description": "Run lint tests and build before commit"
+            },
+            "output": "\n> pr-review-chatbot@0.1.0 lint\n> eslint . --max-warnings=0\n\n\n> pr-review-chatbot@0.1.0 test\n> vitest run\n\n\n\u001b[1m\u001b[46m RUN \u001b[49m\u001b[22m \u001b[36mv4.0.18 \u001b[39m\u001b[90m/home/mark/sandbox/personal/pr-review-chatbot\u001b[39m\n\n(node:108363) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n \u001b[32m✓\u001b[39m src/store/slices/configSlice.test.ts \u001b[2m(\u001b[22m\u001b[2m9 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 15\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/components/PRViewer.test.ts \u001b[2m(\u001b[22m\u001b[2m2 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 5\u001b[2mms\u001b[22m\u001b[39m\n(node:108369) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n \u001b[32m✓\u001b[39m src/store/slices/chatSlice.test.ts \u001b[2m(\u001b[22m\u001b[2m11 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 16\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/services/summary.test.ts \u001b[2m(\u001b[22m\u001b[2m4 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 5\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/services/llm.test.ts \u001b[2m(\u001b[22m\u001b[2m25 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 26\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/lib/utils.test.ts \u001b[2m(\u001b[22m\u001b[2m16 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 35\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/services/github.test.ts \u001b[2m(\u001b[22m\u001b[2m16 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 27\u001b[2mms\u001b[22m\u001b[39m\n(node:108325) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:108317) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:108316) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n \u001b[32m✓\u001b[39m src/store/slices/watchedReposSlice.test.ts \u001b[2m(\u001b[22m\u001b[2m3 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 25\u001b[2mms\u001b[22m\u001b[39m\n(node:108315) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n \u001b[32m✓\u001b[39m src/store/slices/prsSlice.test.ts \u001b[2m(\u001b[22m\u001b[2m10 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 52\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/App.test.tsx \u001b[2m(\u001b[22m\u001b[2m3 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 76\u001b[2mms\u001b[22m\u001b[39m\n(node:108318) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n \u001b[32m✓\u001b[39m src/components/Sidebar.test.tsx \u001b[2m(\u001b[22m\u001b[2m3 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 245\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/components/PRViewer.summary.test.tsx \u001b[2m(\u001b[22m\u001b[2m5 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 129\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/components/ChatWindow.test.tsx \u001b[2m(\u001b[22m\u001b[2m3 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 297\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/components/SettingsDialog.test.tsx \u001b[2m(\u001b[22m\u001b[2m2 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[33m 669\u001b[2mms\u001b[22m\u001b[39m\n     \u001b[33m\u001b[2m✓\u001b[22m\u001b[39m shows summary controls and saves updates \u001b[33m 488\u001b[2mms\u001b[22m\u001b[39m\n\n\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[32m14 passed\u001b[39m\u001b[22m\u001b[90m (14)\u001b[39m\n\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[32m112 passed\u001b[39m\u001b[22m\u001b[90m (112)\u001b[39m\n\u001b[2m   Start at \u001b[22m 22:40:56\n\u001b[2m   Duration \u001b[22m 2.54s\u001b[2m (transform 1.62s, setup 1.28s, import 4.42s, tests 1.62s, environment 12.46s)\u001b[22m\n\n\n> pr-review-chatbot@0.1.0 build\n> tsc -b && vite build\n\nvite v6.4.1 building for production...\ntransforming...\n✓ 3038 modules transformed.\nrendering chunks...\ncomputing gzip size...\ndist/index.html                              0.46 kB │ gzip:   0.30 kB\ndist/assets/index-VwhLKpNI.css              23.81 kB │ gzip:   5.20 kB\ndist/assets/index-B8tVQn3e.js              511.06 kB │ gzip: 162.73 kB\ndist/assets/AssistantMarkdown-B86gFKyd.js  648.21 kB │ gzip: 233.34 kB\n✓ built in 5.53s\n\n(!) Some chunks are larger than 500 kB after minification. Consider:\n- Using dynamic import() to code-split the application\n- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks\n- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.\n",
+            "title": "Run lint tests and build before commit",
+            "metadata": {
+              "output": "\n> pr-review-chatbot@0.1.0 lint\n> eslint . --max-warnings=0\n\n\n> pr-review-chatbot@0.1.0 test\n> vitest run\n\n\n\u001b[1m\u001b[46m RUN \u001b[49m\u001b[22m \u001b[36mv4.0.18 \u001b[39m\u001b[90m/home/mark/sandbox/personal/pr-review-chatbot\u001b[39m\n\n(node:108363) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n \u001b[32m✓\u001b[39m src/store/slices/configSlice.test.ts \u001b[2m(\u001b[22m\u001b[2m9 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 15\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/components/PRViewer.test.ts \u001b[2m(\u001b[22m\u001b[2m2 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 5\u001b[2mms\u001b[22m\u001b[39m\n(node:108369) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n \u001b[32m✓\u001b[39m src/store/slices/chatSlice.test.ts \u001b[2m(\u001b[22m\u001b[2m11 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 16\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/services/summary.test.ts \u001b[2m(\u001b[22m\u001b[2m4 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 5\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/services/llm.test.ts \u001b[2m(\u001b[22m\u001b[2m25 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 26\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/lib/utils.test.ts \u001b[2m(\u001b[22m\u001b[2m16 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 35\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/services/github.test.ts \u001b[2m(\u001b[22m\u001b[2m16 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 27\u001b[2mms\u001b[22m\u001b[39m\n(node:108325) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:108317) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:108316) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n \u001b[32m✓\u001b[39m src/store/slices/watchedReposSlice.test.ts \u001b[2m(\u001b[22m\u001b[2m3 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 25\u001b[2mms\u001b[22m\u001b[39m\n(node:108315) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n \u001b[32m✓\u001b[39m src/store/slices/prsSlice.test.ts \u001b[2m(\u001b[22m\u001b[2m10 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 52\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/App.test.tsx \u001b[2m(\u001b[22m\u001b[2m3 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 76\u001b[2mms\u001b[22m\u001b[39m\n(node:108318) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n \u001b[32m✓\u001b[39m src/components/Sidebar.test.tsx \u001b[2m(\u001b[22m\u001b[2m3 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 245\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/components/PRViewer.summary.test.tsx \u001b[2m(\u001b[22m\u001b[2m5 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 129\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/components/ChatWindow.test.tsx \u001b[2m(\u001b[22m\u001b[2m3 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[32m 297\u001b[2mms\u001b[22m\u001b[39m\n \u001b[32m✓\u001b[39m src/components/SettingsDialog.test.tsx \u001b[2m(\u001b[22m\u001b[2m2 tests\u001b[22m\u001b[2m)\u001b[22m\u001b[33m 669\u001b[2mms\u001b[22m\u001b[39m\n     \u001b[33m\u001b[2m✓\u001b[22m\u001b[39m shows summary controls and saves updates \u001b[33m 488\u001b[2mms\u001b[22m\u001b[39m\n\n\u001b[2m Test Files \u001b[22m \u001b[1m\u001b[32m14 passed\u001b[39m\u001b[22m\u001b[90m (14)\u001b[39m\n\u001b[2m      Tests \u001b[22m \u001b[1m\u001b[32m112 passed\u001b[39m\u001b[22m\u001b[90m (112)\u001b[39m\n\u001b[2m   Start at \u001b[22m 22:40:56\n\u001b[2m   Duration \u001b[22m 2.54s\u001b[2m (transform 1.62s, setup 1.28s, import 4.42s, tests 1.62s, environment 12.46s)\u001b[22m\n\n\n> pr-review-chatbot@0.1.0 build\n> tsc -b && vite build\n\nvite v6.4.1 building for production...\ntransforming...\n✓ 3038 modules transformed.\nrendering chunks...\ncomputing gzip size...\ndist/index.html                              0.46 kB │ gzip:   0.30 kB\ndist/assets/index-VwhLKpNI.css              23.81 kB │ gzip:   5.20 kB\ndist/assets/index-B8tVQn3e.js              511.06 kB │ gzip: 162.73 kB\ndist/assets/AssistantMarkdown-B86gFKyd.js  648.21 kB │ gzip: 233.34 kB\n✓ built in 5.53s\n\n(!) Some chunks are larger than 500 kB after minification. Consider:\n- Using dynamic import() to code-split the application\n- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks\n- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.\n",
+              "exit": 0,
+              "description": "Run lint tests and build before commit",
+              "truncated": false
+            },
+            "time": {
+              "start": 1773873654039,
+              "end": 1773873669524
+            }
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "fc_07ec97d38d35b3550169bb29f5bbd4819a9cc42d0c0f345073"
+            }
+          },
+          "id": "prt_d031be8580012ZH02M732XTr8b",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031bd7cf002qG7pFjWs7uuseo"
+        },
+        {
+          "type": "step-finish",
+          "reason": "tool-calls",
+          "snapshot": "b16ff23ec6d68822bdad3ede473be6ab65822502",
+          "cost": 0.01890595,
+          "tokens": {
+            "total": 65594,
+            "input": 1653,
+            "output": 197,
+            "reasoning": 150,
+            "cache": {
+              "read": 63744,
+              "write": 0
+            }
+          },
+          "id": "prt_d031c259a001XcGR7PuJ6km63R",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031bd7cf002qG7pFjWs7uuseo"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "assistant",
+        "time": {
+          "created": 1773873669591,
+          "completed": 1773873675612
+        },
+        "parentID": "msg_d031bcb15001zW2BbtRMCb4Jyo",
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/home/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/home/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.01847265,
+        "tokens": {
+          "total": 67529,
+          "input": 1935,
+          "output": 186,
+          "reasoning": 74,
+          "cache": {
+            "read": 65408,
+            "write": 0
+          }
+        },
+        "finish": "tool-calls",
+        "id": "msg_d031c25d7002ikPTvQgKQxZaW2",
+        "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc"
+      },
+      "parts": [
+        {
+          "type": "step-start",
+          "snapshot": "b16ff23ec6d68822bdad3ede473be6ab65822502",
+          "id": "prt_d031c2aff0015VZ2JA5fLaSkzi",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031c25d7002ikPTvQgKQxZaW2"
+        },
+        {
+          "type": "reasoning",
+          "text": "**Committing staged changes with perf prefix**",
+          "metadata": {
+            "opencode": {
+              "itemId": "rs_0996b5f0b5fff4a30169bb2a06afec81909812704a008aaf66",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "time": {
+            "start": 1773873670913,
+            "end": 1773873672396
+          },
+          "id": "prt_d031c2b01001xSiTyZ59I1NIlc",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031c25d7002ikPTvQgKQxZaW2"
+        },
+        {
+          "type": "tool",
+          "callID": "REDACTED",
+          "tool": "bash",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git add \"src/components/AssistantMarkdown.tsx\" \"src/components/ChatWindow.tsx\" \"plans/plan.md\" \"agents.md\" && git commit -m \"perf(chat): lazy-load assistant markdown rendering\" -m \"Reduce initial bundle cost by loading markdown and syntax highlighting on demand with a lightweight fallback in assistant bubbles, and record follow-up bundle split tasks.\" && git status --short",
+              "description": "Stage files, commit performance split, check status"
+            },
+            "output": "[main 6d1d756] perf(chat): lazy-load assistant markdown rendering\n 4 files changed, 72 insertions(+), 39 deletions(-)\n create mode 100644 src/components/AssistantMarkdown.tsx\n",
+            "title": "Stage files, commit performance split, check status",
+            "metadata": {
+              "output": "[main 6d1d756] perf(chat): lazy-load assistant markdown rendering\n 4 files changed, 72 insertions(+), 39 deletions(-)\n create mode 100644 src/components/AssistantMarkdown.tsx\n",
+              "exit": 0,
+              "description": "Stage files, commit performance split, check status",
+              "truncated": false
+            },
+            "time": {
+              "start": 1773873673302,
+              "end": 1773873675557
+            }
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "fc_0996b5f0b5fff4a30169bb2a084c2c81909921d8f9e80250bc"
+            }
+          },
+          "id": "prt_d031c30ce001RGuvjZSnI5jdjS",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031c25d7002ikPTvQgKQxZaW2"
+        },
+        {
+          "type": "step-finish",
+          "reason": "tool-calls",
+          "snapshot": "b16ff23ec6d68822bdad3ede473be6ab65822502",
+          "cost": 0.01847265,
+          "tokens": {
+            "total": 67529,
+            "input": 1935,
+            "output": 186,
+            "reasoning": 74,
+            "cache": {
+              "read": 65408,
+              "write": 0
+            }
+          },
+          "id": "prt_d031c3d27001oR5L3zbS1KMeUz",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031c25d7002ikPTvQgKQxZaW2"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "assistant",
+        "time": {
+          "created": 1773873675629,
+          "completed": 1773873678432
+        },
+        "parentID": "msg_d031bcb15001zW2BbtRMCb4Jyo",
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/home/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/home/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0148386,
+        "tokens": {
+          "total": 67720,
+          "input": 516,
+          "output": 132,
+          "reasoning": 25,
+          "cache": {
+            "read": 67072,
+            "write": 0
+          }
+        },
+        "finish": "stop",
+        "id": "msg_d031c3d6d002XAPGgDYwPmbF4r",
+        "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc"
+      },
+      "parts": [
+        {
+          "type": "step-start",
+          "snapshot": "b16ff23ec6d68822bdad3ede473be6ab65822502",
+          "id": "prt_d031c41d8001jia4txKAZX6UQt",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031c3d6d002XAPGgDYwPmbF4r"
+        },
+        {
+          "type": "reasoning",
+          "text": "**Noting empty status output**",
+          "metadata": {
+            "opencode": {
+              "itemId": "rs_02f652ed77a26cbb0169bb2a0ca75c81988d8cb9b0809b9c88",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "time": {
+            "start": 1773873676804,
+            "end": 1773873677666
+          },
+          "id": "prt_d031c4204001ktBVmtSPiL7Iez",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031c3d6d002XAPGgDYwPmbF4r"
+        },
+        {
+          "type": "text",
+          "text": "Committed.\n\n- Commit: `6d1d756`\n- Message: `perf(chat): lazy-load assistant markdown rendering`\n- Included:\n  - `src/components/AssistantMarkdown.tsx`\n  - `src/components/ChatWindow.tsx`\n  - `plans/plan.md`\n  - `agents.md`\n\nI also ran validation before commit:\n- `npm run lint -- --max-warnings=0` ✅\n- `npm run test` ✅\n- `npm run build` ✅",
+          "time": {
+            "start": 1773873678293,
+            "end": 1773873678293
+          },
+          "metadata": {
+            "opencode": {
+              "itemId": "msg_02f652ed77a26cbb0169bb2a0d90508198affc05517c9d0bc2"
+            }
+          },
+          "id": "prt_d031c4565001JbPFzQ8vrBfE6C",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031c3d6d002XAPGgDYwPmbF4r"
+        },
+        {
+          "type": "step-finish",
+          "reason": "stop",
+          "snapshot": "b16ff23ec6d68822bdad3ede473be6ab65822502",
+          "cost": 0.0148386,
+          "tokens": {
+            "total": 67720,
+            "input": 516,
+            "output": 132,
+            "reasoning": 25,
+            "cache": {
+              "read": 67072,
+              "write": 0
+            }
+          },
+          "id": "prt_d031c481a001zSpRksehPMxFF4",
+          "sessionID": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+          "messageID": "msg_d031c3d6d002XAPGgDYwPmbF4r"
         }
       ]
     }
