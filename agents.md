@@ -61,6 +61,7 @@ src/
 - Configurable endpoint, model, and API key
 - API key is optional for providers/endpoints that do not require auth
 - HTTP API failures (including provider 4xx errors) are surfaced in assistant message bubbles
+- Assistant markdown rendering (markdown + syntax highlighting) is lazy-loaded to reduce initial bundle cost; chat shows a lightweight fallback while that chunk loads
 - Separate summary prompt assembly path (`buildSummaryPrompt`) for orientation-first PR kickoff summaries
 
 ### GitHub Integration

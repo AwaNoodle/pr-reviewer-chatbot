@@ -325,3 +325,15 @@ Identified during initial code review. These are non-blocking improvements to ad
 - [x] Verified non-OK LLM provider responses (including 4xx) are thrown by `LLMService` and surfaced in chat error bubbles.
 - [x] Removed chat footer warning that required configuring an LLM key in settings.
 - [x] Added tests to lock behavior for optional API key UI and 4xx error surfacing.
+
+## Frontend Bundle Split Pass 1 (2026-03-18)
+
+- [x] Extracted assistant markdown + syntax highlighting rendering into lazy-loaded `src/components/AssistantMarkdown.tsx`.
+- [x] Updated `ChatWindow` to load assistant markdown renderer via `React.lazy` and `Suspense`.
+- [x] Added lightweight fallback UI in assistant bubbles while markdown chunk loads.
+
+## Frontend Bundle Split Follow-ups (OPEN)
+
+- [ ] Pass 2: Lazy-load PR summary markdown rendering path in `src/components/PRViewer.tsx` (`SummaryPanel`) to reduce initial bundle size further.
+- [ ] Split syntax highlighting payload in `src/components/AssistantMarkdown.tsx` (language/style loading strategy) to shrink lazy chunk size.
+- [ ] Evaluate `vite.config.ts` manual chunking (`build.rollupOptions.output.manualChunks`) for stable vendor chunk boundaries and improved cacheability.

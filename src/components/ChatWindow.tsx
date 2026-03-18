@@ -1,9 +1,5 @@
-import { useEffect, useRef, useCallback } from 'react';
+import { useEffect, useRef, useCallback, useState, lazy, Suspense } from 'react';
 import { Send, Trash2, Loader2, AlertCircle } from 'lucide-react';
-import ReactMarkdown from 'react-markdown';
-import remarkGfm from 'remark-gfm';
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
-import { oneDark } from 'react-syntax-highlighter/dist/esm/styles/prism';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
   addMessage,
@@ -17,7 +13,8 @@ import { createLLMService } from '../services/llm';
 import { dummyPRContext } from '../services/dummyData';
 import { cn, generateId } from '../lib/utils';
 import type { ChatMessage, PRContext } from '../types';
-import { useState } from 'react';
+
+const AssistantMarkdown = lazy(() => import('./AssistantMarkdown'));
 
 interface MessageBubbleProps {
   message: ChatMessage;
@@ -57,39 +54,17 @@ function MessageBubble({ message }: MessageBubbleProps) {
         ) : isUser ? (
           <p className="whitespace-pre-wrap">{message.content}</p>
         ) : (
-          <div className="prose prose-sm dark:prose-invert max-w-none">
-            <ReactMarkdown
-              remarkPlugins={[remarkGfm]}
-              components={{
-                code({ className, children, ...props }) {
-                  const match = /language-(\w+)/.exec(className ?? '');
-                  const isInline = !match;
-                  return isInline ? (
-                    <code
-                      className="bg-background/50 rounded px-1 py-0.5 font-mono text-xs"
-                      {...props}
-                    >
-                      {children}
-                    </code>
-                  ) : (
-                    <SyntaxHighlighter
-                      style={oneDark}
-                      language={match[1]}
-                      PreTag="div"
-                      className="rounded-md text-xs"
-                    >
-                      {String(children).replace(/\n$/, '')}
-                    </SyntaxHighlighter>
-                  );
-                },
-              }}
-            >
-              {message.content}
-            </ReactMarkdown>
-            {message.isStreaming && (
-              <span className="inline-block w-1.5 h-4 bg-current animate-pulse ml-0.5" />
-            )}
-          </div>
+          <Suspense
+            fallback={
+              <div className="space-y-2 min-w-[180px]" aria-live="polite">
+                <p className="text-xs text-muted-foreground">Rendering response...</p>
+                <div className="h-2.5 w-full rounded bg-muted/70 animate-pulse" />
+                <div className="h-2.5 w-4/5 rounded bg-muted/70 animate-pulse" />
+              </div>
+            }
+          >
+            <AssistantMarkdown content={message.content} isStreaming={message.isStreaming} />
+          </Suspense>
         )}
       </div>
     </div>
