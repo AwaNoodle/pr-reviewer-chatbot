@@ -1,0 +1,13 @@
+There is a UI bug with the current implementation. The "Configure LLM API Key in Settings" is shown when there is a key configured and shown in the settings.
+
+---
+
+save-only is ok. The key may be set in an env var so would be there when the application starts
+
+---
+
+yes
+
+---
+
+I am still seeing the warning after restarting the app
