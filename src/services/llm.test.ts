@@ -415,19 +415,19 @@ describe('LLMService.chatStream', () => {
     expect(chunks).toEqual(['Good', '!']);
   });
 
-  it('throws when the API returns a non-OK status', async () => {
+  it('throws when the API returns a 4xx status', async () => {
     vi.stubGlobal(
       'fetch',
       vi.fn().mockResolvedValueOnce({
         ok: false,
-        status: 500,
-        text: async () => 'Internal Server Error',
+        status: 401,
+        text: async () => 'Unauthorized',
       })
     );
 
     const svc = new LLMService(makeConfig());
     const gen = svc.chatStream([{ role: 'user', content: 'Hi' }]);
-    await expect(gen.next()).rejects.toThrow('LLM API error 500');
+    await expect(gen.next()).rejects.toThrow('LLM API error 401');
   });
 
   it('throws when response body is null', async () => {

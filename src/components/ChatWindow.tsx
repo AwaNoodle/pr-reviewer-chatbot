@@ -366,9 +366,7 @@ export function ChatWindow() {
         <p className="text-xs text-muted-foreground mt-1.5">
           {config.demoMode
             ? '🎭 Demo mode — using sample PR data'
-            : config.llmApiKey
-            ? `Using ${config.llmModel} via ${config.llmBackend}`
-            : '⚠️ Configure LLM API key in Settings'}
+            : `Using ${config.llmModel} via ${config.llmBackend}`}
         </p>
       </div>
     </div>

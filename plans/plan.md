@@ -319,3 +319,9 @@ Identified during initial code review. These are non-blocking improvements to ad
 - [x] Added release-triggered GHCR publish workflow (`.github/workflows/docker-release.yml`) with semver-distance tagging (`vX.Y.Z-N`) and fallback (`v0.0.0-N`).
 - [x] Updated CI workflow (`.github/workflows/build.yml`) to run lint, tests, and production build.
 - [x] Updated `README.md` with local Docker usage, GHCR usage, tagging semantics, and distribution alternatives.
+
+## LLM Key Warning Cleanup (2026-03-18)
+
+- [x] Verified non-OK LLM provider responses (including 4xx) are thrown by `LLMService` and surfaced in chat error bubbles.
+- [x] Removed chat footer warning that required configuring an LLM key in settings.
+- [x] Added tests to lock behavior for optional API key UI and 4xx error surfacing.

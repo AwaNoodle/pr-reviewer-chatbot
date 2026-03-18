@@ -6,7 +6,7 @@ import { ChatWindow } from './ChatWindow';
 import chatReducer from '../store/slices/chatSlice';
 import configReducer from '../store/slices/configSlice';
 import prsReducer, { setSelectedPR } from '../store/slices/prsSlice';
-import type { PullRequest } from '../types';
+import type { AppConfig, PullRequest } from '../types';
 import * as llmServiceModule from '../services/llm';
 
 const mockPR: PullRequest = {
@@ -35,7 +35,7 @@ const mockPR: PullRequest = {
   requested_reviewers: [],
 };
 
-function makeStore() {
+function makeStore(configOverrides: Partial<AppConfig> = {}) {
   return configureStore({
     reducer: {
       chat: chatReducer,
@@ -55,6 +55,7 @@ function makeStore() {
           summaryEnabled: true,
           summaryPrompt: 'summary prompt',
           summaryCommands: '',
+          ...configOverrides,
         },
       },
       prs: {
@@ -190,6 +191,55 @@ describe('ChatWindow stream cancellation', () => {
     await waitFor(() => {
       expect(store.getState().chat.isStreaming).toBe(false);
       expect(store.getState().chat.messages).toHaveLength(0);
+    });
+  });
+});
+
+describe('ChatWindow status and errors', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    Element.prototype.scrollIntoView = vi.fn();
+  });
+
+  it('does not show a key configuration warning when api key is empty', () => {
+    const store = makeStore({ llmApiKey: '' });
+
+    render(
+      <Provider store={store}>
+        <ChatWindow />
+      </Provider>
+    );
+
+    expect(screen.queryByText(/configure llm api key/i)).not.toBeInTheDocument();
+    expect(screen.getByText('Using gpt-4o via openai')).toBeInTheDocument();
+  });
+
+  it('shows provider 4xx errors in the assistant message bubble', async () => {
+    const store = makeStore();
+
+    vi.spyOn(llmServiceModule, 'createLLMService').mockReturnValue({
+      buildSystemPrompt: vi.fn().mockReturnValue('system prompt'),
+      chatStream: vi.fn(async function* (_messages: unknown, options?: { signal?: AbortSignal }) {
+        if (options?.signal?.aborted) {
+          yield '';
+        }
+        throw new Error('LLM API error 401: Unauthorized');
+      }),
+    } as unknown as ReturnType<typeof llmServiceModule.createLLMService>);
+
+    render(
+      <Provider store={store}>
+        <ChatWindow />
+      </Provider>
+    );
+
+    fireEvent.change(screen.getByPlaceholderText(/ask about this pr/i), {
+      target: { value: 'Please review this' },
+    });
+    fireEvent.click(screen.getByTitle('Send message'));
+
+    await waitFor(() => {
+      expect(screen.getByText('LLM API error 401: Unauthorized')).toBeInTheDocument();
     });
   });
 });
