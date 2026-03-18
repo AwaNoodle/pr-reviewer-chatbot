@@ -1,0 +1,5 @@
+There is a warning shown when no LLM key is set. A key isn't always needed. Verify that errors will be shown if an LLM provider returns a 4xx. If confirmed, remove the "Configure LLM Key in settings" warning. Ensure tests are updated.
+
+---
+
+execute
