@@ -1,0 +1,21 @@
+Explain "Vite reports a large chunk-size warning during production build."
+
+---
+
+What would change for option 1?
+
+---
+
+yes
+
+---
+
+fallback UI sounds good.
+
+---
+
+Try first pass
+
+---
+
+Add the next steps as open items in the plan

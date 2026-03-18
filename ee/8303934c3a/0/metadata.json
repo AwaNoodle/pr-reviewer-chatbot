@@ -1,0 +1,39 @@
+{
+  "cli_version": "0.5.0",
+  "checkpoint_id": "ee8303934c3a",
+  "session_id": "ses_2fd2865d2ffeR5JF1OO00buhkc",
+  "strategy": "manual-commit",
+  "created_at": "2026-03-18T22:41:15.507289331Z",
+  "branch": "main",
+  "checkpoints_count": 2,
+  "files_touched": [
+    "agents.md",
+    "plans/plan.md",
+    "src/components/AssistantMarkdown.tsx",
+    "src/components/ChatWindow.tsx"
+  ],
+  "agent": "OpenCode",
+  "model": "gpt-5.3-codex",
+  "turn_id": "b1c6d56a4787",
+  "checkpoint_transcript_start": 32,
+  "transcript_lines_at_start": 32,
+  "token_usage": {
+    "input_tokens": 19823,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 919168,
+    "output_tokens": 5344,
+    "api_call_count": 16
+  },
+  "session_metrics": {
+    "turn_count": 9
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-03-18T22:41:14.975376828Z",
+    "agent_lines": 72,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 72,
+    "agent_percentage": 100
+  }
+}
