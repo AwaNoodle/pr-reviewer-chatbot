@@ -1,0 +1,1 @@
+Inspect existing tests for prsSlice/sidebar and propose a minimal set of new/updated tests needed when introducing a single thunk that loads full PR context via Effect runtime. Return file paths and exact assertions. Do not edit files. Thoroughness: medium.
