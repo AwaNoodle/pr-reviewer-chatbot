@@ -337,3 +337,36 @@ Identified during initial code review. These are non-blocking improvements to ad
 - [ ] Pass 2: Lazy-load PR summary markdown rendering path in `src/components/PRViewer.tsx` (`SummaryPanel`) to reduce initial bundle size further.
 - [ ] Split syntax highlighting payload in `src/components/AssistantMarkdown.tsx` (language/style loading strategy) to shrink lazy chunk size.
 - [ ] Evaluate `vite.config.ts` manual chunking (`build.rollupOptions.output.manualChunks`) for stable vendor chunk boundaries and improved cacheability.
+
+## Effect Migration - Phase 1 (COMPLETED 2026-03-19)
+
+Goal: introduce Effect on one narrow PR-loading path without changing app architecture or user-visible behavior.
+
+- [x] Add `effect` dependency and create `src/effect/runtime.ts` with a single shared runtime helper (`runEffect`).
+- [x] Define a small typed error model for the pilot path in `src/effect/errors.ts` (GitHub API error passthrough + unexpected error wrapper).
+- [x] Implement one Effect workflow in `src/effect/loadPullRequestContext.ts` that composes existing GitHub service calls (PR, files, comments, review comments, reviews, commits) with timeout/retry policy.
+- [x] Wire `loadPullRequestContext` into existing thunk flow in `src/store/slices/prsSlice.ts` via `runEffect`, keeping reducers/selectors/state shape unchanged.
+- [x] Add focused tests for success/failure/timeout parity with current behavior in `src/store/slices/prsSlice.test.ts` (or adjacent Effect unit tests).
+- [x] Update docs (`README.md` + `plans/plan.md`) with scope boundaries: "Effect used for pilot orchestration only; no full migration yet."
+
+Exit criteria:
+- One PR-loading path uses Effect end-to-end.
+- Existing UI behavior and Redux state contracts remain stable.
+- Lint, test, and type/build checks pass.
+
+## Effect Migration - Phase 1.5 (COMPLETED 2026-03-19)
+
+- [x] Unified GitHub thunk error mapping through `src/effect/errors.ts::toRejectedErrorData` for legacy PR thunks in `src/store/slices/prsSlice.ts`.
+- [x] Reused the same mapper in `src/store/slices/watchedReposSlice.ts` with context-specific fallback message.
+- [x] Removed duplicated slice-local `toRejectedError` helpers to keep rejected payload behavior consistent across legacy and Effect-backed paths.
+
+## Effect Migration - Phase 1.6 (COMPLETED 2026-03-19)
+
+- [x] Removed redundant per-resource PR-loading thunks from `src/store/slices/prsSlice.ts` (`fetchPullRequest`, `fetchPRFiles`, `fetchPRComments`, `fetchPRReviewComments`, `fetchPRReviews`, `fetchPRCommits`).
+- [x] Removed obsolete per-resource reducer handlers and retained unified `fetchPullRequestContext` loading state handling.
+- [x] Updated tests/docs to use the single PR context loading entrypoint.
+
+## Effect Migration - Phase 1.7 (COMPLETED 2026-03-19)
+
+- [x] Refined Effect retry behavior in `src/effect/loadPullRequestContext.ts` to retry only transient failures (`TimeoutError`, `NETWORK_ERROR`, `RATE_LIMITED`).
+- [x] Added Effect unit tests to verify deterministic errors are not retried and transient failures are retried.

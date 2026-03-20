@@ -346,6 +346,16 @@ graph TD
 
 ---
 
+## Effect Pilot (Phase 1)
+
+- `effect` is now used for one orchestration path: PR context loading (metadata + files + comments + reviews + commits).
+- PR selection now runs through a single thunk (`fetchPullRequestContext`) backed by the Effect workflow.
+- Scope is intentionally narrow: existing Redux state shape, selectors, and UI behavior stay the same.
+- Timeout/retry policy is applied in the Effect workflow, while thunk rejection still uses `GitHubApiErrorData` so existing error rendering remains compatible.
+- Non-goal for this phase: full app migration to Effect.
+
+---
+
 ## Troubleshooting
 
 ### "Configure LLM API key in Settings" warning

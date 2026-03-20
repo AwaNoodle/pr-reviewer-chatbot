@@ -11,6 +11,7 @@ This is a standalone React + TypeScript webapp that acts as a chatbot interface 
 - **Tailwind CSS** for styling
 - **Radix UI** for accessible components
 - **Axios** for HTTP (GitHub API)
+- **Effect** for phase-1 PR context orchestration
 - **react-markdown** + **react-syntax-highlighter** for message rendering
 
 ## Project Structure
@@ -163,14 +164,12 @@ npm run docker:run   # Run Docker image locally on :8080
 - Add methods to the `GitHubService` class in [`src/services/github.ts`](src/services/github.ts)
 - The service automatically handles github.com vs GHES URL routing
 - Prefer using the centralized GitHub error parsing (`parseGitHubError`) and `GitHubApiError` for consistent UI-friendly failures
+- For thunk rejected payloads, prefer `toRejectedErrorData` in `src/effect/errors.ts` to keep all slice paths consistent
 
 ### GitHub data loading flow
-- `prsSlice` includes async thunks for PR metadata and per-resource loading:
-  - `fetchPullRequest`
-  - `fetchPRFiles`
-  - `fetchPRComments`
-  - `fetchPRReviewComments`
-  - `fetchPRReviews`
+- `prsSlice` uses Effect-backed full-context loading for PR selection:
+  - `fetchPullRequestContext` (uses `src/effect/loadPullRequestContext.ts` via `runEffect`)
+- Retry policy in `loadPullRequestContext` is transient-only (timeouts/network/rate-limit) to avoid retrying deterministic failures like 404/auth errors
 - Use `loadingByResource` and `errorByResource` for UI state; legacy aggregate `isLoading` and `error` are still populated for compatibility
 
 ### Active OpenSpec context

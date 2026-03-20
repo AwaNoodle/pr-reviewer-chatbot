@@ -12,12 +12,7 @@ import prsReducer, {
   setLoading,
   setError,
   resetSummaryState,
-  fetchPullRequest,
-  fetchPRFiles,
-  fetchPRComments,
-  fetchPRReviewComments,
-  fetchPRReviews,
-  fetchPRCommits,
+  fetchPullRequestContext,
   fetchRepositoryPRList,
   generatePRSummary,
 } from './prsSlice';
@@ -320,17 +315,42 @@ describe('prsSlice', () => {
       service.getPullRequest.mockResolvedValueOnce(mockPR);
       service.getPRFiles.mockResolvedValueOnce([mockFile]);
       service.getPRComments.mockResolvedValueOnce([mockComment]);
+      service.getPRReviewComments.mockResolvedValueOnce([mockReviewComment]);
+      service.getPRReviews.mockResolvedValueOnce([mockReview]);
       service.getPRCommits.mockResolvedValueOnce([mockCommit]);
 
-      await store.dispatch(fetchPullRequest({ owner: 'org', repo: 'repo', prNumber: 42 }));
-      await store.dispatch(fetchPRFiles({ owner: 'org', repo: 'repo', prNumber: 42 }));
-      await store.dispatch(fetchPRComments({ owner: 'org', repo: 'repo', prNumber: 42 }));
-      await store.dispatch(fetchPRCommits({ owner: 'org', repo: 'repo', prNumber: 42 }));
+      await store.dispatch(fetchPullRequestContext({ owner: 'org', repo: 'repo', prNumber: 42 }));
 
       expect(store.getState().prs.selectedPR?.number).toBe(42);
       expect(store.getState().prs.files).toHaveLength(1);
       expect(store.getState().prs.comments).toHaveLength(1);
+      expect(store.getState().prs.reviewComments).toHaveLength(1);
+      expect(store.getState().prs.reviews).toHaveLength(1);
       expect(store.getState().prs.commits).toHaveLength(1);
+      expect(store.getState().prs.error).toBeNull();
+    });
+
+    it('maps Effect failures to GitHub-style rejected payload', async () => {
+      const store = makeStore();
+      const service = setupMockService();
+
+      service.getPullRequest.mockRejectedValue(
+        new githubService.GitHubApiError({
+          code: 'NOT_FOUND',
+          status: 404,
+          message: 'Not Found',
+          userMessage: 'The requested GitHub resource was not found. Check owner, repo, and PR number.',
+        })
+      );
+
+      const action = await store.dispatch(fetchPullRequestContext({ owner: 'org', repo: 'repo', prNumber: 42 }));
+
+      expect(fetchPullRequestContext.rejected.match(action)).toBe(true);
+      if (fetchPullRequestContext.rejected.match(action)) {
+        expect(action.payload?.code).toBe('NOT_FOUND');
+        expect(action.payload?.userMessage).toContain('not found');
+      }
+      expect(store.getState().prs.error).toContain('not found');
     });
 
     it('loads open pull requests for a repository', async () => {
@@ -361,10 +381,7 @@ describe('prsSlice', () => {
         chat: vi.fn().mockResolvedValue('Generated summary output'),
       } as unknown as ReturnType<typeof llmServiceModule.createLLMService>);
 
-      await store.dispatch(fetchPullRequest({ owner: 'org', repo: 'repo', prNumber: 42 }));
-      await store.dispatch(fetchPRFiles({ owner: 'org', repo: 'repo', prNumber: 42 }));
-      await store.dispatch(fetchPRComments({ owner: 'org', repo: 'repo', prNumber: 42 }));
-      await store.dispatch(fetchPRCommits({ owner: 'org', repo: 'repo', prNumber: 42 }));
+      await store.dispatch(fetchPullRequestContext({ owner: 'org', repo: 'repo', prNumber: 42 }));
 
       const pending = store.dispatch(generatePRSummary({ owner: 'org', repo: 'repo', prNumber: 42 }));
       expect(store.getState().prs.summary.status).toBe('loading');
@@ -438,23 +455,8 @@ describe('prsSlice', () => {
         prNumber === 101 ? deferred.commitsA.promise : deferred.commitsB.promise
       );
 
-      const requestA = {
-        metadata: store.dispatch(fetchPullRequest({ owner: 'org', repo: 'repo', prNumber: 101 })),
-        files: store.dispatch(fetchPRFiles({ owner: 'org', repo: 'repo', prNumber: 101 })),
-        comments: store.dispatch(fetchPRComments({ owner: 'org', repo: 'repo', prNumber: 101 })),
-        reviewComments: store.dispatch(fetchPRReviewComments({ owner: 'org', repo: 'repo', prNumber: 101 })),
-        reviews: store.dispatch(fetchPRReviews({ owner: 'org', repo: 'repo', prNumber: 101 })),
-        commits: store.dispatch(fetchPRCommits({ owner: 'org', repo: 'repo', prNumber: 101 })),
-      };
-
-      const requestB = {
-        metadata: store.dispatch(fetchPullRequest({ owner: 'org', repo: 'repo', prNumber: 202 })),
-        files: store.dispatch(fetchPRFiles({ owner: 'org', repo: 'repo', prNumber: 202 })),
-        comments: store.dispatch(fetchPRComments({ owner: 'org', repo: 'repo', prNumber: 202 })),
-        reviewComments: store.dispatch(fetchPRReviewComments({ owner: 'org', repo: 'repo', prNumber: 202 })),
-        reviews: store.dispatch(fetchPRReviews({ owner: 'org', repo: 'repo', prNumber: 202 })),
-        commits: store.dispatch(fetchPRCommits({ owner: 'org', repo: 'repo', prNumber: 202 })),
-      };
+      const requestA = store.dispatch(fetchPullRequestContext({ owner: 'org', repo: 'repo', prNumber: 101 }));
+      const requestB = store.dispatch(fetchPullRequestContext({ owner: 'org', repo: 'repo', prNumber: 202 }));
 
       deferred.metadataB.resolve(prB);
       deferred.filesB.resolve([fileB]);
@@ -462,7 +464,7 @@ describe('prsSlice', () => {
       deferred.reviewCommentsB.resolve([reviewCommentB]);
       deferred.reviewsB.resolve([reviewB]);
       deferred.commitsB.resolve([commitB]);
-      await Promise.all(Object.values(requestB));
+      await requestB;
 
       deferred.metadataA.resolve(prA);
       deferred.filesA.resolve([fileA]);
@@ -470,7 +472,7 @@ describe('prsSlice', () => {
       deferred.reviewCommentsA.resolve([reviewCommentA]);
       deferred.reviewsA.resolve([reviewA]);
       deferred.commitsA.resolve([commitA]);
-      await Promise.all(Object.values(requestA));
+      await requestA;
 
       const state = store.getState().prs;
       expect(state.selectedPR?.number).toBe(202);

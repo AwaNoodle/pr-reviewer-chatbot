@@ -11,12 +11,7 @@ import {
   resetSummaryState,
   setPRList,
   setActiveRepository,
-  fetchPullRequest,
-  fetchPRFiles,
-  fetchPRComments,
-  fetchPRReviewComments,
-  fetchPRReviews,
-  fetchPRCommits,
+  fetchPullRequestContext,
   fetchRepositoryPRList,
   generatePRSummary,
 } from '../store/slices/prsSlice';
@@ -225,25 +220,17 @@ export function Sidebar() {
     options?: { showSingleInList?: boolean }
   ): Promise<boolean> => {
     dispatch(clearMessages());
-    const metadataAction = await dispatch(fetchPullRequest(values));
-    if (fetchPullRequest.rejected.match(metadataAction)) {
+    const contextAction = await dispatch(fetchPullRequestContext(values));
+    if (fetchPullRequestContext.rejected.match(contextAction)) {
       return false;
     }
 
-    const pr = metadataAction.payload;
+    const pr = contextAction.payload.pullRequest;
     if (options?.showSingleInList) {
       dispatch(setPRList([mapPullRequestToListItem(pr)]));
       dispatch(setActiveRepository({ owner: values.owner, repo: values.repo }));
       setSidebarView('repoList');
     }
-
-    await Promise.all([
-      dispatch(fetchPRFiles(values)),
-      dispatch(fetchPRComments(values)),
-      dispatch(fetchPRReviewComments(values)),
-      dispatch(fetchPRReviews(values)),
-      dispatch(fetchPRCommits(values)),
-    ]);
 
     if (config.summaryEnabled) {
       await dispatch(generatePRSummary(values));

@@ -1,6 +1,9 @@
 import { createSlice, createAsyncThunk, PayloadAction } from '@reduxjs/toolkit';
-import { createGitHubService, GitHubApiError } from '../../services/github';
+import { createGitHubService } from '../../services/github';
 import { createLLMService } from '../../services/llm';
+import { runEffect } from '../../effect/runtime';
+import { loadPullRequestContext } from '../../effect/loadPullRequestContext';
+import { toRejectedErrorData } from '../../effect/errors';
 import {
   buildSummaryCacheKey,
   buildSummaryRateLimitKey,
@@ -53,83 +56,14 @@ interface SummaryResult {
   requestKey: string;
 }
 
-function toRejectedError(error: unknown): GitHubApiErrorData {
-  if (error instanceof GitHubApiError) {
-    return error.toJSON();
-  }
-
-  return {
-    code: 'UNKNOWN_ERROR',
-    status: null,
-    message: error instanceof Error ? error.message : 'Unexpected GitHub API error',
-    userMessage: 'Something went wrong while loading pull request data.',
-  };
+interface PullRequestContextPayload {
+  pullRequest: PullRequest;
+  files: PRFile[];
+  comments: PRComment[];
+  reviewComments: PRReviewComment[];
+  reviews: PRReview[];
+  commits: PRCommit[];
 }
-
-export const fetchPRFiles = createAsyncThunk<
-  PRFile[],
-  PRRequestArgs,
-  { state: RootState; rejectValue: GitHubApiErrorData }
->('prs/fetchPRFiles', async ({ owner, repo, prNumber }, { getState, rejectWithValue }) => {
-  const service = createGitHubService(getState().config.config);
-  try {
-    return await service.getPRFiles(owner, repo, prNumber);
-  } catch (error) {
-    return rejectWithValue(toRejectedError(error));
-  }
-});
-
-export const fetchPRComments = createAsyncThunk<
-  PRComment[],
-  PRRequestArgs,
-  { state: RootState; rejectValue: GitHubApiErrorData }
->('prs/fetchPRComments', async ({ owner, repo, prNumber }, { getState, rejectWithValue }) => {
-  const service = createGitHubService(getState().config.config);
-  try {
-    return await service.getPRComments(owner, repo, prNumber);
-  } catch (error) {
-    return rejectWithValue(toRejectedError(error));
-  }
-});
-
-export const fetchPRReviewComments = createAsyncThunk<
-  PRReviewComment[],
-  PRRequestArgs,
-  { state: RootState; rejectValue: GitHubApiErrorData }
->('prs/fetchPRReviewComments', async ({ owner, repo, prNumber }, { getState, rejectWithValue }) => {
-  const service = createGitHubService(getState().config.config);
-  try {
-    return await service.getPRReviewComments(owner, repo, prNumber);
-  } catch (error) {
-    return rejectWithValue(toRejectedError(error));
-  }
-});
-
-export const fetchPRReviews = createAsyncThunk<
-  PRReview[],
-  PRRequestArgs,
-  { state: RootState; rejectValue: GitHubApiErrorData }
->('prs/fetchPRReviews', async ({ owner, repo, prNumber }, { getState, rejectWithValue }) => {
-  const service = createGitHubService(getState().config.config);
-  try {
-    return await service.getPRReviews(owner, repo, prNumber);
-  } catch (error) {
-    return rejectWithValue(toRejectedError(error));
-  }
-});
-
-export const fetchPRCommits = createAsyncThunk<
-  PRCommit[],
-  PRRequestArgs,
-  { state: RootState; rejectValue: GitHubApiErrorData }
->('prs/fetchPRCommits', async ({ owner, repo, prNumber }, { getState, rejectWithValue }) => {
-  const service = createGitHubService(getState().config.config);
-  try {
-    return await service.getPRCommits(owner, repo, prNumber);
-  } catch (error) {
-    return rejectWithValue(toRejectedError(error));
-  }
-});
 
 export const fetchRepositoryPRList = createAsyncThunk<
   PRListItem[],
@@ -163,7 +97,7 @@ export const fetchRepositoryPRList = createAsyncThunk<
       head: pr.head,
     }));
   } catch (error) {
-    return rejectWithValue(toRejectedError(error));
+    return rejectWithValue(toRejectedErrorData(error));
   }
 });
 
@@ -275,16 +209,23 @@ export const generatePRSummary = createAsyncThunk<
   }
 });
 
-export const fetchPullRequest = createAsyncThunk<
-  PullRequest,
+export const fetchPullRequestContext = createAsyncThunk<
+  PullRequestContextPayload,
   PRRequestArgs,
   { state: RootState; rejectValue: GitHubApiErrorData }
->('prs/fetchPullRequest', async ({ owner, repo, prNumber }, { getState, rejectWithValue }) => {
+>('prs/fetchPullRequestContext', async ({ owner, repo, prNumber }, { getState, rejectWithValue }) => {
   const service = createGitHubService(getState().config.config);
+
   try {
-    return await service.getPullRequest(owner, repo, prNumber);
+    return await runEffect(
+      loadPullRequestContext(service, {
+        owner,
+        repo,
+        prNumber,
+      })
+    );
   } catch (error) {
-    return rejectWithValue(toRejectedError(error));
+    return rejectWithValue(toRejectedErrorData(error));
   }
 });
 
@@ -477,159 +418,75 @@ const prsSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(fetchPullRequest.pending, (state, action) => {
-        state.latestRequestKeyByResource.metadata = getPRRequestKey(action.meta.arg);
+      .addCase(fetchPullRequestContext.pending, (state, action) => {
+        const requestKey = getPRRequestKey(action.meta.arg);
+        state.latestRequestKeyByResource.metadata = requestKey;
+        state.latestRequestKeyByResource.files = requestKey;
+        state.latestRequestKeyByResource.comments = requestKey;
+        state.latestRequestKeyByResource.reviewComments = requestKey;
+        state.latestRequestKeyByResource.reviews = requestKey;
+        state.latestRequestKeyByResource.commits = requestKey;
+
         state.loadingByResource.metadata = true;
-        state.errorByResource.metadata = null;
-        updateAggregateLoading(state);
-        updateAggregateError(state);
-      })
-      .addCase(fetchPullRequest.fulfilled, (state, action) => {
-        if (state.latestRequestKeyByResource.metadata !== getPRRequestKey(action.meta.arg)) {
-          return;
-        }
-
-        state.selectedPR = action.payload;
-        state.loadingByResource.metadata = false;
-        updateAggregateLoading(state);
-      })
-      .addCase(fetchPullRequest.rejected, (state, action) => {
-        if (state.latestRequestKeyByResource.metadata !== getPRRequestKey(action.meta.arg)) {
-          return;
-        }
-
-        state.loadingByResource.metadata = false;
-        state.errorByResource.metadata = action.payload?.userMessage || action.error.message || 'Failed to load pull request metadata';
-        updateAggregateLoading(state);
-        updateAggregateError(state);
-      })
-      .addCase(fetchPRFiles.pending, (state, action) => {
-        state.latestRequestKeyByResource.files = getPRRequestKey(action.meta.arg);
         state.loadingByResource.files = true;
-        state.errorByResource.files = null;
-        updateAggregateLoading(state);
-        updateAggregateError(state);
-      })
-      .addCase(fetchPRFiles.fulfilled, (state, action) => {
-        if (state.latestRequestKeyByResource.files !== getPRRequestKey(action.meta.arg)) {
-          return;
-        }
-
-        state.files = action.payload;
-        state.loadingByResource.files = false;
-        updateAggregateLoading(state);
-      })
-      .addCase(fetchPRFiles.rejected, (state, action) => {
-        if (state.latestRequestKeyByResource.files !== getPRRequestKey(action.meta.arg)) {
-          return;
-        }
-
-        state.loadingByResource.files = false;
-        state.errorByResource.files = action.payload?.userMessage || action.error.message || 'Failed to load pull request files';
-        updateAggregateLoading(state);
-        updateAggregateError(state);
-      })
-      .addCase(fetchPRComments.pending, (state, action) => {
-        state.latestRequestKeyByResource.comments = getPRRequestKey(action.meta.arg);
         state.loadingByResource.comments = true;
-        state.errorByResource.comments = null;
-        updateAggregateLoading(state);
-        updateAggregateError(state);
-      })
-      .addCase(fetchPRComments.fulfilled, (state, action) => {
-        if (state.latestRequestKeyByResource.comments !== getPRRequestKey(action.meta.arg)) {
-          return;
-        }
-
-        state.comments = action.payload;
-        state.loadingByResource.comments = false;
-        updateAggregateLoading(state);
-      })
-      .addCase(fetchPRComments.rejected, (state, action) => {
-        if (state.latestRequestKeyByResource.comments !== getPRRequestKey(action.meta.arg)) {
-          return;
-        }
-
-        state.loadingByResource.comments = false;
-        state.errorByResource.comments = action.payload?.userMessage || action.error.message || 'Failed to load pull request comments';
-        updateAggregateLoading(state);
-        updateAggregateError(state);
-      })
-      .addCase(fetchPRReviewComments.pending, (state, action) => {
-        state.latestRequestKeyByResource.reviewComments = getPRRequestKey(action.meta.arg);
         state.loadingByResource.reviewComments = true;
-        state.errorByResource.reviewComments = null;
-        updateAggregateLoading(state);
-        updateAggregateError(state);
-      })
-      .addCase(fetchPRReviewComments.fulfilled, (state, action) => {
-        if (state.latestRequestKeyByResource.reviewComments !== getPRRequestKey(action.meta.arg)) {
-          return;
-        }
-
-        state.reviewComments = action.payload;
-        state.loadingByResource.reviewComments = false;
-        updateAggregateLoading(state);
-      })
-      .addCase(fetchPRReviewComments.rejected, (state, action) => {
-        if (state.latestRequestKeyByResource.reviewComments !== getPRRequestKey(action.meta.arg)) {
-          return;
-        }
-
-        state.loadingByResource.reviewComments = false;
-        state.errorByResource.reviewComments = action.payload?.userMessage || action.error.message || 'Failed to load pull request review comments';
-        updateAggregateLoading(state);
-        updateAggregateError(state);
-      })
-      .addCase(fetchPRReviews.pending, (state, action) => {
-        state.latestRequestKeyByResource.reviews = getPRRequestKey(action.meta.arg);
         state.loadingByResource.reviews = true;
-        state.errorByResource.reviews = null;
-        updateAggregateLoading(state);
-        updateAggregateError(state);
-      })
-      .addCase(fetchPRReviews.fulfilled, (state, action) => {
-        if (state.latestRequestKeyByResource.reviews !== getPRRequestKey(action.meta.arg)) {
-          return;
-        }
-
-        state.reviews = action.payload;
-        state.loadingByResource.reviews = false;
-        updateAggregateLoading(state);
-      })
-      .addCase(fetchPRReviews.rejected, (state, action) => {
-        if (state.latestRequestKeyByResource.reviews !== getPRRequestKey(action.meta.arg)) {
-          return;
-        }
-
-        state.loadingByResource.reviews = false;
-        state.errorByResource.reviews = action.payload?.userMessage || action.error.message || 'Failed to load pull request reviews';
-        updateAggregateLoading(state);
-        updateAggregateError(state);
-      })
-      .addCase(fetchPRCommits.pending, (state, action) => {
-        state.latestRequestKeyByResource.commits = getPRRequestKey(action.meta.arg);
         state.loadingByResource.commits = true;
+
+        state.errorByResource.metadata = null;
+        state.errorByResource.files = null;
+        state.errorByResource.comments = null;
+        state.errorByResource.reviewComments = null;
+        state.errorByResource.reviews = null;
         state.errorByResource.commits = null;
+
         updateAggregateLoading(state);
         updateAggregateError(state);
       })
-      .addCase(fetchPRCommits.fulfilled, (state, action) => {
-        if (state.latestRequestKeyByResource.commits !== getPRRequestKey(action.meta.arg)) {
+      .addCase(fetchPullRequestContext.fulfilled, (state, action) => {
+        if (state.latestRequestKeyByResource.metadata !== getPRRequestKey(action.meta.arg)) {
           return;
         }
 
-        state.commits = action.payload;
+        state.selectedPR = action.payload.pullRequest;
+        state.files = action.payload.files;
+        state.comments = action.payload.comments;
+        state.reviewComments = action.payload.reviewComments;
+        state.reviews = action.payload.reviews;
+        state.commits = action.payload.commits;
+
+        state.loadingByResource.metadata = false;
+        state.loadingByResource.files = false;
+        state.loadingByResource.comments = false;
+        state.loadingByResource.reviewComments = false;
+        state.loadingByResource.reviews = false;
         state.loadingByResource.commits = false;
+
         updateAggregateLoading(state);
       })
-      .addCase(fetchPRCommits.rejected, (state, action) => {
-        if (state.latestRequestKeyByResource.commits !== getPRRequestKey(action.meta.arg)) {
+      .addCase(fetchPullRequestContext.rejected, (state, action) => {
+        if (state.latestRequestKeyByResource.metadata !== getPRRequestKey(action.meta.arg)) {
           return;
         }
 
+        const message =
+          action.payload?.userMessage || action.error.message || 'Failed to load pull request context';
+
+        state.loadingByResource.metadata = false;
+        state.loadingByResource.files = false;
+        state.loadingByResource.comments = false;
+        state.loadingByResource.reviewComments = false;
+        state.loadingByResource.reviews = false;
         state.loadingByResource.commits = false;
-        state.errorByResource.commits = action.payload?.userMessage || action.error.message || 'Failed to load pull request commits';
+
+        state.errorByResource.metadata = message;
+        state.errorByResource.files = message;
+        state.errorByResource.comments = message;
+        state.errorByResource.reviewComments = message;
+        state.errorByResource.reviews = message;
+        state.errorByResource.commits = message;
+
         updateAggregateLoading(state);
         updateAggregateError(state);
       })

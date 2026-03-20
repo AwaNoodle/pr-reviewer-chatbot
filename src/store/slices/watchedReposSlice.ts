@@ -1,5 +1,6 @@
 import { createAsyncThunk, createSlice, PayloadAction } from '@reduxjs/toolkit';
-import { createGitHubService, GitHubApiError } from '../../services/github';
+import { createGitHubService } from '../../services/github';
+import { toRejectedErrorData } from '../../effect/errors';
 import type { GitHubApiErrorData, WatchedRepository } from '../../types';
 import type { RootState } from '../index';
 
@@ -43,19 +44,6 @@ function saveWatchedRepos(items: WatchedRepository[]): void {
   }
 }
 
-function toRejectedError(error: unknown): GitHubApiErrorData {
-  if (error instanceof GitHubApiError) {
-    return error.toJSON();
-  }
-
-  return {
-    code: 'UNKNOWN_ERROR',
-    status: null,
-    message: error instanceof Error ? error.message : 'Unexpected GitHub API error',
-    userMessage: 'Something went wrong while loading repository pull request count.',
-  };
-}
-
 export const fetchWatchedRepoPRCount = createAsyncThunk<
   { fullName: string; count: number },
   { owner: string; repo: string },
@@ -80,7 +68,9 @@ export const fetchWatchedRepoPRCount = createAsyncThunk<
       count,
     };
   } catch (error) {
-    return rejectWithValue(toRejectedError(error));
+    return rejectWithValue(
+      toRejectedErrorData(error, 'Something went wrong while loading repository pull request count.')
+    );
   }
 });
 
