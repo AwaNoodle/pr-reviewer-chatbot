@@ -1,0 +1,17 @@
+Annotations for https://github.com/AwaNoodle/pr-reviewer-chatbot/actions/runs/23318947649 show an out-of-date warning for the docker release workflow. Identify where the issue is a propose a change.
+
+---
+
+Apply the patch, including the force actions
+
+---
+
+It's hard to see where the docker image is pushed to so that you can easily pull it in Docker. Is it possible to add a text output to the workflow show the docker pull line.
+
+---
+
+Show me an example
+
+---
+
+ok
