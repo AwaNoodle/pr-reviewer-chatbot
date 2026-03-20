@@ -1,0 +1,1 @@
+Quickly inspect this repo and return a concise recommendation for implementing a minimal Effect-based PR context loader. Focus on exact files to touch and an idiomatic Effect pattern for: Promise interop, timeout, retry, parallel fetches, and mapping errors into existing GitHubApiErrorData shape. Do not edit files; research only. Thoroughness: medium.
