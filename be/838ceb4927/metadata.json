@@ -3,9 +3,21 @@
   "checkpoint_id": "be838ceb4927",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 2,
+  "checkpoints_count": 9,
   "files_touched": [
-    "plans/plan.md"
+    "README.md",
+    "agents.md",
+    "package-lock.json",
+    "package.json",
+    "plans/plan.md",
+    "src/components/Sidebar.tsx",
+    "src/effect/errors.ts",
+    "src/effect/loadPullRequestContext.test.ts",
+    "src/effect/loadPullRequestContext.ts",
+    "src/effect/runtime.ts",
+    "src/store/slices/prsSlice.test.ts",
+    "src/store/slices/prsSlice.ts",
+    "src/store/slices/watchedReposSlice.ts"
   ],
   "sessions": [
     {
@@ -19,13 +31,19 @@
       "transcript": "/be/838ceb4927/1/full.jsonl",
       "content_hash": "/be/838ceb4927/1/content_hash.txt",
       "prompt": "/be/838ceb4927/1/prompt.txt"
+    },
+    {
+      "metadata": "/be/838ceb4927/2/metadata.json",
+      "transcript": "/be/838ceb4927/2/full.jsonl",
+      "content_hash": "/be/838ceb4927/2/content_hash.txt",
+      "prompt": "/be/838ceb4927/2/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 84604,
+    "input_tokens": 249336,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 494720,
-    "output_tokens": 7840,
-    "api_call_count": 23
+    "cache_read_tokens": 1099136,
+    "output_tokens": 16796,
+    "api_call_count": 50
   }
 }
