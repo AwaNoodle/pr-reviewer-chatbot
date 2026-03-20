@@ -370,3 +370,14 @@ Exit criteria:
 
 - [x] Refined Effect retry behavior in `src/effect/loadPullRequestContext.ts` to retry only transient failures (`TimeoutError`, `NETWORK_ERROR`, `RATE_LIMITED`).
 - [x] Added Effect unit tests to verify deterministic errors are not retried and transient failures are retried.
+
+## Docker Release Workflow Runtime Update (COMPLETED 2026-03-20)
+
+- [x] Updated `.github/workflows/docker-release.yml` action majors to Node 24-compatible versions: `actions/checkout@v5`, `docker/setup-buildx-action@v4`, `docker/login-action@v4`, `docker/build-push-action@v7`.
+- [x] Added workflow-level opt-in `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` for early compatibility with GitHub Actions runtime migration.
+- [x] Validation run completed with `npm run lint -- --max-warnings=0 && npm run build && npm run test`.
+
+## Docker Release Pull Command Output (COMPLETED 2026-03-20)
+
+- [x] Added a post-publish step in `.github/workflows/docker-release.yml` that prints the exact `docker pull` commands for both release and SHA tags in workflow logs.
+- [x] Added the same pull commands to `$GITHUB_STEP_SUMMARY` so they are easy to copy from the run summary page.
