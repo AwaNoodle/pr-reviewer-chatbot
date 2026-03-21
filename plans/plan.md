@@ -381,3 +381,12 @@ Exit criteria:
 
 - [x] Added a post-publish step in `.github/workflows/docker-release.yml` that prints the exact `docker pull` commands for both release and SHA tags in workflow logs.
 - [x] Added the same pull commands to `$GITHUB_STEP_SUMMARY` so they are easy to copy from the run summary page.
+
+## OpenSpec Proposal Updates (2026-03-20)
+
+- [x] Created change `openspec/changes/add-diff-intelligence-layer/` with proposal, design, capability specs, and implementation tasks.
+- [x] Added new capability spec delta `openspec/changes/add-diff-intelligence-layer/specs/diff-intelligence/spec.md`.
+- [x] Added `pr-review-summary` delta for diff-grounded summary references in `openspec/changes/add-diff-intelligence-layer/specs/pr-review-summary/spec.md`.
+- [x] Created change `openspec/changes/add-ci-and-code-scanning-signal-fusion/` with proposal, design, capability specs, and implementation tasks.
+- [x] Added new capability spec delta `openspec/changes/add-ci-and-code-scanning-signal-fusion/specs/pr-signal-fusion/spec.md`.
+- [x] Added `pr-review-summary` delta for CI/code-scanning signal-aware summary guidance in `openspec/changes/add-ci-and-code-scanning-signal-fusion/specs/pr-review-summary/spec.md`.

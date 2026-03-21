@@ -173,15 +173,16 @@ npm run docker:run   # Run Docker image locally on :8080
 - Use `loadingByResource` and `errorByResource` for UI state; legacy aggregate `isLoading` and `error` are still populated for compatibility
 
 ### Active OpenSpec context
-- Active change: `openspec/changes/repository-watcher`
-- Main specs synced for this change:
+- Current proposed (not yet implemented) changes:
+  - `openspec/changes/add-diff-intelligence-layer`
+  - `openspec/changes/add-ci-and-code-scanning-signal-fusion`
+- Main baseline specs relevant to these proposals:
+  - `openspec/specs/pr-review-summary/spec.md`
   - `openspec/specs/repo-pr-list/spec.md`
   - `openspec/specs/watched-repos/spec.md`
-- Repository watcher behavior target:
-  - left `PR Review` pane supports two views: controls/watchlist and repo PR list
-  - `Load PR` with a PR number switches to list view with one selected PR (demo-like behavior)
-  - watched repo click opens that repo list in the same pane
-  - list view includes Back action to return to controls/watchlist
+- Proposal intents:
+  - diff intelligence: grounded claim citations with click-to-diff navigation
+  - signal fusion: CI/check/code-scanning context for reviewer prioritization and summary enrichment
 
 ### Modifying dummy data
 - Edit [`src/services/dummyData.ts`](src/services/dummyData.ts)
