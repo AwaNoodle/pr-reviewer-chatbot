@@ -1,0 +1,38 @@
+{
+  "cli_version": "0.5.0",
+  "checkpoint_id": "b5b5dd466f4d",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "agents.md",
+    "openspec/changes/add-ci-and-code-scanning-signal-fusion/.openspec.yaml",
+    "openspec/changes/add-ci-and-code-scanning-signal-fusion/design.md",
+    "openspec/changes/add-ci-and-code-scanning-signal-fusion/proposal.md",
+    "openspec/changes/add-ci-and-code-scanning-signal-fusion/specs/pr-review-summary/spec.md",
+    "openspec/changes/add-ci-and-code-scanning-signal-fusion/specs/pr-signal-fusion/spec.md",
+    "openspec/changes/add-ci-and-code-scanning-signal-fusion/tasks.md",
+    "openspec/changes/add-diff-intelligence-layer/.openspec.yaml",
+    "openspec/changes/add-diff-intelligence-layer/design.md",
+    "openspec/changes/add-diff-intelligence-layer/proposal.md",
+    "openspec/changes/add-diff-intelligence-layer/specs/diff-intelligence/spec.md",
+    "openspec/changes/add-diff-intelligence-layer/specs/pr-review-summary/spec.md",
+    "openspec/changes/add-diff-intelligence-layer/tasks.md",
+    "plans/plan.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/b5/b5dd466f4d/0/metadata.json",
+      "transcript": "/b5/b5dd466f4d/0/full.jsonl",
+      "content_hash": "/b5/b5dd466f4d/0/content_hash.txt",
+      "prompt": "/b5/b5dd466f4d/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 223273,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 2193024,
+    "output_tokens": 12745,
+    "api_call_count": 39
+  }
+}
