@@ -9,7 +9,7 @@ The generated summary SHALL follow a structured response contract suitable for r
 
 #### Scenario: Adaptive focus areas with cap
 - **WHEN** summary instructions are sent to the LLM
-- **THEN** the instructions SHALL allow adaptive `Focus Areas` inclusion based on meaningful risk/complexity/churn signals
+- **THEN** the instructions SHALL allow adaptive `Focus Areas` inclusion based on meaningful risk/complexity/churn/signal-state indicators
 - **AND** the number of focus areas SHALL be capped at 4.
 
 #### Scenario: No focus areas for simple PRs
@@ -23,8 +23,14 @@ The generated summary SHALL follow a structured response contract suitable for r
 
 #### Scenario: Summary reflects high-risk signals
 - **WHEN** CI/check/code-scanning signals contain failures or high-severity findings
-- **THEN** the summary SHALL incorporate those signals into reviewer-oriented guidance.
+- **THEN** the summary SHALL incorporate those signals into reviewer-oriented guidance
+- **AND** prioritize those signals in review guidance before lower-priority observations.
 
 #### Scenario: Summary handles unavailable signal sources
 - **WHEN** one or more configured signal sources are unavailable
 - **THEN** the summary context SHALL indicate availability limits without treating unavailable sources as passing signals.
+
+#### Scenario: Summary uses normalized bounded signal context
+- **WHEN** signal context is included in summary instructions
+- **THEN** the context SHALL use normalized reviewer-oriented fields with bounded detail
+- **AND** SHALL NOT include raw signal endpoint payloads.

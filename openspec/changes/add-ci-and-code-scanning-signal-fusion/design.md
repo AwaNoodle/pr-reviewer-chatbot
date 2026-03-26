@@ -37,10 +37,22 @@ This change spans API integration, state orchestration, prompt construction, and
   - Hide unavailable sources: rejected because it obscures confidence and data completeness.
 
 ### Decision: Fuse signals into summary guidance with bounded verbosity
-- **Choice:** Prompt contract includes top failing/pending/high-severity signals and limits signal detail to reviewer-relevant highlights.
+- **Choice:** Prompt contract includes top failing/pending/high-severity signals and limits signal detail to reviewer-relevant highlights, with channel-specific depth (richer for summary, compact for chat).
 - **Rationale:** Improves prioritization without overwhelming summaries.
 - **Alternatives considered:**
   - Dump full signal payload into prompt: rejected due to noise and token waste.
+
+### Decision: Preserve semantic separation of unavailable, error, and empty signal states
+- **Choice:** Represent source states distinctly in state, UI, and prompt context (`ok-empty`, `unavailable`, `error`) and prevent fallback collapse.
+- **Rationale:** Distinct semantics prevent false confidence and keep reviewer trust when visibility is incomplete.
+- **Alternatives considered:**
+  - Treat unavailable/error as no findings: rejected because it can mislead reviewers.
+
+### Decision: Enforce deterministic ranking and top-N caps for signal highlights
+- **Choice:** Rank signals by reviewer impact and include only bounded top-N items per signal category in prompt context.
+- **Rationale:** Keeps prompt size predictable, reduces noise, and stabilizes model behavior.
+- **Alternatives considered:**
+  - Include all signal items: rejected due to prompt bloat and degraded focus.
 
 ## Risks / Trade-offs
 
@@ -58,7 +70,7 @@ This change spans API integration, state orchestration, prompt construction, and
 5. Inject normalized signals into summary/chat prompt context and validate output quality.
 6. Add tests for service mapping, state transitions, and UI rendering paths.
 
-Rollback strategy: gate signal rendering and prompt injection on successful signal state; if disabled/removed, app returns to existing diff-and-discussion-only behavior.
+Rollback strategy: gate signal fetching/rendering/prompt fusion behind a feature toggle; if disabled/removed, app returns to existing diff-and-discussion-only behavior while preserving explicit unavailable/error semantics when signal UI is shown.
 
 ## Open Questions
 

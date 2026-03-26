@@ -390,3 +390,12 @@ Exit criteria:
 - [x] Created change `openspec/changes/add-ci-and-code-scanning-signal-fusion/` with proposal, design, capability specs, and implementation tasks.
 - [x] Added new capability spec delta `openspec/changes/add-ci-and-code-scanning-signal-fusion/specs/pr-signal-fusion/spec.md`.
 - [x] Added `pr-review-summary` delta for CI/code-scanning signal-aware summary guidance in `openspec/changes/add-ci-and-code-scanning-signal-fusion/specs/pr-review-summary/spec.md`.
+
+## OpenSpec Consistency Pass (2026-03-26)
+
+- [x] Aligned `add-ci-and-code-scanning-signal-fusion` proposal/design/spec/tasks wording around channel-aware signal fusion (summary richer, chat compact).
+- [x] Added explicit `pr-signal-fusion` requirements for code-scanning fetch, head-SHA invalidation, bounded deterministic top-N highlights, and raw-payload exclusion.
+- [x] Updated summary spec delta to include signal-state indicators and bounded normalized signal context language.
+- [x] Expanded tasks with ranking/capping/semantic-alignment verification coverage.
+- [x] Cleaned proposal capability taxonomy to avoid duplicate `pr-signal-fusion` classification across new/modified sections.
+- [x] Normalized terminology in signal-fusion specs to consistently use "signal context" instead of mixed "signal data/context" phrasing.

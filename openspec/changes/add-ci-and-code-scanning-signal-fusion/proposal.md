@@ -11,7 +11,7 @@ Current review analysis relies mostly on PR metadata, comments, and diffs, which
 ## Capabilities
 
 ### New Capabilities
-- `pr-signal-fusion`: Aggregation, normalization, and presentation of CI/check/code-scanning signals for selected PRs.
+- `pr-signal-fusion`: Aggregation, normalization, and presentation of CI/check/code-scanning signals for selected PRs, including channel-aware fusion into summary/chat assistant context.
 
 ### Modified Capabilities
 - `pr-review-summary`: Summary output contract is extended to incorporate high-risk CI/scanning signals into reviewer guidance when available.
