@@ -1,0 +1,1550 @@
+{
+  "info": {
+    "id": "ses_27294aa16ffeg3VrBX446kybzU",
+    "slug": "curious-lagoon",
+    "projectID": "348622467205f3a4969a26ec20f1654baed7f76d",
+    "directory": "/Users/mark/sandbox/personal/pr-review-chatbot",
+    "title": "Homebrew: openssl@1.1 not found error diagnosis",
+    "version": "1.4.3",
+    "summary": {
+      "additions": 0,
+      "deletions": 0,
+      "files": 0
+    },
+    "time": {
+      "created": 1776194115049,
+      "updated": 1776194521617
+    }
+  },
+  "messages": [
+    {
+      "info": {
+        "role": "user",
+        "time": {
+          "created": 1776194115066
+        },
+        "agent": "build",
+        "model": {
+          "providerID": "opencode",
+          "modelID": "gpt-5.3-codex"
+        },
+        "summary": {
+          "diffs": []
+        },
+        "id": "msg_d8d6b55ee001Lng3Iz3V2Tee3F",
+        "sessionID": "ses_27294aa16ffeg3VrBX446kybzU"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "I am seeing the following error when using zsh: \"Error: No available formula with the name \"openssl@1.1\". Did you mean openssl@3.5, openssl@3.0 or openssl@3?\". Can you help diagnose?",
+          "id": "prt_d8d6b55ee002SceV8lw6zBPDtF",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6b55ee001Lng3Iz3V2Tee3F"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d8d6b55ee001Lng3Iz3V2Tee3F",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0301175,
+        "tokens": {
+          "total": 13549,
+          "input": 13026,
+          "output": 351,
+          "reasoning": 172,
+          "cache": {
+            "write": 0,
+            "read": 0
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776194115073,
+          "completed": 1776194124843
+        },
+        "finish": "stop",
+        "id": "msg_d8d6b56010014rwjk0nPruUv2h",
+        "sessionID": "ses_27294aa16ffeg3VrBX446kybzU"
+      },
+      "parts": [
+        {
+          "snapshot": "600bc682f6ef14c579948effdfcd0d8151d6ea8b",
+          "type": "step-start",
+          "id": "prt_d8d6b59f70012bM1qIhmlNhdyM",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6b56010014rwjk0nPruUv2h"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776194116245,
+            "end": 1776194120171
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_09106c0c9b33489f0169de92442930819a9a3c3ca983ca13c2",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d8d6b5a95001QIoh8hqfGS7W3l",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6b56010014rwjk0nPruUv2h"
+        },
+        {
+          "type": "text",
+          "text": "Yep — this usually means your shell/startup script (or a tool installer) is trying to use an old Homebrew package that no longer exists.\n\n`openssl@1.1` was removed from Homebrew core after OpenSSL 1.1 reached end-of-life, so Brew can’t install it anymore.\n\nMost likely causes:\n- Your `~/.zshrc`, `~/.zprofile`, or `~/.profile` has lines referencing `openssl@1.1`\n- A tool setup script (often `pyenv`, `rbenv`, old Node/Python/Ruby build instructions) runs `brew install openssl@1.1`\n\nQuick diagnosis commands:\n```bash\nbrew search openssl\ngrep -n \"openssl@1.1\\|openssl/1.1\" ~/.zshrc ~/.zprofile ~/.profile ~/.zlogin 2>/dev/null\n```\n\nIf found in shell config, replace with OpenSSL 3:\n```bash\nbrew install openssl@3\n```\n\nAnd update env lines from something like:\n```bash\nexport LDFLAGS=\"-L$(brew --prefix openssl@1.1)/lib\"\nexport CPPFLAGS=\"-I$(brew --prefix openssl@1.1)/include\"\n```\nto:\n```bash\nexport LDFLAGS=\"-L$(brew --prefix openssl@3)/lib\"\nexport CPPFLAGS=\"-I$(brew --prefix openssl@3)/include\"\n```\n\nThen reload shell:\n```bash\nexec zsh\n```\n\nIf you want, I can help you pinpoint exactly which tool in your setup still requires `openssl@1.1` and what modern replacement command to use.",
+          "time": {
+            "start": 1776194120173,
+            "end": 1776194124731
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "msg_09106c0c9b33489f0169de92480f14819a872f5e9f1bdf9732",
+              "phase": "final_answer"
+            }
+          },
+          "id": "prt_d8d6b69ed001x4kNKkUVXX08SV",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6b56010014rwjk0nPruUv2h"
+        },
+        {
+          "reason": "stop",
+          "snapshot": "600bc682f6ef14c579948effdfcd0d8151d6ea8b",
+          "type": "step-finish",
+          "tokens": {
+            "total": 13549,
+            "input": 13026,
+            "output": 351,
+            "reasoning": 172,
+            "cache": {
+              "write": 0,
+              "read": 0
+            }
+          },
+          "cost": 0.0301175,
+          "id": "prt_d8d6b7bf70011CSADoH7Usj4jp",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6b56010014rwjk0nPruUv2h"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "user",
+        "time": {
+          "created": 1776194216491
+        },
+        "agent": "build",
+        "model": {
+          "providerID": "opencode",
+          "modelID": "gpt-5.3-codex"
+        },
+        "summary": {
+          "diffs": []
+        },
+        "id": "msg_d8d6ce225001EQlxMzMbUhnl0b",
+        "sessionID": "ses_27294aa16ffeg3VrBX446kybzU"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "yes",
+          "id": "prt_d8d6ce225002zsl5po5Q5ML5EV",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6ce225001EQlxMzMbUhnl0b"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d8d6ce225001EQlxMzMbUhnl0b",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0067389,
+        "tokens": {
+          "total": 13645,
+          "input": 454,
+          "output": 110,
+          "reasoning": 153,
+          "cache": {
+            "write": 0,
+            "read": 12928
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776194216497,
+          "completed": 1776194251412
+        },
+        "finish": "tool-calls",
+        "id": "msg_d8d6ce230001q5TQeRHqF8uLep",
+        "sessionID": "ses_27294aa16ffeg3VrBX446kybzU"
+      },
+      "parts": [
+        {
+          "snapshot": "600bc682f6ef14c579948effdfcd0d8151d6ea8b",
+          "type": "step-start",
+          "id": "prt_d8d6ce56b001fRCy4fBhcHLHbS",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6ce230001q5TQeRHqF8uLep"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776194217395,
+            "end": 1776194221038
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_0c5758d348f936bc0169de92a947d48194a4fae4f0a29ea588",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d8d6ce5b2001U12OFqPWnrQjVd",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6ce230001q5TQeRHqF8uLep"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_mrhVH7Ot8aANF20fMyMYSFyi",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": ".zsh*",
+              "path": "/Users/mark"
+            },
+            "output": "/Users/mark/.zsh_history\n/Users/mark/.zshenv\n/Users/mark/.zshrc\n/Users/mark/.zshrc.41684.2026-04-01@22:46:50~\n/Users/mark/.superset/zsh/.zshrc\n/Users/mark/.superset/zsh/.zshenv\n/Users/mark/sandbox/personal/osx_init/ansible/roles/local_zsh/files/.zshenv\n/Users/mark/sandbox/personal/osx_init/ansible/roles/local_zsh/files/.zshrc",
+            "metadata": {
+              "count": 8,
+              "truncated": false
+            },
+            "title": "../../..",
+            "time": {
+              "start": 1776194221051,
+              "end": 1776194240801
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_0c5758d348f936bc0169de92acdc0c8194a2eb138b1a953109"
+            }
+          },
+          "id": "prt_d8d6cf3f2001OjdVawk5VySes0",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6ce230001q5TQeRHqF8uLep"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_3KgqaGZE5MFRTfog6oPQWwQd",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": ".profile",
+              "path": "/Users/mark"
+            },
+            "output": "No files found",
+            "metadata": {
+              "count": 0,
+              "truncated": false
+            },
+            "title": "../../..",
+            "time": {
+              "start": 1776194221054,
+              "end": 1776194250143
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_0c5758d348f936bc0169de92acdc1c8194a37799d6cddaeb97"
+            }
+          },
+          "id": "prt_d8d6cf3fc0010DJMaS287RON2f",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6ce230001q5TQeRHqF8uLep"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_YtN0ph3QzLHNSH9LpMMz8LEP",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": ".zprofile",
+              "path": "/Users/mark"
+            },
+            "output": "/Users/mark/.zprofile\n/Users/mark/.superset/zsh/.zprofile\n/Users/mark/sandbox/personal/osx_init/ansible/roles/local_zsh/files/.zprofile",
+            "metadata": {
+              "count": 3,
+              "truncated": false
+            },
+            "title": "../../..",
+            "time": {
+              "start": 1776194221056,
+              "end": 1776194250743
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_0c5758d348f936bc0169de92acdc2481948eb86b323ef42cf1"
+            }
+          },
+          "id": "prt_d8d6cf3fe002dsSex6MBIYvl0C",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6ce230001q5TQeRHqF8uLep"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_J42TVj7oD1F45LPmTQipjoHL",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": ".zlogin",
+              "path": "/Users/mark"
+            },
+            "output": "/Users/mark/.superset/zsh/.zlogin",
+            "metadata": {
+              "count": 1,
+              "truncated": false
+            },
+            "title": "../../..",
+            "time": {
+              "start": 1776194221060,
+              "end": 1776194251350
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_0c5758d348f936bc0169de92acdc508194989ccffe0c69bf4d"
+            }
+          },
+          "id": "prt_d8d6cf402001JkHt0SxtS821zc",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6ce230001q5TQeRHqF8uLep"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "600bc682f6ef14c579948effdfcd0d8151d6ea8b",
+          "type": "step-finish",
+          "tokens": {
+            "total": 13645,
+            "input": 454,
+            "output": 110,
+            "reasoning": 153,
+            "cache": {
+              "write": 0,
+              "read": 12928
+            }
+          },
+          "cost": 0.0067389,
+          "id": "prt_d8d6d6a580018Fw2okT5hm6bjV",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6ce230001q5TQeRHqF8uLep"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d8d6ce225001EQlxMzMbUhnl0b",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.00699965,
+        "tokens": {
+          "total": 14160,
+          "input": 299,
+          "output": 108,
+          "reasoning": 185,
+          "cache": {
+            "write": 0,
+            "read": 13568
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776194251412,
+          "completed": 1776194285429
+        },
+        "finish": "tool-calls",
+        "id": "msg_d8d6d6a940020pTVYQDHXZ6hcB",
+        "sessionID": "ses_27294aa16ffeg3VrBX446kybzU"
+      },
+      "parts": [
+        {
+          "snapshot": "600bc682f6ef14c579948effdfcd0d8151d6ea8b",
+          "type": "step-start",
+          "id": "prt_d8d6d6d9b001dcRmSpfadn5DG7",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6d6a940020pTVYQDHXZ6hcB"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776194252190,
+            "end": 1776194257390
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_00c7b5e80a8c5e7a0169de92cc10648196a507ae27bc5636f5",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d8d6d6d9e001pRNF0rKcIl5nOU",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6d6a940020pTVYQDHXZ6hcB"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_s2aiSAvVIcN68R9SVWWJNljm",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/Users/mark/.zshenv",
+              "offset": 1,
+              "limit": 400
+            },
+            "output": "<path>/Users/mark/.zshenv</path>\n<type>file</type>\n<content>\n1: #!/usr/bin/env zsh\n2: \n3: # Extend $PATH without duplicates\n4: _extend_path() {\n5:   if ! $(echo \"$PATH\" | tr \":\" \"\\n\" | grep -qx \"$1\"); then\n6:     export PATH=\"$1:$PATH\"\n7:   fi\n8: }\n9: \n10: unamestr=$(uname)\n11: \n12: # add support for ctrl+o to open selected file in VS Code\n13: export FZF_DEFAULT_OPTS=\"--bind='ctrl-o:execute(code {})+abort'\"\n14: # set ag as the default fzf command if installed\n15: [[ $(command -v ag) ]] && export FZF_DEFAULT_COMMAND=\"ag --hidden --ignore .git -f -g \\\"\\\"\"\n16: \n17: export EDITOR='vim'\n18: \n19: export AWS_REGION='us-east-1'\n20: \n21: [[ \"$unamestr\" == 'Linux' ]] && export WINIT_HIDPI_FACTOR=1\n22: \n23: export BREW_PATH=/opt/homebrew/bin/\n24: [[ -d \"$BREW_PATH\" ]] && _extend_path \"$BREW_PATH\"\n25: \n26: export RANCHER_BIN=$HOME/.rd/bin\n27: [[ -d \"$RANCHER_BIN\" ]] && _extend_path \"${RANCHER_BIN}\"\n28: \n29: export GOPATH=$HOME/sandbox/go\n30: [[ -d \"$GOPATH\" ]] && _extend_path \"$GOPATH/bin\"\n31: \n32: export SBT_OPTS=\"-Xms1536m -Xmx1536m -XX:ReservedCodeCacheSize=192m -Dfile.encoding=UTF8\"\n33: \n34: export HELPER_SCRIPTS=\"$HOME/helper_scripts\"\n35: [[ -d \"$HELPER_SCRIPTS\" ]] && _extend_path \"$HELPER_SCRIPTS\"\n36: \n37: [[ -d \"$HOME/bin\" ]] && _extend_path \"$HOME/bin\"\n38: [[ -d \"$HOME/.local/bin\" ]] && _extend_path \"$HOME/.local/bin\"\n39: [[ -d \"/usr/local/bin\" ]] && _extend_path \"/usr/local/bin\"\n40: \n41: # Brew Python 3\n42: BREW_PYTHON_3_BIN=\"${HOME}/Library/Python/3.9/bin\"\n43: [[ \"$unamestr\" == 'Darwin' && -d \"$BREW_PYTHON_3_BIN\" ]] && _extend_path \"${BREW_PYTHON_3_BIN}\"\n44: \n45: # Linux Ruby\n46: RUBY_BIN_PATH=\"${HOME}/.gem/ruby/2.6.0/bin\"\n47: [[ \"$unamestr\" == 'Linux' && -d \"$RUBY_BIN_PATH\" ]] && _extend_path \"${RUBY_BIN_PATH}\"\n48: \n49: # GraalVM\n50: if [[ \"$unamestr\" == 'Linux' ]]; then\n51:   GRAAL_PATH=\"/usr/lib/jvm/java-8-graalvm/\"\n52: else\n53:   GRAAL_PATH=\"/Library/Java/JavaVirtualMachines/graalvm-ce-java8-20.3.0/Contents/Home\"\n54: fi\n55: \n56: if [ -d \"$GRAAL_PATH\" ]; then\n57:   export JAVA_HOME=\"${GRAAL_PATH}\"\n58:   _extend_path \"${JAVA_HOME}/bin\"\n59: fi\n60: \n61: # Use a version of OpenSSL that will be managed\n62: [[ \"$unamestr\" == 'Darwin' ]] && export RUBY_CONFIGURE_OPTS=\"--with-openssl-dir=$(brew --prefix openssl@1.1)\"\n63: \n64: # rbenv shims\n65: [[ $(command -v rbenv) ]] && _extend_path \"${HOME}/.rbenv/bin\"\n66: \n67: # TF tools\n68: TF_ENV_PATH=\"${HOME}/sandbox/tools/.tfenv\"\n69: TG_ENV_PATH=\"${HOME}/sandbox/tools/.tgenv\"\n70: [[ -d \"$TF_ENV_PATH\" ]] && _extend_path \"${TF_ENV_PATH}/bin\"\n71: [[ -d \"$TG_ENV_PATH\" ]] && _extend_path \"${TG_ENV_PATH}/bin\"\n72: \n73: # JEnv\n74: JENV_PATH=\"$HOME/.jenv/bin\"\n75: if [ -d \"$JENV_PATH\" ]; then\n76:   _extend_path \"${JENV_PATH}\"\n77:   eval \"$(jenv init -)\"\n78: fi\n79: \n80: # Bloop\n81: BLOOP_PATH=\"${HOME}/.cache/yay/bloop/src\"\n82: if [ -d \"${BLOOP_PATH}\" ]; then\n83:   _extend_path \"$BLOOP_PATH\"\n84: fi\n85: \n86: # nix\n87: NIX_PATH=\"${HOME}/.nix-profile/bin\"\n88: if [ -d \"${NIX_PATH}\" ]; then\n89:   _extend_path \"${NIX_PATH}\"\n90: fi\n91: \n92: # History options\n93: export HISTCONTROL=ignoreboth:erasedups\n\n(End of file - total 93 lines)\n</content>",
+            "metadata": {
+              "preview": "#!/usr/bin/env zsh\n\n# Extend $PATH without duplicates\n_extend_path() {\n  if ! $(echo \"$PATH\" | tr \":\" \"\\n\" | grep -qx \"$1\"); then\n    export PATH=\"$1:$PATH\"\n  fi\n}\n\nunamestr=$(uname)\n\n# add support for ctrl+o to open selected file in VS Code\nexport FZF_DEFAULT_OPTS=\"--bind='ctrl-o:execute(code {})+abort'\"\n# set ag as the default fzf command if installed\n[[ $(command -v ag) ]] && export FZF_DEFAULT_COMMAND=\"ag --hidden --ignore .git -f -g \\\"\\\"\"\n\nexport EDITOR='vim'\n\nexport AWS_REGION='us-east-1'\n",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "../../../.zshenv",
+            "time": {
+              "start": 1776194257401,
+              "end": 1776194276126
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_00c7b5e80a8c5e7a0169de92d140cc819692184a5dff8955e2"
+            }
+          },
+          "id": "prt_d8d6d81f30018ZWkpRoZnZ42yR",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6d6a940020pTVYQDHXZ6hcB"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_MbO7RkF8DHSnqPMMDdqcyqIM",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/Users/mark/.zshrc",
+              "offset": 1,
+              "limit": 400
+            },
+            "output": "<path>/Users/mark/.zshrc</path>\n<type>file</type>\n<content>\n1: #!/usr/bin/env zsh\n2: \n3: unamestr=$(uname)\n4: \n5: # Path to your oh-my-zsh installation.\n6: # this should be improved to a test for location\n7: if [[ \"$unamestr\" == 'Linux' ]]; then\n8:   export ZSH=/usr/share/oh-my-zsh\n9: else\n10:   export ZSH=$HOME/.oh-my-zsh\n11: fi\n12: \n13: # Set name of the theme to load.\n14: ZSH_THEME=\"agnoster\"\n15: \n16: # Uncomment the following line to change how often to auto-update (in days).\n17: export UPDATE_ZSH_DAYS=7\n18: \n19: # Which plugins would you like to load? (plugins can be found in ~/.oh-my-zsh/plugins/*)\n20: # Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/\n21: # Example format: plugins=(rails git textmate ruby lighthouse)\n22: # Add wisely, as too many plugins slow down shell startup.\n23: \n24: plugins=(git docker aws docker-compose terraform)\n25: \n26: source $ZSH/oh-my-zsh.sh\n27: \n28: # User configuration\n29: \n30: test -e \"${HOME}/.iterm2_shell_integration.zsh\" && source \"${HOME}/.iterm2_shell_integration.zsh\"\n31: \n32: # Lines configured by zsh-newuser-install\n33: HISTFILE=~/.histfile\n34: HISTSIZE=1000\n35: SAVEHIST=1000\n36: setopt autocd\n37: bindkey -e\n38: # End of lines configured by zsh-newuser-install\n39: \n40: # The following lines were added by compinstall\n41: zstyle :compinstall filename \"${HOME}/.zshrc\"\n42: autoload -Uz compinit\n43: compinit\n44: # End of lines added by compinstall\n45: \n46: # helpers - should switch to loading in from a folder\n47: test -e \"${HOME}/.alias\" && source \"${HOME}/.alias\"\n48: # test -e \"${HOME}/.bamtechHelpers.sh\" && source \"${HOME}/.bamtechHelpers.sh\"\n49: \n50: # Add eksctl completion\n51: # eksctlCompletions=\"${HOME}/.zsh/completions/_eksctl\"\n52: # if [ -f \"${eksctlCompletions}\" ]\n53: # then\n54: #  fpath=($fpath ~/.zsh/completion)\n55: # fi\n56: \n57: # Install zsh-syntax-highlighting via brew install zsh-syntax-highlighting\n58: highlightingFile=/usr/local/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh\n59: if [ -f \"${highlightingFile}\" ]; then\n60:   source $highlightingFile\n61: fi\n62: \n63: # Autojump helpers to use `j`\n64: [[ \"$unamestr\" == 'Linux' ]] && [ -f /usr/share/autojump/autojump.zsh ] && . /usr/share/autojump/autojump.zsh\n65: [[ \"$unamestr\" == 'Darwin' ]] && [ -f /usr/local/etc/profile.d/autojump.sh ] && . /usr/local/etc/profile.d/autojump.sh\n66: \n67: # rbenv shims\n68: [[ $(command -v rbenv) ]] && eval \"$(rbenv init -)\"\n69: \n70: # Starship prompt\n71: [[ $(command -v starship) ]] && eval \"$(starship init zsh)\"\n72: \n73: [[ $(command -v direnv) ]] && eval \"$(direnv hook zsh)\"\n\n(End of file - total 73 lines)\n</content>",
+            "metadata": {
+              "preview": "#!/usr/bin/env zsh\n\nunamestr=$(uname)\n\n# Path to your oh-my-zsh installation.\n# this should be improved to a test for location\nif [[ \"$unamestr\" == 'Linux' ]]; then\n  export ZSH=/usr/share/oh-my-zsh\nelse\n  export ZSH=$HOME/.oh-my-zsh\nfi\n\n# Set name of the theme to load.\nZSH_THEME=\"agnoster\"\n\n# Uncomment the following line to change how often to auto-update (in days).\nexport UPDATE_ZSH_DAYS=7\n\n# Which plugins would you like to load? (plugins can be found in ~/.oh-my-zsh/plugins/*)\n# Custom plugins may be added to ~/.oh-my-zsh/custom/plugins/",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "../../../.zshrc",
+            "time": {
+              "start": 1776194257403,
+              "end": 1776194282942
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_00c7b5e80a8c5e7a0169de92d140d8819698527652e33dce27"
+            }
+          },
+          "id": "prt_d8d6d81fa001ML60vTteZI0Cjs",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6d6a940020pTVYQDHXZ6hcB"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_eDEj1caM46L3emL14gvA0hOb",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/Users/mark/.zprofile",
+              "offset": 1,
+              "limit": 400
+            },
+            "output": "<path>/Users/mark/.zprofile</path>\n<type>file</type>\n<content>\n1: #!/usr/bin/env zsh\n2: \n3: export NVM_DIR=\"$HOME/.nvm\"\n4: [ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\" # This loads nvm\n\n(End of file - total 4 lines)\n</content>",
+            "metadata": {
+              "preview": "#!/usr/bin/env zsh\n\nexport NVM_DIR=\"$HOME/.nvm\"\n[ -s \"$NVM_DIR/nvm.sh\" ] && \\. \"$NVM_DIR/nvm.sh\" # This loads nvm",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "../../../.zprofile",
+            "time": {
+              "start": 1776194257406,
+              "end": 1776194285373
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_00c7b5e80a8c5e7a0169de92d140e0819696c5faba3cb43de4"
+            }
+          },
+          "id": "prt_d8d6d81fc001kGQfrJVplS2I3I",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6d6a940020pTVYQDHXZ6hcB"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "600bc682f6ef14c579948effdfcd0d8151d6ea8b",
+          "type": "step-finish",
+          "tokens": {
+            "total": 14160,
+            "input": 299,
+            "output": 108,
+            "reasoning": 185,
+            "cache": {
+              "write": 0,
+              "read": 13568
+            }
+          },
+          "cost": 0.00699965,
+          "id": "prt_d8d6def3f0015z23RgBIU3kHNb",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6d6a940020pTVYQDHXZ6hcB"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d8d6ce225001EQlxMzMbUhnl0b",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.01108695,
+        "tokens": {
+          "total": 16593,
+          "input": 2457,
+          "output": 63,
+          "reasoning": 249,
+          "cache": {
+            "write": 0,
+            "read": 13824
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776194285431,
+          "completed": 1776194293163
+        },
+        "finish": "tool-calls",
+        "id": "msg_d8d6def77001u3P9DZw7EkaC5I",
+        "sessionID": "ses_27294aa16ffeg3VrBX446kybzU"
+      },
+      "parts": [
+        {
+          "snapshot": "600bc682f6ef14c579948effdfcd0d8151d6ea8b",
+          "type": "step-start",
+          "id": "prt_d8d6df2460017Z9RgX4TksfRY8",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6def77001u3P9DZw7EkaC5I"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776194286192,
+            "end": 1776194291773
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_0e9d68687b709e9e0169de92ee1fd4819891fe06736fd9b5cb",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d8d6df270001tdLF3SncHdQnih",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6def77001u3P9DZw7EkaC5I"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_SwwFa1ND18NAAMNh6T1RBRNM",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "brew --prefix openssl@1.1",
+              "timeout": 120000,
+              "workdir": "/Users/mark/sandbox/personal/pr-review-chatbot",
+              "description": "Checks Homebrew prefix for openssl 1.1"
+            },
+            "output": "Error: No available formula with the name \"openssl@1.1\". Did you mean openssl@3.5, openssl@3.0 or openssl@3?\nError: No available formula with the name \"openssl@1.1\". Did you mean openssl@3.5, openssl@3.0 or openssl@3?\n",
+            "metadata": {
+              "output": "Error: No available formula with the name \"openssl@1.1\". Did you mean openssl@3.5, openssl@3.0 or openssl@3?\nError: No available formula with the name \"openssl@1.1\". Did you mean openssl@3.5, openssl@3.0 or openssl@3?\n",
+              "exit": 1,
+              "description": "Checks Homebrew prefix for openssl 1.1",
+              "truncated": false
+            },
+            "title": "Checks Homebrew prefix for openssl 1.1",
+            "time": {
+              "start": 1776194293116,
+              "end": 1776194293124
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_0e9d68687b709e9e0169de92f3b31c8198bcfe76d1f168d4d2"
+            }
+          },
+          "id": "prt_d8d6e0840001Uvy0HzDX2No7ZD",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6def77001u3P9DZw7EkaC5I"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "600bc682f6ef14c579948effdfcd0d8151d6ea8b",
+          "type": "step-finish",
+          "tokens": {
+            "total": 16593,
+            "input": 2457,
+            "output": 63,
+            "reasoning": 249,
+            "cache": {
+              "write": 0,
+              "read": 13824
+            }
+          },
+          "cost": 0.01108695,
+          "id": "prt_d8d6e0d840024aa9ayBxEtnJyj",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6def77001u3P9DZw7EkaC5I"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d8d6ce225001EQlxMzMbUhnl0b",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0129241,
+        "tokens": {
+          "total": 17374,
+          "input": 166,
+          "output": 341,
+          "reasoning": 355,
+          "cache": {
+            "write": 0,
+            "read": 16512
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776194293163,
+          "completed": 1776194305775
+        },
+        "finish": "stop",
+        "id": "msg_d8d6e0dab002EzyuUqrTaxOLPk",
+        "sessionID": "ses_27294aa16ffeg3VrBX446kybzU"
+      },
+      "parts": [
+        {
+          "snapshot": "600bc682f6ef14c579948effdfcd0d8151d6ea8b",
+          "type": "step-start",
+          "id": "prt_d8d6e10c9001uUUbSJwmP4VIKz",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6e0dab002EzyuUqrTaxOLPk"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776194296023,
+            "end": 1776194301982
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_0f96efa42e7e14c70169de92f7f57881909faf8b17f22ebd2f",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d8d6e18d7001dIxg6da5LG2mfY",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6e0dab002EzyuUqrTaxOLPk"
+        },
+        {
+          "type": "text",
+          "text": "Found it — your shell is executing an outdated OpenSSL reference in startup config.\n\n- The exact source is `~/.zshenv:62`:\n  - `export RUBY_CONFIGURE_OPTS=\"--with-openssl-dir=$(brew --prefix openssl@1.1)\"`\n- `openssl@1.1` is removed from Homebrew, so every new zsh session triggers that Brew error.\n- I confirmed by running `brew --prefix openssl@1.1`, which returns the same error you pasted.\n\nFix:\n1. Install current OpenSSL formula:\n   - `brew install openssl@3`\n2. Update `~/.zshenv:62` to:\n   - `[[ \"$unamestr\" == 'Darwin' ]] && export RUBY_CONFIGURE_OPTS=\"--with-openssl-dir=$(brew --prefix openssl@3)\"`\n3. Reload shell:\n   - `exec zsh`\n\nIf you want this to be more resilient, use this instead (falls back cleanly if formula names change):\n```zsh\nif [[ \"$unamestr\" == 'Darwin' ]]; then\n  OPENSSL_PREFIX=\"$(brew --prefix openssl@3 2>/dev/null || brew --prefix openssl 2>/dev/null)\"\n  [[ -n \"$OPENSSL_PREFIX\" ]] && export RUBY_CONFIGURE_OPTS=\"--with-openssl-dir=$OPENSSL_PREFIX\"\nfi\n```\n\nIf you share your Ruby version (`ruby -v`), I can also tell you whether you should keep `RUBY_CONFIGURE_OPTS` at all or remove it.",
+          "time": {
+            "start": 1776194301985,
+            "end": 1776194305486
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "msg_0f96efa42e7e14c70169de92fde9cc81908198aceb6e1e5a75",
+              "phase": "final_answer"
+            }
+          },
+          "id": "prt_d8d6e3021001e6UVY5yRsHJFwB",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6e0dab002EzyuUqrTaxOLPk"
+        },
+        {
+          "reason": "stop",
+          "snapshot": "600bc682f6ef14c579948effdfcd0d8151d6ea8b",
+          "type": "step-finish",
+          "tokens": {
+            "total": 17374,
+            "input": 166,
+            "output": 341,
+            "reasoning": 355,
+            "cache": {
+              "write": 0,
+              "read": 16512
+            }
+          },
+          "cost": 0.0129241,
+          "id": "prt_d8d6e3ebc001nucaLjS7nUNa7H",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6e0dab002EzyuUqrTaxOLPk"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "user",
+        "time": {
+          "created": 1776194351470
+        },
+        "agent": "build",
+        "model": {
+          "providerID": "opencode",
+          "modelID": "gpt-5.3-codex"
+        },
+        "summary": {
+          "diffs": []
+        },
+        "id": "msg_d8d6ef164001dCH3gwS75i3d03",
+        "sessionID": "ses_27294aa16ffeg3VrBX446kybzU"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "ruby 2.6.10p210 (2022-04-12 revision 67958) [universal.arm64e-darwin25]",
+          "id": "prt_d8d6ef165001mPG2EX5Qb9Esi6",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6ef164001dCH3gwS75i3d03"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d8d6ef164001dCH3gwS75i3d03",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0200781,
+        "tokens": {
+          "total": 17336,
+          "input": 3150,
+          "output": 303,
+          "reasoning": 571,
+          "cache": {
+            "write": 0,
+            "read": 13312
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776194351480,
+          "completed": 1776194366468
+        },
+        "finish": "stop",
+        "id": "msg_d8d6ef178001awXRJxs2S2vB6k",
+        "sessionID": "ses_27294aa16ffeg3VrBX446kybzU"
+      },
+      "parts": [
+        {
+          "snapshot": "600bc682f6ef14c579948effdfcd0d8151d6ea8b",
+          "type": "step-start",
+          "id": "prt_d8d6ef4bc001c4ABVEiRPaQcO1",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6ef178001awXRJxs2S2vB6k"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776194352367,
+            "end": 1776194365422
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_04f8b3f9cff6cecf0169de93304de48190a4202cfbff46183e",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d8d6ef4ef001t0YNr2Is4692Gu",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6ef178001awXRJxs2S2vB6k"
+        },
+        {
+          "type": "text",
+          "text": "Great data point — that Ruby version explains a lot.\n\n- `ruby 2.6.10` is EOL, and OpenSSL 1.1 is also EOL.\n- Your `RUBY_CONFIGURE_OPTS` line is only needed when **building Ruby from source** (e.g., `rbenv install`), not for normal shell use.\n- So in your case, that line is safe to remove from global startup and is the direct cause of the zsh error.\n\nDo this now:\n```zsh\n# edit ~/.zshenv and remove/comment this line:\n# export RUBY_CONFIGURE_OPTS=\"--with-openssl-dir=$(brew --prefix openssl@1.1)\"\nexec zsh\n```\n\nRecommended path:\n- Upgrade to a maintained Ruby (ideally `3.2` or `3.3`).\n- If using rbenv, install with OpenSSL 3:\n```zsh\nbrew install openssl@3 ruby-build rbenv\nRUBY_CONFIGURE_OPTS=\"--with-openssl-dir=$(brew --prefix openssl@3)\" rbenv install 3.3.6\nrbenv global 3.3.6\n```\n\nIf you must keep 2.6 for legacy work, keep the OpenSSL setting scoped to that one install command (not in `~/.zshenv`) and expect compatibility friction on modern macOS.",
+          "time": {
+            "start": 1776194365425,
+            "end": 1776194366257
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "msg_04f8b3f9cff6cecf0169de933d4fc8819091b21a0566374ef9",
+              "phase": "final_answer"
+            }
+          },
+          "id": "prt_d8d6f27f1001gDoadPDbCaQgQ4",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6ef178001awXRJxs2S2vB6k"
+        },
+        {
+          "reason": "stop",
+          "snapshot": "600bc682f6ef14c579948effdfcd0d8151d6ea8b",
+          "type": "step-finish",
+          "tokens": {
+            "total": 17336,
+            "input": 3150,
+            "output": 303,
+            "reasoning": 571,
+            "cache": {
+              "write": 0,
+              "read": 13312
+            }
+          },
+          "cost": 0.0200781,
+          "id": "prt_d8d6f2bc5001TrSQPvfN6nAd5g",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6ef178001awXRJxs2S2vB6k"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "user",
+        "time": {
+          "created": 1776194414347
+        },
+        "agent": "build",
+        "model": {
+          "providerID": "opencode",
+          "modelID": "gpt-5.3-codex"
+        },
+        "summary": {
+          "diffs": []
+        },
+        "id": "msg_d8d6fe7080017LWykHa14yc19D",
+        "sessionID": "ses_27294aa16ffeg3VrBX446kybzU"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "MAke these changes",
+          "id": "prt_d8d6fe708002dbGQS4drbval4M",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6fe7080017LWykHa14yc19D"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d8d6fe7080017LWykHa14yc19D",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.00956795,
+        "tokens": {
+          "total": 17203,
+          "input": 389,
+          "output": 82,
+          "reasoning": 348,
+          "cache": {
+            "write": 0,
+            "read": 16384
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776194414350,
+          "completed": 1776194484152
+        },
+        "finish": "tool-calls",
+        "id": "msg_d8d6fe70e001LGfYalCcKXx55G",
+        "sessionID": "ses_27294aa16ffeg3VrBX446kybzU"
+      },
+      "parts": [
+        {
+          "snapshot": "600bc682f6ef14c579948effdfcd0d8151d6ea8b",
+          "type": "step-start",
+          "id": "prt_d8d6feb66001Nr9jUcMPvYqCf1",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6fe70e001LGfYalCcKXx55G"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776194415465,
+            "end": 1776194421640
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_0e2fccad0435da450169de936f5bd88198b24d6db8170e72c9",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d8d6feb69001UcRPCzBHJ6mgH7",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6fe70e001LGfYalCcKXx55G"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_tuuahKbHWDwY5hrW36ZQFshS",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "plans/plan.md",
+              "path": "/Users/mark/sandbox/personal/pr-review-chatbot"
+            },
+            "output": "/Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md",
+            "metadata": {
+              "count": 1,
+              "truncated": false
+            },
+            "title": "",
+            "time": {
+              "start": 1776194421647,
+              "end": 1776194421661
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_0e2fccad0435da450169de937577c4819887271750244b4a5f"
+            }
+          },
+          "id": "prt_d8d70038b001Xa77WLtwbzZ7Ua",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6fe70e001LGfYalCcKXx55G"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_Shnlkk9xJrYjqgx2HcdADCQo",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/Users/mark/.zshenv",
+              "offset": 56,
+              "limit": 20
+            },
+            "output": "<path>/Users/mark/.zshenv</path>\n<type>file</type>\n<content>\n56: if [ -d \"$GRAAL_PATH\" ]; then\n57:   export JAVA_HOME=\"${GRAAL_PATH}\"\n58:   _extend_path \"${JAVA_HOME}/bin\"\n59: fi\n60: \n61: # Use a version of OpenSSL that will be managed\n62: [[ \"$unamestr\" == 'Darwin' ]] && export RUBY_CONFIGURE_OPTS=\"--with-openssl-dir=$(brew --prefix openssl@1.1)\"\n63: \n64: # rbenv shims\n65: [[ $(command -v rbenv) ]] && _extend_path \"${HOME}/.rbenv/bin\"\n66: \n67: # TF tools\n68: TF_ENV_PATH=\"${HOME}/sandbox/tools/.tfenv\"\n69: TG_ENV_PATH=\"${HOME}/sandbox/tools/.tgenv\"\n70: [[ -d \"$TF_ENV_PATH\" ]] && _extend_path \"${TF_ENV_PATH}/bin\"\n71: [[ -d \"$TG_ENV_PATH\" ]] && _extend_path \"${TG_ENV_PATH}/bin\"\n72: \n73: # JEnv\n74: JENV_PATH=\"$HOME/.jenv/bin\"\n75: if [ -d \"$JENV_PATH\" ]; then\n\n(Showing lines 56-75 of 93. Use offset=76 to continue.)\n</content>",
+            "metadata": {
+              "preview": "if [ -d \"$GRAAL_PATH\" ]; then\n  export JAVA_HOME=\"${GRAAL_PATH}\"\n  _extend_path \"${JAVA_HOME}/bin\"\nfi\n\n# Use a version of OpenSSL that will be managed\n[[ \"$unamestr\" == 'Darwin' ]] && export RUBY_CONFIGURE_OPTS=\"--with-openssl-dir=$(brew --prefix openssl@1.1)\"\n\n# rbenv shims\n[[ $(command -v rbenv) ]] && _extend_path \"${HOME}/.rbenv/bin\"\n\n# TF tools\nTF_ENV_PATH=\"${HOME}/sandbox/tools/.tfenv\"\nTG_ENV_PATH=\"${HOME}/sandbox/tools/.tgenv\"\n[[ -d \"$TF_ENV_PATH\" ]] && _extend_path \"${TF_ENV_PATH}/bin\"\n[[ -d \"$TG_ENV_PATH\" ]] && _extend_path \"${TG_ENV_PATH}/bin\"\n\n# JEnv\nJENV_PATH=\"$HOME/.jenv/bin\"\nif [ -d \"$JENV_PATH\" ]; then",
+              "truncated": true,
+              "loaded": []
+            },
+            "title": "../../../.zshenv",
+            "time": {
+              "start": 1776194421650,
+              "end": 1776194484089
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_0e2fccad0435da450169de937577d88198b6739e0c465523f8"
+            }
+          },
+          "id": "prt_d8d700390001bDXELKnX3u6nI7",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6fe70e001LGfYalCcKXx55G"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "600bc682f6ef14c579948effdfcd0d8151d6ea8b",
+          "type": "step-finish",
+          "tokens": {
+            "total": 17203,
+            "input": 389,
+            "output": 82,
+            "reasoning": 348,
+            "cache": {
+              "write": 0,
+              "read": 16384
+            }
+          },
+          "cost": 0.00956795,
+          "id": "prt_d8d70f77c001HkSPd9E8D4HYNl",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d6fe70e001LGfYalCcKXx55G"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d8d6fe7080017LWykHa14yc19D",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0047292,
+        "tokens": {
+          "total": 17597,
+          "input": 512,
+          "output": 44,
+          "reasoning": 17,
+          "cache": {
+            "write": 0,
+            "read": 17024
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776194484153,
+          "completed": 1776194486324
+        },
+        "finish": "tool-calls",
+        "id": "msg_d8d70f7b90010oyO70T8xbg2jN",
+        "sessionID": "ses_27294aa16ffeg3VrBX446kybzU"
+      },
+      "parts": [
+        {
+          "snapshot": "600bc682f6ef14c579948effdfcd0d8151d6ea8b",
+          "type": "step-start",
+          "id": "prt_d8d70febf001V6Lp1PaRWvsTg1",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d70f7b90010oyO70T8xbg2jN"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776194485953,
+            "end": 1776194485980
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_034f715da181c70f0169de93b546fc819a9243da53b12572e9",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d8d70fec1001y0KwR5SEuosiO3",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d70f7b90010oyO70T8xbg2jN"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_enTD1MlQxDLFbxVxqHZfzg8H",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md",
+              "offset": 1,
+              "limit": 200
+            },
+            "output": "<path>/Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md</path>\n<type>file</type>\n<content>\n1: # PR Review Chatbot - Implementation Plan\n2: \n3: ## Priority: UI and LLM Integration First\n4: **Key Change**: Use dummy data for PR content to allow immediate interaction with the LLM without needing GitHub API credentials. GitHub integration can be added later.\n5: \n6: ---\n7: \n8: ## Tech Stack\n9: - Vite + React 18 + TypeScript\n10: - Redux Toolkit for state management\n11: - Axios for HTTP\n12: - Tailwind CSS for styling\n13: - Radix UI for accessible components\n14: \n15: ---\n16: \n17: ## Implementation Phases\n18: \n19: ### ✅ Phase 1: Project Setup (COMPLETED)\n20: - [x] Initialize Vite + React + TypeScript project\n21: - [x] Install dependencies (Redux Toolkit, Axios, Tailwind, Radix UI, react-markdown, react-syntax-highlighter, lucide-react)\n22: - [x] Configure Tailwind CSS with CSS variables for theming\n23: - [x] Set up project structure (`src/types`, `src/store`, `src/services`, `src/components`, `src/lib`)\n24: - [x] Create `vite-env.d.ts` for Vite environment type declarations\n25: - [x] Create `.env.example` with all configuration options\n26: - [x] Create `.gitignore`\n27: \n28: ### ✅ Phase 2: UI Shell & Configuration (COMPLETED)\n29: - [x] Create Redux store (`src/store/index.ts`)\n30: - [x] Implement `configSlice.ts` — env var defaults + localStorage runtime overrides\n31: - [x] Implement `chatSlice.ts` — messages, streaming state\n32: - [x] Implement `prsSlice.ts` — selected PR, files, comments, reviews\n33: - [x] Create typed Redux hooks (`src/store/hooks.ts`)\n34: - [x] Create `SettingsDialog.tsx` — runtime config override with demo mode toggle\n35: - [x] Create main `App.tsx` layout (sidebar + chat + PR viewer panels)\n36: - [x] Dark mode toggle in top bar\n37: - [x] Collapsible sidebar and PR viewer panels\n38: \n39: ### ✅ Phase 3: Chat Interface (COMPLETED)\n40: - [x] Build `ChatWindow.tsx` with message display\n41: - [x] User/assistant message bubbles with avatars\n42: - [x] Markdown rendering with `react-markdown` + `remark-gfm`\n43: - [x] Code syntax highlighting with `react-syntax-highlighter`\n44: - [x] Streaming response display (animated cursor)\n45: - [x] Auto-scroll to latest message\n46: - [x] Multi-line textarea input (auto-resize)\n47: - [x] Enter to send, Shift+Enter for new line\n48: - [x] Suggestion chips on empty state\n49: - [x] Clear conversation button\n50: - [x] Error display in message bubbles\n51: \n52: ### ✅ Phase 4: LLM Integration (COMPLETED)\n53: - [x] Implement `LLMService` class in `src/services/llm.ts`\n54: - [x] OpenAI v1 API support (`/chat/completions`)\n55: - [x] LiteLLM Proxy support (same API format)\n56: - [x] Streaming via Server-Sent Events (SSE)\n57: - [x] `buildSystemPrompt()` — injects full PR context (metadata, diffs, comments, reviews)\n58: - [x] Connect LLM service to `ChatWindow` with streaming dispatch\n59: - [x] Error handling for API failures\n60: \n61: ### ✅ Phase 5: Dummy Data & Demo Mode (COMPLETED)\n62: - [x] Create `src/services/dummyData.ts` with realistic sample PR\n63:   - Sample PR: JWT authentication feature (8 files, realistic diffs)\n64:   - Sample comments, review comments, and reviews\n65: - [x] Build `PRViewer.tsx` with:\n66:   - PR metadata header (state badge, author, branch, stats)\n67:   - Tabs: Files, Comments, Reviews\n68:   - Collapsible file items with diff view\n69:   - Diff syntax highlighting (green/red/blue lines)\n70:   - Status badges per file (added/modified/removed)\n71: - [x] Build `Sidebar.tsx` with demo mode toggle\n72: - [x] Auto-load dummy PR on startup in demo mode\n73: - [x] Demo mode toggle in sidebar and Settings dialog\n74: \n75: ### ✅ Phase 6: GitHub Integration (COMPLETED)\n76: - [x] Implement `GitHubService` class in `src/services/github.ts`\n77: - [x] PAT (Bearer token) authentication\n78: - [x] Support for github.com (`https://api.github.com`)\n79: - [x] Support for GHES (`https://<host>/api/v3`)\n80: - [x] Methods: `listRepositories`, `searchRepositories`, `listPullRequests`, `getPullRequest`, `getPRFiles`, `getPRComments`, `getPRReviewComments`, `getPRReviews`, `validateToken`\n81: - [x] Token validation method\n82: \n83: ### ✅ Phase 7: Polish (COMPLETED)\n84: - [x] Add loading states and loading indicators for GitHub API calls\n85: - [x] Add error handling for GitHub API failures (rate limiting, 404, auth errors)\n86: - [x] Polish UI/UX (animations, transitions)\n87: - [x] GitHub mode UI — allow entering repo/PR manually\n88: - [x] Context window management for very large PRs\n89: \n90: ---\n91: \n92: ## Documentation (COMPLETED)\n93: - [x] `README.md` — User-facing docs: quick start, configuration, LLM setup, GitHub setup, troubleshooting\n94: - [x] `agents.md` — Developer/agent docs: project structure, architecture, common tasks\n95: - [x] `.env.example` — Annotated environment variable reference\n96: \n97: ---\n98: \n99: ## Configuration\n100: \n101: ### Environment Variables (with defaults)\n102: ```\n103: VITE_GITHUB_PAT=          # GitHub Personal Access Token\n104: VITE_LLM_API_KEY=         # LLM API Key\n105: VITE_GITHUB_INSTANCE=     # \"github.com\" or URL for GHES\n106: VITE_LLM_BACKEND=         # \"openai\" or \"litellm\"\n107: VITE_LLM_ENDPOINT=        # API endpoint URL\n108: VITE_LLM_MODEL=           # Model name\n109: VITE_DEMO_MODE=           # \"true\" or \"false\"\n110: ```\n111: \n112: ### Runtime Override\n113: Settings dialog allows overriding env vars at runtime (persisted to localStorage).\n114: \n115: ---\n116: \n117: ## Architecture\n118: \n119: ### Services\n120: ```\n121: src/services/\n122: ├── github.ts      # Fetch PRs, details, diffs, comments (supports GHES)\n123: ├── llm.ts         # Unified interface for OpenAI v1 API + LiteLLM Proxy\n124: └── dummyData.ts   # Sample PR data for demo mode\n125: ```\n126: \n127: ### Redux Store\n128: ```\n129: src/store/\n130: ├── index.ts              # Store configuration\n131: ├── hooks.ts              # Typed useAppDispatch / useAppSelector\n132: └── slices/\n133:     ├── configSlice.ts    # App config (env defaults + runtime overrides)\n134:     ├── prsSlice.ts       # Current PR data\n135:     └── chatSlice.ts      # Messages + streaming state\n136: ```\n137: \n138: ### Components\n139: ```\n140: src/components/\n141: ├── SettingsDialog.tsx   # Runtime config override\n142: ├── Sidebar.tsx          # Repo/PR navigation (or demo mode toggle)\n143: ├── ChatWindow.tsx       # Chat messages + input\n144: └── PRViewer.tsx         # File diffs, metadata\n145: ```\n146: \n147: ---\n148: \n149: ## Data Types\n150: \n151: ### GitHub PR\n152: ```typescript\n153: interface PullRequest {\n154:   id: number;\n155:   number: number;\n156:   title: string;\n157:   body: string | null;\n158:   state: 'open' | 'closed';\n159:   merged: boolean;\n160:   merged_at: string | null;\n161:   user: GitHubUser;\n162:   created_at: string;\n163:   updated_at: string;\n164:   head: { ref: string; sha: string; repo: { full_name: string } | null };\n165:   base: { ref: string; sha: string; repo: { full_name: string } };\n166:   url: string;\n167:   html_url: string;\n168:   diff_url: string;\n169:   additions: number;\n170:   deletions: number;\n171:   changed_files: number;\n172:   comments: number;\n173:   review_comments: number;\n174:   commits: number;\n175:   labels: Array<{ id: number; name: string; color: string }>;\n176:   requested_reviewers: GitHubUser[];\n177: }\n178: ```\n179: \n180: ### Chat Message\n181: ```typescript\n182: interface ChatMessage {\n183:   id: string;\n184:   role: 'user' | 'assistant' | 'system';\n185:   content: string;\n186:   timestamp: number;\n187:   isStreaming?: boolean;\n188:   error?: string;\n189: }\n190: ```\n191: \n192: ### App Config\n193: ```typescript\n194: interface AppConfig {\n195:   githubPat: string;\n196:   llmApiKey: string;\n197:   githubInstance: string;\n198:   llmBackend: 'openai' | 'litellm';\n199:   llmEndpoint: string;\n200:   llmModel: string;\n\n(Showing lines 1-200 of 407. Use offset=201 to continue.)\n</content>",
+            "metadata": {
+              "preview": "# PR Review Chatbot - Implementation Plan\n\n## Priority: UI and LLM Integration First\n**Key Change**: Use dummy data for PR content to allow immediate interaction with the LLM without needing GitHub API credentials. GitHub integration can be added later.\n\n---\n\n## Tech Stack\n- Vite + React 18 + TypeScript\n- Redux Toolkit for state management\n- Axios for HTTP\n- Tailwind CSS for styling\n- Radix UI for accessible components\n\n---\n\n## Implementation Phases\n\n### ✅ Phase 1: Project Setup (COMPLETED)\n- [x] Initialize Vite + React + TypeScript project",
+              "truncated": true,
+              "loaded": []
+            },
+            "title": "plans/plan.md",
+            "time": {
+              "start": 1776194486129,
+              "end": 1776194486141
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_034f715da181c70f0169de93b5e414819aaa638804cca01a57"
+            }
+          },
+          "id": "prt_d8d70fedd001JP5asKkY0cDmaV",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d70f7b90010oyO70T8xbg2jN"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "600bc682f6ef14c579948effdfcd0d8151d6ea8b",
+          "type": "step-finish",
+          "tokens": {
+            "total": 17597,
+            "input": 512,
+            "output": 44,
+            "reasoning": 17,
+            "cache": {
+              "write": 0,
+              "read": 17024
+            }
+          },
+          "cost": 0.0047292,
+          "id": "prt_d8d70fffd001kJLLaD5eA1pEg0",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d70f7b90010oyO70T8xbg2jN"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d8d6fe7080017LWykHa14yc19D",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0104104,
+        "tokens": {
+          "total": 20139,
+          "input": 2520,
+          "output": 131,
+          "reasoning": 80,
+          "cache": {
+            "write": 0,
+            "read": 17408
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776194486325,
+          "completed": 1776194502161
+        },
+        "finish": "tool-calls",
+        "id": "msg_d8d710035001pG7aq5uMpJHtxW",
+        "sessionID": "ses_27294aa16ffeg3VrBX446kybzU"
+      },
+      "parts": [
+        {
+          "snapshot": "600bc682f6ef14c579948effdfcd0d8151d6ea8b",
+          "type": "step-start",
+          "id": "prt_d8d71038b001CNTb2UmdrFtwIp",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d710035001pG7aq5uMpJHtxW"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776194487893,
+            "end": 1776194489913
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_0bdbdd6c865954980169de93b7c034819a947d77876e2f8aed",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d8d710655001EVz1qmhWnt0sKP",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d710035001pG7aq5uMpJHtxW"
+        },
+        {
+          "type": "tool",
+          "tool": "apply_patch",
+          "callID": "call_EP0unzLryTjTFHmhcxDhUonH",
+          "state": {
+            "status": "error",
+            "input": {
+              "patchText": "*** Begin Patch\n*** Update File: /Users/mark/.zshenv\n@@\n-# Use a version of OpenSSL that will be managed\n-[[ \"$unamestr\" == 'Darwin' ]] && export RUBY_CONFIGURE_OPTS=\"--with-openssl-dir=$(brew --prefix openssl@1.1)\"\n-\n # rbenv shims\n [[ $(command -v rbenv) ]] && _extend_path \"${HOME}/.rbenv/bin\"\n*** End Patch"
+            },
+            "error": "EACCES: permission denied, open '/Users/mark/.zshenv'",
+            "time": {
+              "start": 1776194490552,
+              "end": 1776194502101
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_0bdbdd6c865954980169de93b9d518819a8c72975918bd72f9"
+            }
+          },
+          "id": "prt_d8d710e3c001LTNI0Smm4vR1Rd",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d710035001pG7aq5uMpJHtxW"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "600bc682f6ef14c579948effdfcd0d8151d6ea8b",
+          "type": "step-finish",
+          "tokens": {
+            "total": 20139,
+            "input": 2520,
+            "output": 131,
+            "reasoning": 80,
+            "cache": {
+              "write": 0,
+              "read": 17408
+            }
+          },
+          "cost": 0.0104104,
+          "id": "prt_d8d713dd7001ttznnQrC8wZcxf",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d710035001pG7aq5uMpJHtxW"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d8d6fe7080017LWykHa14yc19D",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.00900865,
+        "tokens": {
+          "total": 20536,
+          "input": 199,
+          "output": 154,
+          "reasoning": 215,
+          "cache": {
+            "write": 0,
+            "read": 19968
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776194502162,
+          "completed": 1776194510046
+        },
+        "finish": "tool-calls",
+        "id": "msg_d8d713e120016a59oZhv28hoAI",
+        "sessionID": "ses_27294aa16ffeg3VrBX446kybzU"
+      },
+      "parts": [
+        {
+          "snapshot": "600bc682f6ef14c579948effdfcd0d8151d6ea8b",
+          "type": "step-start",
+          "id": "prt_d8d7141f3001uKL9jq2QyskePH",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d713e120016a59oZhv28hoAI"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776194503158,
+            "end": 1776194506822
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_01fce017e727b7990169de93c6ea3c81939384eefea4c45db6",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d8d7141f6001aCfxsqgIOE5LPC",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d713e120016a59oZhv28hoAI"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_aLGXiclx2ZKiVswtPM5sxfwa",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "python3 -c \"from pathlib import Path; p=Path('/Users/mark/.zshenv'); s=p.read_text(); s=s.replace('\\n# Use a version of OpenSSL that will be managed\\n[[ \\\"$unamestr\\\" == \\'Darwin\\' ]] && export RUBY_CONFIGURE_OPTS=\\\"--with-openssl-dir=$(brew --prefix openssl@1.1)\\\"\\n','\\n'); p.write_text(s)\"",
+              "timeout": 120000,
+              "workdir": "/Users/mark/sandbox/personal/pr-review-chatbot",
+              "description": "Attempts to remove deprecated OpenSSL line"
+            },
+            "output": "Error: No available formula with the name \"openssl@1.1\". Did you mean openssl@3.5, openssl@3.0 or openssl@3?\nError: No available formula with the name \"openssl@1.1\". Did you mean openssl@3.5, openssl@3.0 or openssl@3?\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n    from pathlib import Path; p=Path('/Users/mark/.zshenv'); s=p.read_text(); s=s.replace('\\n# Use a version of OpenSSL that will be managed\\n[[ \"Darwin\" == \\'Darwin\\' ]] && export RUBY_CONFIGURE_OPTS=\"--with-openssl-dir=\"\\n','\\n'); p.write_text(s)\n                                                                                                                                                                                                                                         ~~~~~~~~~~~~^^^\n  File \"/opt/homebrew/Cellar/python@3.14/3.14.4/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py\", line 809, in write_text\n    with self.open(mode='w', encoding=encoding, errors=errors, newline=newline) as f:\n         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.14/3.14.4/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py\", line 771, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nPermissionError: [Errno 13] Permission denied: '/Users/mark/.zshenv'\n",
+            "metadata": {
+              "output": "Error: No available formula with the name \"openssl@1.1\". Did you mean openssl@3.5, openssl@3.0 or openssl@3?\nError: No available formula with the name \"openssl@1.1\". Did you mean openssl@3.5, openssl@3.0 or openssl@3?\nTraceback (most recent call last):\n  File \"<string>\", line 1, in <module>\n    from pathlib import Path; p=Path('/Users/mark/.zshenv'); s=p.read_text(); s=s.replace('\\n# Use a version of OpenSSL that will be managed\\n[[ \"Darwin\" == \\'Darwin\\' ]] && export RUBY_CONFIGURE_OPTS=\"--with-openssl-dir=\"\\n','\\n'); p.write_text(s)\n                                                                                                                                                                                                                                         ~~~~~~~~~~~~^^^\n  File \"/opt/homebrew/Cellar/python@3.14/3.14.4/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py\", line 809, in write_text\n    with self.open(mode='w', encoding=encoding, errors=errors, newline=newline) as f:\n         ~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/opt/homebrew/Cellar/python@3.14/3.14.4/Frameworks/Python.framework/Versions/3.14/lib/python3.14/pathlib/__init__.py\", line 771, in open\n    return io.open(self, mode, buffering, encoding, errors, newline)\n           ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\nPermissionError: [Errno 13] Permission denied: '/Users/mark/.zshenv'\n",
+              "exit": 1,
+              "description": "Attempts to remove deprecated OpenSSL line",
+              "truncated": false
+            },
+            "title": "Attempts to remove deprecated OpenSSL line",
+            "time": {
+              "start": 1776194510009,
+              "end": 1776194510013
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_01fce017e727b7990169de93cac05081939a03220024931099"
+            }
+          },
+          "id": "prt_d8d71504e001DuW2AvTeE7k0s4",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d713e120016a59oZhv28hoAI"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "600bc682f6ef14c579948effdfcd0d8151d6ea8b",
+          "type": "step-finish",
+          "tokens": {
+            "total": 20536,
+            "input": 199,
+            "output": 154,
+            "reasoning": 215,
+            "cache": {
+              "write": 0,
+              "read": 19968
+            }
+          },
+          "cost": 0.00900865,
+          "id": "prt_d8d715cbd0022adY5A0iGFI9Wv",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d713e120016a59oZhv28hoAI"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d8d6fe7080017LWykHa14yc19D",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0094766,
+        "tokens": {
+          "total": 21268,
+          "input": 564,
+          "output": 235,
+          "reasoning": 117,
+          "cache": {
+            "write": 0,
+            "read": 20352
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776194510047,
+          "completed": 1776194515801
+        },
+        "finish": "stop",
+        "id": "msg_d8d715cdf001TEMMhKAq4eNlR5",
+        "sessionID": "ses_27294aa16ffeg3VrBX446kybzU"
+      },
+      "parts": [
+        {
+          "snapshot": "600bc682f6ef14c579948effdfcd0d8151d6ea8b",
+          "type": "step-start",
+          "id": "prt_d8d7160bd001SOE5Rb1b1j2p3t",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d715cdf001TEMMhKAq4eNlR5"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776194511067,
+            "end": 1776194513493
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_0f6c39fcf430ae950169de93cefd88819ab3f457a8bb479f50",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d8d7160db001TBnQMCyun3z6r0",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d715cdf001TEMMhKAq4eNlR5"
+        },
+        {
+          "type": "text",
+          "text": "I tried to apply it directly, but this session doesn’t have write permission to `/Users/mark/.zshenv` (permission denied), so I couldn’t save the file for you.\n\nRun this locally to remove the bad line and reload zsh:\n\n```zsh\ncp ~/.zshenv ~/.zshenv.bak\npython3 - <<'PY'\nfrom pathlib import Path\np = Path.home() / \".zshenv\"\nlines = p.read_text().splitlines()\nlines = [ln for ln in lines if \"RUBY_CONFIGURE_OPTS\" not in ln or \"openssl@1.1\" not in ln]\np.write_text(\"\\n\".join(lines) + \"\\n\")\nprint(\"Updated\", p)\nPY\nexec zsh\n```\n\nQuick verify:\n\n```zsh\ngrep -n \"openssl@1.1\\|RUBY_CONFIGURE_OPTS\" ~/.zshenv || echo \"clean\"\n```\n\nIf you want, I can also give you a one-liner to set up `rbenv` with Ruby `3.3.6` next.",
+          "time": {
+            "start": 1776194513495,
+            "end": 1776194515655
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "msg_0f6c39fcf430ae950169de93d14f48819a9ca185d5a671b7af",
+              "phase": "final_answer"
+            }
+          },
+          "id": "prt_d8d716a57001xbKNDr6wJcEV14",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d715cdf001TEMMhKAq4eNlR5"
+        },
+        {
+          "reason": "stop",
+          "snapshot": "600bc682f6ef14c579948effdfcd0d8151d6ea8b",
+          "type": "step-finish",
+          "tokens": {
+            "total": 21268,
+            "input": 564,
+            "output": 235,
+            "reasoning": 117,
+            "cache": {
+              "write": 0,
+              "read": 20352
+            }
+          },
+          "cost": 0.0094766,
+          "id": "prt_d8d71731d0014pMY6YNL6BNJPg",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d715cdf001TEMMhKAq4eNlR5"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "user",
+        "time": {
+          "created": 1776194521564
+        },
+        "agent": "build",
+        "model": {
+          "providerID": "opencode",
+          "modelID": "gpt-5.3-codex"
+        },
+        "summary": {
+          "diffs": []
+        },
+        "id": "msg_d8d7189d4001Q2pBiTutQDlA4l",
+        "sessionID": "ses_27294aa16ffeg3VrBX446kybzU"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "yes",
+          "id": "prt_d8d7189d5001SmVumKiR101JQ3",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d7189d4001Q2pBiTutQDlA4l"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d8d7189d4001Q2pBiTutQDlA4l",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.014756,
+        "tokens": {
+          "total": 20853,
+          "input": 3848,
+          "output": 365,
+          "reasoning": 0,
+          "cache": {
+            "write": 0,
+            "read": 16640
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776194521570,
+          "completed": 1776194527147
+        },
+        "finish": "stop",
+        "id": "msg_d8d7189e2001KyYqrSsP8AhGqZ",
+        "sessionID": "ses_27294aa16ffeg3VrBX446kybzU"
+      },
+      "parts": [
+        {
+          "snapshot": "600bc682f6ef14c579948effdfcd0d8151d6ea8b",
+          "type": "step-start",
+          "id": "prt_d8d718d27001yk64UgqYAZjrzp",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d7189e2001KyYqrSsP8AhGqZ"
+        },
+        {
+          "type": "text",
+          "text": "Nice — here’s a clean upgrade flow for `rbenv` + Ruby `3.3.6` on macOS.\n\n```zsh\n# 1) Install/update tooling\nbrew update\nbrew install rbenv ruby-build openssl@3 readline libyaml gmp\n\n# 2) Ensure rbenv is initialized in zsh (if not already)\ngrep -q 'rbenv init -' ~/.zshrc || echo 'eval \"$(rbenv init - zsh)\"' >> ~/.zshrc\nexec zsh\n\n# 3) Build and install Ruby 3.3.6 with OpenSSL 3\nRUBY_CONFIGURE_OPTS=\"--with-openssl-dir=$(brew --prefix openssl@3) --with-readline-dir=$(brew --prefix readline) --with-libyaml-dir=$(brew --prefix libyaml) --with-gmp-dir=$(brew --prefix gmp)\" \\\nrbenv install 3.3.6\n\n# 4) Set as global default\nrbenv global 3.3.6\nrbenv rehash\n\n# 5) Verify\nruby -v\nwhich ruby\ngem env home\n```\n\nExpected checks:\n- `ruby -v` shows `ruby 3.3.6...`\n- `which ruby` points to `~/.rbenv/shims/ruby`\n\nOptional cleanup (after you confirm everything works):\n```zsh\nrbenv versions\n# if 2.6.10 is no longer needed:\nrbenv uninstall 2.6.10\n```\n\nIf `rbenv install 3.3.6` fails, paste the last ~40 lines and I’ll pinpoint the fix quickly.",
+          "time": {
+            "start": 1776194522726,
+            "end": 1776194526994
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "msg_091565a6fa28f50f0169de93daa9848197ad770375d05d4810",
+              "phase": "final_answer"
+            }
+          },
+          "id": "prt_d8d718e660013AeHBdA4S1CJC4",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d7189e2001KyYqrSsP8AhGqZ"
+        },
+        {
+          "reason": "stop",
+          "snapshot": "600bc682f6ef14c579948effdfcd0d8151d6ea8b",
+          "type": "step-finish",
+          "tokens": {
+            "total": 20853,
+            "input": 3848,
+            "output": 365,
+            "reasoning": 0,
+            "cache": {
+              "write": 0,
+              "read": 16640
+            }
+          },
+          "cost": 0.014756,
+          "id": "prt_d8d719f74001i5oi6KqZLEv6pj",
+          "sessionID": "ses_27294aa16ffeg3VrBX446kybzU",
+          "messageID": "msg_d8d7189e2001KyYqrSsP8AhGqZ"
+        }
+      ]
+    }
+  ]
+}

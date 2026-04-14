@@ -1,0 +1,17 @@
+I am seeing the following error when using zsh: "Error: No available formula with the name "openssl@1.1". Did you mean openssl@3.5, openssl@3.0 or openssl@3?". Can you help diagnose?
+
+---
+
+yes
+
+---
+
+ruby 2.6.10p210 (2022-04-12 revision 67958) [universal.arm64e-darwin25]
+
+---
+
+MAke these changes
+
+---
+
+yes

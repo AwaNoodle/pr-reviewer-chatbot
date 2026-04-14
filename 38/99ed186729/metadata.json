@@ -3,7 +3,7 @@
   "checkpoint_id": "3899ed186729",
   "strategy": "manual-commit",
   "branch": "main",
-  "checkpoints_count": 4,
+  "checkpoints_count": 9,
   "files_touched": [
     "openspec/changes/add-ci-and-code-scanning-signal-fusion/tasks.md",
     "openspec/changes/add-diff-intelligence-layer/.openspec.yaml",
@@ -34,13 +34,19 @@
       "transcript": "/38/99ed186729/0/full.jsonl",
       "content_hash": "/38/99ed186729/0/content_hash.txt",
       "prompt": "/38/99ed186729/0/prompt.txt"
+    },
+    {
+      "metadata": "/38/99ed186729/1/metadata.json",
+      "transcript": "/38/99ed186729/1/full.jsonl",
+      "content_hash": "/38/99ed186729/1/content_hash.txt",
+      "prompt": "/38/99ed186729/1/prompt.txt"
     }
   ],
   "token_usage": {
-    "input_tokens": 291542,
+    "input_tokens": 319126,
     "cache_creation_tokens": 0,
-    "cache_read_tokens": 4672000,
-    "output_tokens": 18748,
-    "api_call_count": 64
+    "cache_read_tokens": 4849920,
+    "output_tokens": 21035,
+    "api_call_count": 76
   }
 }
