@@ -263,6 +263,14 @@ export function ChatWindow() {
         dispatch(appendStreamingContent({ id: assistantId, chunk }));
       }
 
+      if (fullContent.trim().length === 0) {
+        const fallbackContent = await llmService.chat(llmMessages, { signal: abortController.signal });
+        if (fallbackContent) {
+          fullContent = fallbackContent;
+          dispatch(appendStreamingContent({ id: assistantId, chunk: fallbackContent }));
+        }
+      }
+
       dispatch(finalizeStreamingMessage(assistantId));
       dispatchCitations(fullContent);
     } catch (err) {

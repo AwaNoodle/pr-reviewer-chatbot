@@ -44,6 +44,83 @@ export class LLMService {
     return headers;
   }
 
+  private extractTextContent(value: unknown): string {
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    if (!Array.isArray(value)) {
+      return '';
+    }
+
+    const fragments: string[] = [];
+    for (const part of value) {
+      if (typeof part === 'string') {
+        fragments.push(part);
+        continue;
+      }
+
+      if (!part || typeof part !== 'object') {
+        continue;
+      }
+
+      const maybeText = (part as { text?: unknown }).text;
+      if (typeof maybeText === 'string') {
+        fragments.push(maybeText);
+        continue;
+      }
+
+      const maybeContent = (part as { content?: unknown }).content;
+      if (typeof maybeContent === 'string') {
+        fragments.push(maybeContent);
+      }
+    }
+
+    return fragments.join('');
+  }
+
+  private extractStreamChunkText(chunk: LLMStreamChunk): string {
+    const primary: string[] = [];
+    const fallback: string[] = [];
+
+    for (const choice of chunk.choices ?? []) {
+      const delta = choice.delta as Record<string, unknown> | undefined;
+      if (!delta) {
+        continue;
+      }
+
+      const contentText = this.extractTextContent(delta.content);
+      if (contentText.length > 0) {
+        primary.push(contentText);
+        continue;
+      }
+
+      const reasoningText =
+        this.extractTextContent(delta.reasoning_content) ||
+        this.extractTextContent(delta.reasoning) ||
+        this.extractTextContent(delta.thinking);
+      if (reasoningText.length > 0) {
+        fallback.push(reasoningText);
+      }
+    }
+
+    return primary.join('') || fallback.join('');
+  }
+
+  private extractChatMessageText(choiceMessage: unknown): string {
+    if (!choiceMessage || typeof choiceMessage !== 'object') {
+      return '';
+    }
+
+    const message = choiceMessage as Record<string, unknown>;
+    return (
+      this.extractTextContent(message.content) ||
+      this.extractTextContent(message.reasoning_content) ||
+      this.extractTextContent(message.reasoning) ||
+      this.extractTextContent(message.thinking)
+    );
+  }
+
   async chat(messages: LLMMessage[], options?: { signal?: AbortSignal }): Promise<string> {
     const request: LLMChatRequest = {
       model: this.config.llmModel,
@@ -64,7 +141,7 @@ export class LLMService {
     }
 
     const data = (await response.json()) as LLMChatResponse;
-    return data.choices[0]?.message?.content ?? '';
+    return this.extractChatMessageText(data.choices[0]?.message);
   }
 
   async *chatStream(
@@ -114,7 +191,7 @@ export class LLMService {
             const jsonStr = trimmed.slice(6);
             try {
               const chunk = JSON.parse(jsonStr) as LLMStreamChunk;
-              const content = chunk.choices[0]?.delta?.content;
+              const content = this.extractStreamChunkText(chunk);
               if (content) {
                 yield content;
               }

@@ -414,3 +414,10 @@ Exit criteria:
 - [x] Added `Signals` tab rendering in `src/components/PRViewer.tsx` with loading/success/unavailable/error/empty states and deterministic highlight ordering.
 - [x] Added test coverage for service mapping, signal prompt snapshots, slice lifecycle, and signals UI rendering.
 - [x] Validation run completed with `npm run lint -- --max-warnings=0`, `npm run build`, and `npm run test`.
+
+## Streaming Compatibility Fixes (2026-04-14)
+
+- [x] Improved `LLMService.chatStream()` parsing in `src/services/llm.ts` to support provider variants (`delta.content` strings, content-part arrays, and reasoning-style deltas).
+- [x] Added non-stream fallback in `src/components/ChatWindow.tsx` when a stream completes with no visible output.
+- [x] Added/updated tests in `src/services/llm.test.ts` and `src/components/ChatWindow.test.tsx` for alternate stream payload shapes and empty-stream fallback behavior.
+- [x] Validation run completed with `npm run lint -- --max-warnings=0`, `npm run build`, and `npm run test`.

@@ -315,6 +315,32 @@ describe('LLMService.chat', () => {
     expect(result).toBe('Hello from LLM');
   });
 
+  it('extracts assistant content when providers return content parts array', async () => {
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          choices: [
+            {
+              message: {
+                role: 'assistant',
+                content: [
+                  { type: 'output_text', text: 'Hello' },
+                  { type: 'output_text', text: ' from array' },
+                ],
+              },
+            },
+          ],
+        }),
+      })
+    );
+
+    const svc = new LLMService(makeConfig());
+    const result = await svc.chat([{ role: 'user', content: 'Hi' }]);
+    expect(result).toBe('Hello from array');
+  });
+
   it('throws an error when the API returns a non-OK status', async () => {
     vi.stubGlobal(
       'fetch',
@@ -440,6 +466,54 @@ describe('LLMService.chatStream', () => {
     }
 
     expect(chunks).toEqual(['Hello', ' world']);
+  });
+
+  it('yields chunks when streamed content is provided as parts array', async () => {
+    const sseData = [
+      'data: {"choices":[{"delta":{"content":[{"type":"output_text","text":"Hello"}]}}]}\n\n',
+      'data: {"choices":[{"delta":{"content":[{"type":"output_text","text":" world"}]}}]}\n\n',
+      'data: [DONE]\n\n',
+    ];
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValueOnce({
+        ok: true,
+        body: makeSSEStream(sseData),
+      })
+    );
+
+    const svc = new LLMService(makeConfig());
+    const chunks: string[] = [];
+    for await (const chunk of svc.chatStream([{ role: 'user', content: 'Hi' }])) {
+      chunks.push(chunk);
+    }
+
+    expect(chunks).toEqual(['Hello', ' world']);
+  });
+
+  it('uses reasoning stream fields when content deltas are absent', async () => {
+    const sseData = [
+      'data: {"choices":[{"delta":{"reasoning_content":"Thinking"}}]}\n\n',
+      'data: {"choices":[{"delta":{"reasoning_content":"... done"}}]}\n\n',
+      'data: [DONE]\n\n',
+    ];
+
+    vi.stubGlobal(
+      'fetch',
+      vi.fn().mockResolvedValueOnce({
+        ok: true,
+        body: makeSSEStream(sseData),
+      })
+    );
+
+    const svc = new LLMService(makeConfig());
+    const chunks: string[] = [];
+    for await (const chunk of svc.chatStream([{ role: 'user', content: 'Hi' }])) {
+      chunks.push(chunk);
+    }
+
+    expect(chunks).toEqual(['Thinking', '... done']);
   });
 
   it('skips malformed JSON lines without throwing', async () => {

@@ -253,3 +253,43 @@ describe('ChatWindow status and errors', () => {
     });
   });
 });
+
+describe('ChatWindow stream fallbacks', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    Element.prototype.scrollIntoView = vi.fn();
+  });
+
+  it('falls back to non-stream chat when stream yields no visible output', async () => {
+    const store = makeStore();
+    const chatMock = vi.fn().mockResolvedValue('Fallback answer from non-stream call');
+
+    vi.spyOn(llmServiceModule, 'createLLMService').mockReturnValue({
+      buildSystemPrompt: vi.fn().mockReturnValue('system prompt'),
+      chat: chatMock,
+      chatStream: vi.fn(async function* (_messages: unknown, options?: { signal?: AbortSignal }) {
+        if (options?.signal?.aborted) {
+          yield '';
+        }
+      }),
+    } as unknown as ReturnType<typeof llmServiceModule.createLLMService>);
+
+    render(
+      <Provider store={store}>
+        <ChatWindow />
+      </Provider>
+    );
+
+    fireEvent.change(screen.getByPlaceholderText(/ask about this pr/i), {
+      target: { value: 'Please review this' },
+    });
+    fireEvent.click(screen.getByTitle('Send message'));
+
+    await waitFor(() => {
+      expect(screen.getByText('Fallback answer from non-stream call')).toBeInTheDocument();
+    });
+
+    expect(chatMock).toHaveBeenCalledTimes(1);
+    expect(store.getState().chat.isStreaming).toBe(false);
+  });
+});
