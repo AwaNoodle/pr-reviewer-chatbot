@@ -153,6 +153,8 @@ export interface ChatMessage {
   timestamp: number;
   isStreaming?: boolean;
   error?: string;
+  citations?: DiffCitation[];
+  hasUncitedContent?: boolean;
 }
 
 // App Config Types
@@ -213,6 +215,102 @@ export interface LLMStreamChunk {
     };
     finish_reason: string | null;
   }>;
+}
+
+// Signal types
+export type SignalSourceState = 'ok' | 'ok-empty' | 'unavailable' | 'error';
+export type SignalLoadStatus = 'idle' | 'loading' | 'success' | 'error';
+
+export type CheckRunStatus = 'queued' | 'in_progress' | 'completed' | 'waiting';
+
+export interface NormalizedCheckRun {
+  id: number;
+  name: string;
+  status: CheckRunStatus;
+  conclusion: string | null;
+}
+
+export interface CheckSignals {
+  sourceState: SignalSourceState;
+  total: number;
+  failing: number;
+  pending: number;
+  items: NormalizedCheckRun[];
+}
+
+export interface NormalizedCommitStatus {
+  context: string;
+  state: 'pending' | 'success' | 'failure' | 'error';
+  description: string | null;
+}
+
+export interface StatusSignals {
+  sourceState: SignalSourceState;
+  state: 'pending' | 'success' | 'failure' | 'error' | null;
+  statuses: NormalizedCommitStatus[];
+}
+
+export type CodeScanningSeverity =
+  | 'critical'
+  | 'high'
+  | 'medium'
+  | 'low'
+  | 'error'
+  | 'warning'
+  | 'note'
+  | 'none'
+  | 'unknown';
+
+export interface NormalizedScanningAlert {
+  number: number;
+  ruleId: string;
+  severity: CodeScanningSeverity;
+  state: 'open' | 'dismissed' | 'fixed';
+  location: string;
+}
+
+export interface ScanningSignals {
+  sourceState: SignalSourceState;
+  openAlerts: number;
+  highSeverityCount: number;
+  items: NormalizedScanningAlert[];
+}
+
+export interface PRSignals {
+  checks: CheckSignals;
+  statuses: StatusSignals;
+  scanning: ScanningSignals;
+  fetchedAt: number;
+  headSha: string;
+}
+
+// Citation Types
+export interface DiffCitation {
+  file: string;
+  lineStart?: number;
+  lineEnd?: number;
+  snippet?: string;
+}
+
+export interface AssistantClaim {
+  id: string;
+  text: string;
+  citations: DiffCitation[];
+  confidence: 'high' | 'medium' | 'low' | 'uncited';
+}
+
+export interface CitationParseResult {
+  claims: AssistantClaim[];
+  uncitedText: string[];
+  parseErrors: string[];
+}
+
+export interface ResolvedCitation {
+  citation: DiffCitation;
+  resolved: boolean;
+  fileIndex: number | null;
+  lineAnchor: number | null;
+  reason?: string;
 }
 
 // PR Context for LLM

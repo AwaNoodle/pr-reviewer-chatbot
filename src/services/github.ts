@@ -10,6 +10,14 @@ import type {
   AppConfig,
   GitHubApiErrorCode,
   GitHubApiErrorData,
+  CheckSignals,
+  StatusSignals,
+  ScanningSignals,
+  NormalizedCheckRun,
+  NormalizedCommitStatus,
+  NormalizedScanningAlert,
+  CheckRunStatus,
+  CodeScanningSeverity,
 } from '../types';
 
 type GitHubErrorResponse = {
@@ -148,6 +156,63 @@ export function parseGitHubError(error: unknown): GitHubApiError {
     userMessage: 'GitHub request failed. Please retry in a moment.',
     documentationUrl,
   });
+}
+
+// ---------------------------------------------------------------------------
+// GitHub signal normalization helpers
+// ---------------------------------------------------------------------------
+
+function normalizeCheckRunStatus(status: string): CheckRunStatus {
+  switch (status) {
+    case 'completed': return 'completed';
+    case 'in_progress': return 'in_progress';
+    case 'waiting': return 'waiting';
+    default: return 'queued';
+  }
+}
+
+function isCheckRunFailing(run: NormalizedCheckRun): boolean {
+  return (
+    run.status === 'completed' &&
+    ['failure', 'timed_out', 'action_required', 'cancelled'].includes(run.conclusion ?? '')
+  );
+}
+
+function isCheckRunPending(run: NormalizedCheckRun): boolean {
+  return run.status !== 'completed';
+}
+
+function normalizeCommitStatusState(
+  state: string
+): 'pending' | 'success' | 'failure' | 'error' {
+  switch (state) {
+    case 'pending': return 'pending';
+    case 'success': return 'success';
+    case 'failure': return 'failure';
+    default: return 'error';
+  }
+}
+
+function normalizeCodeScanningSeverity(severity: string | null): CodeScanningSeverity {
+  switch (severity) {
+    case 'critical': return 'critical';
+    case 'high': return 'high';
+    case 'medium': return 'medium';
+    case 'low': return 'low';
+    case 'error': return 'error';
+    case 'warning': return 'warning';
+    case 'note': return 'note';
+    case 'none': return 'none';
+    default: return 'unknown';
+  }
+}
+
+function normalizeAlertState(state: string): 'open' | 'dismissed' | 'fixed' {
+  switch (state) {
+    case 'dismissed': return 'dismissed';
+    case 'fixed': return 'fixed';
+    default: return 'open';
+  }
 }
 
 export class GitHubService {
@@ -345,6 +410,146 @@ export class GitHubService {
       userMessage:
         'Could not load all pull request commits because the result set is unusually large. Please narrow scope and retry.',
     });
+  }
+
+  async getCheckRuns(owner: string, repo: string, ref: string): Promise<CheckSignals> {
+    interface GitHubCheckRunsResponse {
+      total_count: number;
+      check_runs: Array<{
+        id: number;
+        name: string;
+        status: string;
+        conclusion: string | null;
+      }>;
+    }
+
+    try {
+      const data = await this.get<GitHubCheckRunsResponse>(
+        `/repos/${owner}/${repo}/commits/${ref}/check-runs`,
+        { params: { per_page: 100 } }
+      );
+
+      const items: NormalizedCheckRun[] = data.check_runs.map((run) => ({
+        id: run.id,
+        name: run.name,
+        status: normalizeCheckRunStatus(run.status),
+        conclusion: run.conclusion,
+      }));
+
+      const failing = items.filter(isCheckRunFailing).length;
+      const pending = items.filter(isCheckRunPending).length;
+
+      return {
+        sourceState: items.length === 0 ? 'ok-empty' : 'ok',
+        total: items.length,
+        failing,
+        pending,
+        items,
+      };
+    } catch (error) {
+      if (error instanceof GitHubApiError) {
+        if (error.code === 'FORBIDDEN' || error.code === 'NOT_FOUND') {
+          return { sourceState: 'unavailable', total: 0, failing: 0, pending: 0, items: [] };
+        }
+      }
+      return { sourceState: 'error', total: 0, failing: 0, pending: 0, items: [] };
+    }
+  }
+
+  async getCombinedStatus(owner: string, repo: string, ref: string): Promise<StatusSignals> {
+    interface GitHubCombinedStatusResponse {
+      state: string;
+      statuses: Array<{
+        context: string;
+        state: string;
+        description: string | null;
+      }>;
+    }
+
+    try {
+      const data = await this.get<GitHubCombinedStatusResponse>(
+        `/repos/${owner}/${repo}/commits/${ref}/status`
+      );
+
+      const statuses: NormalizedCommitStatus[] = data.statuses.map((s) => ({
+        context: s.context,
+        state: normalizeCommitStatusState(s.state),
+        description: s.description,
+      }));
+
+      return {
+        sourceState: statuses.length === 0 ? 'ok-empty' : 'ok',
+        state: statuses.length === 0 ? null : normalizeCommitStatusState(data.state),
+        statuses,
+      };
+    } catch (error) {
+      if (error instanceof GitHubApiError) {
+        if (error.code === 'FORBIDDEN' || error.code === 'NOT_FOUND') {
+          return { sourceState: 'unavailable', state: null, statuses: [] };
+        }
+      }
+      return { sourceState: 'error', state: null, statuses: [] };
+    }
+  }
+
+  async getCodeScanningAlerts(owner: string, repo: string, ref: string): Promise<ScanningSignals> {
+    interface GitHubCodeScanningAlert {
+      number: number;
+      rule: {
+        id: string | null;
+        severity: string | null;
+      };
+      state: string;
+      most_recent_instance: {
+        location: {
+          path: string;
+          start_line: number;
+        } | null;
+      } | null;
+    }
+
+    try {
+      const alerts = await this.get<GitHubCodeScanningAlert[]>(
+        `/repos/${owner}/${repo}/code-scanning/alerts`,
+        { params: { state: 'open', ref, per_page: 100 } }
+      );
+
+      const items: NormalizedScanningAlert[] = alerts.map((alert) => {
+        const severity = normalizeCodeScanningSeverity(alert.rule.severity);
+        const location = alert.most_recent_instance?.location
+          ? `${alert.most_recent_instance.location.path}:${alert.most_recent_instance.location.start_line}`
+          : 'unknown';
+        return {
+          number: alert.number,
+          ruleId: alert.rule.id ?? 'unknown',
+          severity,
+          state: normalizeAlertState(alert.state),
+          location,
+        };
+      });
+
+      const highSeverityCount = items.filter(
+        (a) => a.severity === 'critical' || a.severity === 'high'
+      ).length;
+
+      return {
+        sourceState: items.length === 0 ? 'ok-empty' : 'ok',
+        openAlerts: items.length,
+        highSeverityCount,
+        items,
+      };
+    } catch (error) {
+      if (error instanceof GitHubApiError) {
+        if (
+          error.code === 'FORBIDDEN' ||
+          error.code === 'NOT_FOUND' ||
+          error.code === 'VALIDATION_ERROR'
+        ) {
+          return { sourceState: 'unavailable', openAlerts: 0, highSeverityCount: 0, items: [] };
+        }
+      }
+      return { sourceState: 'error', openAlerts: 0, highSeverityCount: 0, items: [] };
+    }
   }
 
   async validateToken(): Promise<boolean> {

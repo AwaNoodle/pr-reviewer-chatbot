@@ -1,5 +1,5 @@
 import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import type { ChatMessage } from '../../types';
+import type { ChatMessage, DiffCitation } from '../../types';
 
 interface ChatState {
   messages: ChatMessage[];
@@ -66,6 +66,13 @@ const chatSlice = createSlice({
       state.isStreaming = false;
       state.streamingMessageId = null;
     },
+    setMessageCitations(state, action: PayloadAction<{ id: string; citations: DiffCitation[]; hasUncitedContent: boolean }>) {
+      const message = state.messages.find((m) => m.id === action.payload.id);
+      if (message && message.role === 'assistant') {
+        message.citations = action.payload.citations;
+        message.hasUncitedContent = action.payload.hasUncitedContent;
+      }
+    },
   },
 });
 
@@ -78,6 +85,7 @@ export const {
   setError,
   clearMessages,
   markMessageError,
+  setMessageCitations,
 } = chatSlice.actions;
 
 export default chatSlice.reducer;

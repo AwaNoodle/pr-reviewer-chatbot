@@ -14,6 +14,7 @@ import {
   fetchPullRequestContext,
   fetchRepositoryPRList,
   generatePRSummary,
+  fetchPRSignals,
 } from '../store/slices/prsSlice';
 import {
   addWatchedRepo,
@@ -231,6 +232,11 @@ export function Sidebar() {
       dispatch(setActiveRepository({ owner: values.owner, repo: values.repo }));
       setSidebarView('repoList');
     }
+
+    // Fetch CI/check/scanning signals for the loaded PR (fire and don't await)
+    void dispatch(
+      fetchPRSignals({ owner: values.owner, repo: values.repo, headSha: pr.head.sha })
+    );
 
     if (config.summaryEnabled) {
       await dispatch(generatePRSummary(values));

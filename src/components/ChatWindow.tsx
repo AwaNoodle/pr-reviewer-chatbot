@@ -1,5 +1,5 @@
 import { useEffect, useRef, useCallback, useState, lazy, Suspense } from 'react';
-import { Send, Trash2, Loader2, AlertCircle } from 'lucide-react';
+import { Send, Trash2, Loader2, AlertCircle, FileCode, HelpCircle } from 'lucide-react';
 import { useAppDispatch, useAppSelector } from '../store/hooks';
 import {
   addMessage,
@@ -8,19 +8,65 @@ import {
   clearMessages,
   finalizeStreamingMessage,
   markMessageError,
+  setMessageCitations,
 } from '../store/slices/chatSlice';
 import { createLLMService } from '../services/llm';
 import { dummyPRContext } from '../services/dummyData';
+import { normalizeCitationPayload, resolveCitationForNavigation } from '../services/citations';
 import { cn, generateId } from '../lib/utils';
-import type { ChatMessage, PRContext } from '../types';
+import type { ChatMessage, PRContext, DiffCitation } from '../types';
 
 const AssistantMarkdown = lazy(() => import('./AssistantMarkdown'));
 
-interface MessageBubbleProps {
-  message: ChatMessage;
+interface CitationChipProps {
+  citation: DiffCitation;
+  onNavigate: (fileIndex: number | null, line: number | null, resolved: boolean) => void;
+  files: PRContext['files'];
 }
 
-function MessageBubble({ message }: MessageBubbleProps) {
+function CitationChip({ citation, onNavigate, files }: CitationChipProps) {
+  const nav = resolveCitationForNavigation(citation, files);
+  const displayText = citation.lineStart
+    ? citation.lineEnd
+      ? `${citation.file}#${citation.lineStart}-${citation.lineEnd}`
+      : `${citation.file}#${citation.lineStart}`
+    : citation.file;
+
+  return (
+    <button
+      onClick={() => onNavigate(nav.fileIndex, nav.line, nav.resolved)}
+      className={cn(
+        'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-mono',
+        'transition-colors cursor-pointer',
+        nav.resolved
+          ? 'bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:hover:bg-blue-900/60'
+          : 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200 dark:bg-yellow-900/40 dark:text-yellow-300 dark:hover:bg-yellow-900/60'
+      )}
+      title={nav.resolved ? `Navigate to ${displayText}` : nav.reason}
+    >
+      <FileCode className="h-3 w-3" />
+      <span className="truncate max-w-[120px]">{displayText}</span>
+      {!nav.resolved && <HelpCircle className="h-3 w-3" />}
+    </button>
+  );
+}
+
+function UncitedIndicator() {
+  return (
+    <div className="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs bg-muted text-muted-foreground">
+      <HelpCircle className="h-3 w-3" />
+      <span>uncited</span>
+    </div>
+  );
+}
+
+interface MessageBubbleProps {
+  message: ChatMessage;
+  files: PRContext['files'];
+  onNavigate: (fileIndex: number | null, line: number | null, resolved: boolean) => void;
+}
+
+function MessageBubble({ message, files, onNavigate }: MessageBubbleProps) {
   const isUser = message.role === 'user';
 
   return (
@@ -38,33 +84,43 @@ function MessageBubble({ message }: MessageBubbleProps) {
       </div>
 
       {/* Message content */}
-      <div
-        className={cn(
-          'max-w-[80%] rounded-lg px-4 py-3 text-sm',
-          isUser
-            ? 'bg-primary text-primary-foreground'
-            : 'bg-muted text-foreground border border-border'
-        )}
-      >
-        {message.error ? (
-          <div className="flex items-center gap-2 text-destructive">
-            <AlertCircle className="h-4 w-4 flex-shrink-0" />
-            <span>{message.error}</span>
+      <div className="flex flex-col gap-1 max-w-[80%]">
+        <div
+          className={cn(
+            'rounded-lg px-4 py-3 text-sm',
+            isUser
+              ? 'bg-primary text-primary-foreground'
+              : 'bg-muted text-foreground border border-border'
+          )}
+        >
+          {message.error ? (
+            <div className="flex items-center gap-2 text-destructive">
+              <AlertCircle className="h-4 w-4 flex-shrink-0" />
+              <span>{message.error}</span>
+            </div>
+          ) : isUser ? (
+            <p className="whitespace-pre-wrap">{message.content}</p>
+          ) : (
+            <Suspense
+              fallback={
+                <div className="space-y-2 min-w-[180px]" aria-live="polite">
+                  <p className="text-xs text-muted-foreground">Rendering response...</p>
+                  <div className="h-2.5 w-full rounded bg-muted/70 animate-pulse" />
+                  <div className="h-2.5 w-4/5 rounded bg-muted/70 animate-pulse" />
+                </div>
+              }
+            >
+              <AssistantMarkdown content={message.content} isStreaming={message.isStreaming} />
+            </Suspense>
+          )}
+        </div>
+        {!isUser && !message.isStreaming && (message.citations || message.hasUncitedContent) && (
+          <div className="flex flex-wrap items-center gap-1.5 px-1">
+            {message.citations?.map((citation, idx) => (
+              <CitationChip key={idx} citation={citation} onNavigate={onNavigate} files={files} />
+            ))}
+            {message.hasUncitedContent && <UncitedIndicator />}
           </div>
-        ) : isUser ? (
-          <p className="whitespace-pre-wrap">{message.content}</p>
-        ) : (
-          <Suspense
-            fallback={
-              <div className="space-y-2 min-w-[180px]" aria-live="polite">
-                <p className="text-xs text-muted-foreground">Rendering response...</p>
-                <div className="h-2.5 w-full rounded bg-muted/70 animate-pulse" />
-                <div className="h-2.5 w-4/5 rounded bg-muted/70 animate-pulse" />
-              </div>
-            }
-          >
-            <AssistantMarkdown content={message.content} isStreaming={message.isStreaming} />
-          </Suspense>
         )}
       </div>
     </div>
@@ -163,6 +219,20 @@ export function ChatWindow() {
     dispatch(addMessage(assistantMessage));
     dispatch(setStreaming({ isStreaming: true, messageId: assistantId }));
 
+    // Declared outside try so the abort-catch path can also dispatch citations.
+    let fullContent = '';
+
+    const dispatchCitations = (content: string) => {
+      const parseResult = normalizeCitationPayload(content);
+      dispatch(
+        setMessageCitations({
+          id: assistantId,
+          citations: parseResult.claims.flatMap((c) => c.citations),
+          hasUncitedContent: parseResult.uncitedText.length > 0,
+        })
+      );
+    };
+
     try {
       activeStreamAbortRef.current?.abort();
       const abortController = new AbortController();
@@ -186,15 +256,18 @@ export function ChatWindow() {
         { role: 'user' as const, content: trimmed },
       ];
 
-      // Stream the response
+      // Stream the response.
       for await (const chunk of llmService.chatStream(llmMessages, { signal: abortController.signal })) {
+        fullContent += chunk;
         dispatch(appendStreamingContent({ id: assistantId, chunk }));
       }
 
       dispatch(finalizeStreamingMessage(assistantId));
+      dispatchCitations(fullContent);
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
         dispatch(finalizeStreamingMessage(assistantId));
+        dispatchCitations(fullContent);
         return;
       }
 
@@ -203,7 +276,7 @@ export function ChatWindow() {
     } finally {
       activeStreamAbortRef.current = null;
     }
-  }, [input, isStreaming, dispatch, config, messages, getPRContext]);
+  }, [input, isStreaming, dispatch, config, messages, getPRContext]); // messages still needed for history building
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -215,6 +288,20 @@ export function ChatWindow() {
   const handleClear = () => {
     dispatch(clearMessages());
   };
+
+  const handleCitationNavigate = useCallback(
+    (fileIndex: number | null, line: number | null, resolved: boolean) => {
+      if (!resolved || fileIndex === null) {
+        return;
+      }
+      // Emit event for PRViewer to handle navigation
+      const event = new CustomEvent('citation-navigate', {
+        detail: { fileIndex, line },
+      });
+      window.dispatchEvent(event);
+    },
+    []
+  );
 
   const prContext = getPRContext();
 
@@ -286,7 +373,12 @@ export function ChatWindow() {
         )}
 
         {messages.map((message) => (
-          <MessageBubble key={message.id} message={message} />
+          <MessageBubble
+            key={message.id}
+            message={message}
+            files={prFiles}
+            onNavigate={handleCitationNavigate}
+          />
         ))}
         <div ref={messagesEndRef} />
       </div>

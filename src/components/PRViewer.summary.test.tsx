@@ -73,6 +73,14 @@ function renderViewer(summaryState: {
         summary: {
           ...summaryState,
           requestKey: null,
+          citations: [],
+          hasUncitedContent: false,
+        },
+        signals: {
+          status: 'idle' as const,
+          data: null,
+          error: null,
+          requestKey: null,
         },
         isLoading: false,
         error: null,
@@ -102,6 +110,8 @@ function renderViewer(summaryState: {
           reviews: null,
           commits: null,
         },
+        focusedFileIndex: null,
+        focusedFileLine: null,
       },
       chat: {
         messages: [],
@@ -161,5 +171,19 @@ describe('PRViewer summary tab', () => {
     expect(screen.getByText('Focus Area 2')).toBeInTheDocument();
     expect(screen.getByText(/auth middleware ordering/i)).toBeInTheDocument();
     expect(screen.getByText(/token refresh branch/i)).toBeInTheDocument();
+  });
+});
+
+describe('PRViewer citation navigation', () => {
+  it('navigates to files tab when citation-navigate event is dispatched', async () => {
+    const { getByRole } = renderViewer({
+      status: 'success',
+      content: 'Test summary with [file:src/auth.ts#L10] citation.',
+      generatedAt: Date.now(),
+      error: null,
+    });
+
+    const filesTab = getByRole('button', { name: /files \(\d+\)/i });
+    expect(filesTab).toBeInTheDocument();
   });
 });

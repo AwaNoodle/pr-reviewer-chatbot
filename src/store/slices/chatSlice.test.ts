@@ -8,6 +8,7 @@ import chatReducer, {
   setError,
   clearMessages,
   markMessageError,
+  setMessageCitations,
 } from './chatSlice';
 import type { ChatMessage } from '../../types';
 
@@ -144,6 +145,50 @@ describe('chatSlice', () => {
       expect(next.messages[0].error).toBe('API failed');
       expect(next.isStreaming).toBe(false);
       expect(next.streamingMessageId).toBeNull();
+    });
+  });
+
+  describe('setMessageCitations', () => {
+    it('sets citations on an assistant message', () => {
+      const state = {
+        ...emptyState,
+        messages: [makeMessage({ id: 'a', role: 'assistant', content: 'Test' })],
+      };
+      const citations = [{ file: 'src/auth.ts', lineStart: 10 }];
+      const next = chatReducer(state, setMessageCitations({
+        id: 'a',
+        citations,
+        hasUncitedContent: false,
+      }));
+      expect(next.messages[0].citations).toEqual(citations);
+      expect(next.messages[0].hasUncitedContent).toBe(false);
+    });
+
+    it('does not set citations on user messages', () => {
+      const state = {
+        ...emptyState,
+        messages: [makeMessage({ id: 'a', role: 'user', content: 'Test' })],
+      };
+      const citations = [{ file: 'src/auth.ts' }];
+      const next = chatReducer(state, setMessageCitations({
+        id: 'a',
+        citations,
+        hasUncitedContent: true,
+      }));
+      expect(next.messages[0].citations).toBeUndefined();
+    });
+
+    it('marks hasUncitedContent correctly', () => {
+      const state = {
+        ...emptyState,
+        messages: [makeMessage({ id: 'a', role: 'assistant', content: 'Test' })],
+      };
+      const next = chatReducer(state, setMessageCitations({
+        id: 'a',
+        citations: [],
+        hasUncitedContent: true,
+      }));
+      expect(next.messages[0].hasUncitedContent).toBe(true);
     });
   });
 });

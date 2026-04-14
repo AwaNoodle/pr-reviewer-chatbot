@@ -22,6 +22,9 @@ import type {
   PRReview,
   PRCommit,
   GitHubApiErrorData,
+  PRSignals,
+  SignalLoadStatus,
+  DiffCitation,
 } from '../../types';
 import type { RootState } from '../index';
 
@@ -38,6 +41,26 @@ interface RepoRequestArgs {
 
 type PRResourceKey = 'metadata' | 'files' | 'comments' | 'reviewComments' | 'reviews' | 'commits';
 
+interface SignalState {
+  status: SignalLoadStatus;
+  data: PRSignals | null;
+  error: string | null;
+  requestKey: string | null;
+}
+
+interface SignalRequestArgs {
+  owner: string;
+  repo: string;
+  headSha: string;
+}
+
+const initialSignalState: SignalState = {
+  status: 'idle',
+  data: null,
+  error: null,
+  requestKey: null,
+};
+
 type SummaryStatus = 'idle' | 'loading' | 'success' | 'empty' | 'error';
 
 interface SummaryState {
@@ -46,6 +69,8 @@ interface SummaryState {
   generatedAt: number | null;
   error: string | null;
   requestKey: string | null;
+  citations: DiffCitation[];
+  hasUncitedContent: boolean;
 }
 
 interface SummaryResult {
@@ -64,6 +89,34 @@ interface PullRequestContextPayload {
   reviews: PRReview[];
   commits: PRCommit[];
 }
+
+export const fetchPRSignals = createAsyncThunk<
+  PRSignals,
+  SignalRequestArgs,
+  { state: RootState; rejectValue: { message: string } }
+>('prs/fetchPRSignals', async ({ owner, repo, headSha }, { getState, rejectWithValue }) => {
+  const service = createGitHubService(getState().config.config);
+
+  try {
+    const [checks, statuses, scanning] = await Promise.all([
+      service.getCheckRuns(owner, repo, headSha),
+      service.getCombinedStatus(owner, repo, headSha),
+      service.getCodeScanningAlerts(owner, repo, headSha),
+    ]);
+
+    return {
+      checks,
+      statuses,
+      scanning,
+      fetchedAt: Date.now(),
+      headSha,
+    };
+  } catch (error) {
+    return rejectWithValue({
+      message: error instanceof Error ? error.message : 'Failed to fetch signals',
+    });
+  }
+});
 
 export const fetchRepositoryPRList = createAsyncThunk<
   PRListItem[],
@@ -107,7 +160,7 @@ export const generatePRSummary = createAsyncThunk<
   { state: RootState; rejectValue: SummaryResult }
 >('prs/generatePRSummary', async ({ owner, repo, prNumber }, { getState, rejectWithValue, requestId }) => {
   const state = getState();
-  const { selectedPR, files, comments, reviewComments, reviews, commits } = state.prs;
+  const { selectedPR, files, comments, reviewComments, reviews, commits, signals } = state.prs;
   const { config } = state.config;
 
   const requestKey = `${owner}/${repo}#${prNumber}@${selectedPR?.head.sha ?? 'unknown'}:${requestId}`;
@@ -177,7 +230,8 @@ export const generatePRSummary = createAsyncThunk<
         commits,
       },
       config.summaryPrompt,
-      config.summaryCommands
+      config.summaryCommands,
+      signals.data
     );
 
     const summaryContent = await llmService.chat([
@@ -239,6 +293,7 @@ interface PRsState {
   reviews: PRReview[];
   commits: PRCommit[];
   summary: SummaryState;
+  signals: SignalState;
   isLoading: boolean;
   error: string | null;
   loadingByResource: {
@@ -260,6 +315,8 @@ interface PRsState {
     prList: string | null;
   };
   latestRequestKeyByResource: Record<PRResourceKey, string | null>;
+  focusedFileIndex: number | null;
+  focusedFileLine: number | null;
 }
 
 const initialState: PRsState = {
@@ -277,7 +334,10 @@ const initialState: PRsState = {
     generatedAt: null,
     error: null,
     requestKey: null,
+    citations: [],
+    hasUncitedContent: false,
   },
+  signals: initialSignalState,
   isLoading: false,
   error: null,
   loadingByResource: {
@@ -306,6 +366,8 @@ const initialState: PRsState = {
     reviews: null,
     commits: null,
   },
+  focusedFileIndex: null,
+  focusedFileLine: null,
 };
 
 function getPRRequestKey(args: PRRequestArgs): string {
@@ -348,7 +410,10 @@ const prsSlice = createSlice({
           generatedAt: null,
           error: null,
           requestKey: null,
+          citations: [],
+          hasUncitedContent: false,
         };
+        state.signals = initialSignalState;
         state.errorByResource = {
           metadata: null,
           files: null,
@@ -375,7 +440,10 @@ const prsSlice = createSlice({
           generatedAt: null,
           error: null,
           requestKey: null,
+          citations: [],
+          hasUncitedContent: false,
         };
+        state.signals = initialSignalState;
       }
     },
     setPRFiles(state, action: PayloadAction<PRFile[]>) {
@@ -413,7 +481,21 @@ const prsSlice = createSlice({
         generatedAt: null,
         error: null,
         requestKey: null,
+        citations: [],
+        hasUncitedContent: false,
       };
+    },
+    setSummaryCitations(state, action: PayloadAction<{ citations: DiffCitation[]; hasUncitedContent: boolean }>) {
+      state.summary.citations = action.payload.citations;
+      state.summary.hasUncitedContent = action.payload.hasUncitedContent;
+    },
+    setFocusedFile(state, action: PayloadAction<{ fileIndex: number | null; line: number | null }>) {
+      state.focusedFileIndex = action.payload.fileIndex;
+      state.focusedFileLine = action.payload.line;
+    },
+    clearFocusedFile(state) {
+      state.focusedFileIndex = null;
+      state.focusedFileLine = null;
     },
   },
   extraReducers: (builder) => {
@@ -447,6 +529,12 @@ const prsSlice = createSlice({
       .addCase(fetchPullRequestContext.fulfilled, (state, action) => {
         if (state.latestRequestKeyByResource.metadata !== getPRRequestKey(action.meta.arg)) {
           return;
+        }
+
+        // Invalidate signals when head SHA changes (task 2.2)
+        const newHeadSha = action.payload.pullRequest.head.sha;
+        if (state.signals.data?.headSha !== newHeadSha) {
+          state.signals = initialSignalState;
         }
 
         state.selectedPR = action.payload.pullRequest;
@@ -522,6 +610,28 @@ const prsSlice = createSlice({
         state.summary.generatedAt = action.payload.generatedAt;
         state.summary.error = action.payload.error;
       })
+      .addCase(fetchPRSignals.pending, (state, action) => {
+        state.signals.status = 'loading';
+        state.signals.error = null;
+        state.signals.requestKey = action.meta.requestId;
+      })
+      .addCase(fetchPRSignals.fulfilled, (state, action) => {
+        if (state.signals.requestKey !== action.meta.requestId) {
+          return;
+        }
+        state.signals.status = 'success';
+        state.signals.data = action.payload;
+        state.signals.error = null;
+      })
+      .addCase(fetchPRSignals.rejected, (state, action) => {
+        if (state.signals.requestKey !== action.meta.requestId) {
+          return;
+        }
+        state.signals.status = 'error';
+        state.signals.data = null;
+        state.signals.error =
+          action.payload?.message || action.error.message || 'Failed to load signals';
+      })
       .addCase(generatePRSummary.rejected, (state, action) => {
         if (state.summary.requestKey !== action.meta.requestId) {
           return;
@@ -547,6 +657,9 @@ export const {
   setLoading,
   setError,
   resetSummaryState,
+  setSummaryCitations,
+  setFocusedFile,
+  clearFocusedFile,
 } = prsSlice.actions;
 
 export default prsSlice.reducer;

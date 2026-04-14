@@ -1,10 +1,12 @@
-import { useState } from 'react';
-import { ChevronRight, FileCode, FilePlus, FileMinus, FileEdit, Loader2, AlertCircle, Inbox } from 'lucide-react';
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { ChevronRight, FileCode, FilePlus, FileMinus, FileEdit, Loader2, AlertCircle, Inbox, HelpCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
-import { useAppSelector } from '../store/hooks';
+import { useAppSelector, useAppDispatch } from '../store/hooks';
+import { setFocusedFile } from '../store/slices/prsSlice';
 import { cn, formatDate } from '../lib/utils';
-import type { PRFile } from '../types';
+import { resolveCitationForNavigation, normalizeCitationPayload } from '../services/citations';
+import type { PRFile, DiffCitation } from '../types';
 import { buildDiffLineKeys } from './prViewerUtils';
 
 function getFileIcon(status: PRFile['status']) {
@@ -37,9 +39,75 @@ function getStatusBadge(status: PRFile['status']) {
   );
 }
 
-function DiffView({ patch }: { patch: string }) {
+interface CitationChipProps {
+  citation: DiffCitation;
+  files: PRFile[];
+  onNavigate: (fileIndex: number) => void;
+}
+
+function CitationChip({ citation, files, onNavigate }: CitationChipProps) {
+  const nav = resolveCitationForNavigation(citation, files);
+  const displayText = citation.lineStart
+    ? citation.lineEnd
+      ? `${citation.file}#${citation.lineStart}-${citation.lineEnd}`
+      : `${citation.file}#${citation.lineStart}`
+    : citation.file;
+
+  return (
+    <button
+      onClick={() => nav.fileIndex !== null && onNavigate(nav.fileIndex)}
+      disabled={nav.fileIndex === null}
+      className={cn(
+        'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-mono',
+        'transition-colors',
+        nav.fileIndex !== null
+          ? 'cursor-pointer bg-blue-100 text-blue-700 hover:bg-blue-200 dark:bg-blue-900/40 dark:text-blue-300 dark:hover:bg-blue-900/60'
+          : 'cursor-not-allowed bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-300'
+      )}
+      title={nav.resolved ? `Navigate to ${displayText}` : nav.reason}
+    >
+      <FileCode className="h-3 w-3" />
+      <span className="truncate max-w-[100px]">{displayText}</span>
+      {nav.fileIndex === null && <HelpCircle className="h-3 w-3" />}
+    </button>
+  );
+}
+
+function DiffView({ patch, focusedLine }: { patch: string; focusedLine?: number | null }) {
   const lines = patch.split('\n');
   const lineKeys = buildDiffLineKeys(lines);
+  const focusedRef = useRef<HTMLDivElement>(null);
+
+  // Scroll the highlighted line into view once after the diff is shown.
+  useEffect(() => {
+    if (focusedLine != null && focusedRef.current) {
+      focusedRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+  }, [focusedLine]);
+
+  // Walk hunk headers to find which rendered row corresponds to focusedLine.
+  const highlightedRows = new Set<number>();
+
+  if (focusedLine != null) {
+    let hunkBase = 0;
+    let offset = 0;
+    for (let i = 0; i < lines.length; i++) {
+      const hunkMatch = lines[i].match(/^@@ -(\d+)/);
+      if (hunkMatch) {
+        hunkBase = parseInt(hunkMatch[1], 10);
+        offset = 0;
+        continue;
+      }
+      // Only context and addition lines advance the "new file" line counter.
+      if (!lines[i].startsWith('-')) {
+        offset++;
+        if (hunkBase + offset - 1 === focusedLine) {
+          highlightedRows.add(i);
+        }
+      }
+    }
+  }
+
   return (
     <div className="font-mono text-xs overflow-x-auto">
       {lines.map((line, i) => {
@@ -48,8 +116,18 @@ function DiffView({ patch }: { patch: string }) {
         else if (line.startsWith('-') && !line.startsWith('---')) lineClass = 'diff-remove';
         else if (line.startsWith('@@')) lineClass = 'text-blue-600 dark:text-blue-400 bg-blue-50 dark:bg-blue-950/30';
 
+        const isFocused = highlightedRows.has(i);
+
         return (
-          <div key={lineKeys[i]} className={cn('px-3 py-0.5 whitespace-pre', lineClass)}>
+          <div
+            key={lineKeys[i]}
+            ref={isFocused ? focusedRef : undefined}
+            className={cn(
+              'px-3 py-0.5 whitespace-pre',
+              lineClass,
+              isFocused && 'ring-1 ring-inset ring-yellow-400 bg-yellow-50 dark:bg-yellow-900/30'
+            )}
+          >
             {line || ' '}
           </div>
         );
@@ -58,16 +136,32 @@ function DiffView({ patch }: { patch: string }) {
   );
 }
 
-function FileItem({ file }: { file: PRFile }) {
-  const [expanded, setExpanded] = useState(false);
+function FileItem({
+  file,
+  highlighted,
+  defaultExpanded,
+  focusedLine,
+}: {
+  file: PRFile;
+  highlighted?: boolean;
+  defaultExpanded?: boolean;
+  focusedLine?: number | null;
+}) {
+  const [expanded, setExpanded] = useState(defaultExpanded ?? false);
 
   return (
-    <div className="border border-border rounded-md overflow-hidden">
+    <div
+      className={cn(
+        'border rounded-md overflow-hidden transition-colors',
+        highlighted ? 'border-blue-400 dark:border-blue-500 ring-2 ring-blue-200 dark:ring-blue-800' : 'border-border'
+      )}
+    >
       <button
         onClick={() => setExpanded(!expanded)}
         className={cn(
           'w-full flex items-center gap-2 px-3 py-2 text-left',
-          'bg-muted/50 hover:bg-muted transition-colors',
+          highlighted ? 'bg-blue-50 dark:bg-blue-950/30 hover:bg-blue-100 dark:hover:bg-blue-950/50' : 'bg-muted/50 hover:bg-muted',
+          'transition-colors',
           'text-sm'
         )}
       >
@@ -94,7 +188,7 @@ function FileItem({ file }: { file: PRFile }) {
         <div className="overflow-hidden">
           <div className="border-t border-border">
             {file.patch ? (
-              <DiffView patch={file.patch} />
+              <DiffView patch={file.patch} focusedLine={highlighted ? focusedLine : null} />
             ) : (
               <div className="px-3 py-4 text-sm text-muted-foreground text-center">
                 No diff available for this file
@@ -202,10 +296,16 @@ function SummaryPanel({
   title,
   titleClassName,
   content,
+  citations,
+  files,
+  onNavigate,
 }: {
   title: string;
   titleClassName: string;
   content: string;
+  citations?: DiffCitation[];
+  files?: PRFile[];
+  onNavigate?: (fileIndex: number) => void;
 }) {
   return (
     <div className="rounded-md border border-border p-3 sm:p-4 space-y-2 bg-muted/10">
@@ -213,16 +313,47 @@ function SummaryPanel({
       <div className="prose prose-sm dark:prose-invert max-w-none text-foreground prose-p:my-2 prose-ul:my-2 prose-ol:my-2 prose-li:my-1 prose-code:text-xs">
         <ReactMarkdown remarkPlugins={[remarkGfm]}>{content}</ReactMarkdown>
       </div>
+      {citations && citations.length > 0 && files && onNavigate && (
+        <div className="flex flex-wrap items-center gap-1.5 pt-1">
+          {citations.map((citation, idx) => (
+            <CitationChip key={idx} citation={citation} files={files} onNavigate={onNavigate} />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
 
 export function PRViewer() {
-  const { selectedPR, files, comments, reviews, summary, loadingByResource, errorByResource } = useAppSelector(
-    (state) => state.prs
-  );
+  const dispatch = useAppDispatch();
+  const { selectedPR, files, comments, reviews, summary, loadingByResource, errorByResource, focusedFileIndex, focusedFileLine } =
+    useAppSelector((state) => state.prs);
   const summaryEnabled = useAppSelector((state) => state.config.config.summaryEnabled);
   const [activeTab, setActiveTab] = useState<'summary' | 'files' | 'comments' | 'reviews'>('summary');
+
+  useEffect(() => {
+    const handleCitationNavigate = (event: Event) => {
+      const detail = (event as CustomEvent).detail as { fileIndex: number; line: number | null };
+      dispatch(setFocusedFile({ fileIndex: detail.fileIndex, line: detail.line }));
+      setActiveTab('files');
+    };
+
+    window.addEventListener('citation-navigate', handleCitationNavigate);
+    return () => window.removeEventListener('citation-navigate', handleCitationNavigate);
+  }, [dispatch]);
+
+  const handleNavigateToFile = useCallback(
+    (fileIndex: number) => {
+      dispatch(setFocusedFile({ fileIndex, line: null }));
+      setActiveTab('files');
+    },
+    [dispatch]
+  );
+
+  const summaryCitations = useMemo(() => {
+    if (!summary.content) return [];
+    return normalizeCitationPayload(summary.content).claims.flatMap((c) => c.citations);
+  }, [summary.content]);
 
   if (!selectedPR) {
     if (loadingByResource.metadata) {
@@ -338,15 +469,24 @@ export function PRViewer() {
                         title="Orientation"
                         titleClassName="text-blue-700 dark:text-blue-300"
                         content={panels.orientation || summary.content}
+                        citations={summaryCitations}
+                        files={files}
+                        onNavigate={handleNavigateToFile}
                       />
-                      {panels.focusAreas.map((focusArea, index) => (
-                        <SummaryPanel
-                          key={`${focusArea.slice(0, 40)}::${index}`}
-                          title={`Focus Area ${index + 1}`}
-                          titleClassName="text-yellow-700 dark:text-yellow-300"
-                          content={focusArea}
-                        />
-                      ))}
+                      {panels.focusAreas.map((focusArea, index) => {
+                        const focusCitations = summaryCitations.slice(index * 2, index * 2 + 2);
+                        return (
+                          <SummaryPanel
+                            key={`${focusArea.slice(0, 40)}::${index}`}
+                            title={`Focus Area ${index + 1}`}
+                            titleClassName="text-yellow-700 dark:text-yellow-300"
+                            content={focusArea}
+                            citations={focusCitations}
+                            files={files}
+                            onNavigate={handleNavigateToFile}
+                          />
+                        );
+                      })}
                     </div>
                   );
                 })()}
@@ -371,7 +511,15 @@ export function PRViewer() {
             ) : files.length === 0 ? (
               <EmptyState message="No files changed in this pull request." />
             ) : (
-              files.map((file) => <FileItem key={file.sha + file.filename} file={file} />)
+              files.map((file, index) => (
+                <FileItem
+                  key={file.sha + file.filename}
+                  file={file}
+                  highlighted={focusedFileIndex === index}
+                  defaultExpanded={focusedFileIndex === index}
+                  focusedLine={focusedFileIndex === index ? focusedFileLine : null}
+                />
+              ))
             )}
           </div>
         )}

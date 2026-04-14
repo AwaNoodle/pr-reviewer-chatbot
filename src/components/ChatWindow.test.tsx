@@ -84,6 +84,14 @@ function makeStore(configOverrides: Partial<AppConfig> = {}) {
           generatedAt: null,
           error: null,
           requestKey: null,
+          citations: [],
+          hasUncitedContent: false,
+        },
+        signals: {
+          status: 'idle' as const,
+          data: null,
+          error: null,
+          requestKey: null,
         },
         isLoading: false,
         error: null,
@@ -113,6 +121,8 @@ function makeStore(configOverrides: Partial<AppConfig> = {}) {
           reviews: null,
           commits: null,
         },
+        focusedFileIndex: null,
+        focusedFileLine: null,
       },
       chat: {
         messages: [],

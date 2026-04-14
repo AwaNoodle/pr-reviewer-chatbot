@@ -134,6 +134,14 @@ const emptyState = {
     generatedAt: null,
     error: null,
     requestKey: null,
+    citations: [],
+    hasUncitedContent: false,
+  },
+  signals: {
+    status: 'idle' as const,
+    data: null,
+    error: null,
+    requestKey: null,
   },
   isLoading: false,
   error: null,
@@ -163,6 +171,8 @@ const emptyState = {
     reviews: null,
     commits: null,
   },
+  focusedFileIndex: null,
+  focusedFileLine: null,
 };
 
 type MockGitHubService = {
@@ -300,6 +310,8 @@ describe('prsSlice', () => {
           generatedAt: 123,
           error: null,
           requestKey: 'abc',
+          citations: [],
+          hasUncitedContent: false,
         },
       };
       const reset = prsReducer(withSummary, resetSummaryState());
