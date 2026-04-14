@@ -1,0 +1,60 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "3899ed186729",
+  "session_id": "ses_27299349dffeIyRbSuSNJmIZut",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-14T20:51:53.697591Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "openspec/changes/add-diff-intelligence-layer/.openspec.yaml",
+    "openspec/changes/add-diff-intelligence-layer/design.md",
+    "openspec/changes/add-diff-intelligence-layer/proposal.md",
+    "openspec/changes/add-diff-intelligence-layer/specs/diff-intelligence/spec.md",
+    "openspec/changes/add-diff-intelligence-layer/specs/pr-review-summary/spec.md",
+    "openspec/changes/add-diff-intelligence-layer/tasks.md",
+    "openspec/changes/archive/2026-04-14-add-diff-intelligence-layer/.openspec.yaml",
+    "openspec/changes/archive/2026-04-14-add-diff-intelligence-layer/design.md",
+    "openspec/changes/archive/2026-04-14-add-diff-intelligence-layer/proposal.md",
+    "openspec/changes/archive/2026-04-14-add-diff-intelligence-layer/specs/diff-intelligence/spec.md",
+    "openspec/changes/archive/2026-04-14-add-diff-intelligence-layer/specs/pr-review-summary/spec.md",
+    "openspec/changes/archive/2026-04-14-add-diff-intelligence-layer/tasks.md",
+    "openspec/specs/diff-intelligence/spec.md",
+    "openspec/specs/pr-review-summary/spec.md",
+    "plans/plan.md"
+  ],
+  "agent": "OpenCode",
+  "model": "gpt-5.3-codex",
+  "turn_id": "3b5f90f93ea6",
+  "token_usage": {
+    "input_tokens": 83174,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 531200,
+    "output_tokens": 2870,
+    "api_call_count": 17
+  },
+  "session_metrics": {
+    "turn_count": 2
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-14T20:51:53.690005Z",
+    "agent_lines": 220,
+    "agent_removed": 171,
+    "human_added": 804,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1024,
+    "total_lines_changed": 1224,
+    "agent_percentage": 31.944444444444443,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}
