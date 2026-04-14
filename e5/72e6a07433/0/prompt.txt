@@ -1,0 +1,13 @@
+verify that the github actions are using the correct version of node
+
+---
+
+Github recommends node 24 as a minimum
+
+---
+
+yes
+
+---
+
+yes

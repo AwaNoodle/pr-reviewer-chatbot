@@ -1,0 +1,29 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "e572e6a07433",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 3,
+  "files_touched": [
+    ".github/workflows/build.yml",
+    ".npmrc",
+    "Dockerfile",
+    "package.json",
+    "plans/plan.md"
+  ],
+  "sessions": [
+    {
+      "metadata": "/e5/72e6a07433/0/metadata.json",
+      "transcript": "/e5/72e6a07433/0/full.jsonl",
+      "content_hash": "/e5/72e6a07433/0/content_hash.txt",
+      "prompt": "/e5/72e6a07433/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 50662,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 585600,
+    "output_tokens": 2328,
+    "api_call_count": 23
+  }
+}
