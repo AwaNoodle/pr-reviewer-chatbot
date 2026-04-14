@@ -1,0 +1,63 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "aa285504e7f9",
+  "session_id": "ses_278314082ffexTWnLHxizDalIX",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-14T19:02:17.966697Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "openspec/changes/add-diff-intelligence-layer/tasks.md",
+    "package-lock.json",
+    "src/components/ChatWindow.test.tsx",
+    "src/components/ChatWindow.tsx",
+    "src/components/PRViewer.summary.test.tsx",
+    "src/components/PRViewer.tsx",
+    "src/components/Sidebar.tsx",
+    "src/services/citations.test.ts",
+    "src/services/citations.ts",
+    "src/services/github.ts",
+    "src/services/llm.ts",
+    "src/services/signals.ts",
+    "src/store/slices/chatSlice.test.ts",
+    "src/store/slices/chatSlice.ts",
+    "src/store/slices/prsSlice.test.ts",
+    "src/store/slices/prsSlice.ts",
+    "src/store/slices/watchedReposSlice.test.ts",
+    "src/types/index.ts"
+  ],
+  "agent": "OpenCode",
+  "model": "claude-sonnet-4-6",
+  "turn_id": "b0ebaa384d47",
+  "token_usage": {
+    "input_tokens": 72509,
+    "cache_creation_tokens": 684486,
+    "cache_read_tokens": 20207826,
+    "output_tokens": 52907,
+    "api_call_count": 192
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-14T19:02:17.943739Z",
+    "agent_lines": 2012,
+    "agent_removed": 485,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 2012,
+    "total_lines_changed": 2497,
+    "agent_percentage": 100,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}

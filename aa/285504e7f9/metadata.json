@@ -1,0 +1,42 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "aa285504e7f9",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "openspec/changes/add-diff-intelligence-layer/tasks.md",
+    "package-lock.json",
+    "src/components/ChatWindow.test.tsx",
+    "src/components/ChatWindow.tsx",
+    "src/components/PRViewer.summary.test.tsx",
+    "src/components/PRViewer.tsx",
+    "src/components/Sidebar.tsx",
+    "src/services/citations.test.ts",
+    "src/services/citations.ts",
+    "src/services/github.ts",
+    "src/services/llm.ts",
+    "src/services/signals.ts",
+    "src/store/slices/chatSlice.test.ts",
+    "src/store/slices/chatSlice.ts",
+    "src/store/slices/prsSlice.test.ts",
+    "src/store/slices/prsSlice.ts",
+    "src/store/slices/watchedReposSlice.test.ts",
+    "src/types/index.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/aa/285504e7f9/0/metadata.json",
+      "transcript": "/aa/285504e7f9/0/full.jsonl",
+      "content_hash": "/aa/285504e7f9/0/content_hash.txt",
+      "prompt": ""
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 72509,
+    "cache_creation_tokens": 684486,
+    "cache_read_tokens": 20207826,
+    "output_tokens": 52907,
+    "api_call_count": 192
+  }
+}
