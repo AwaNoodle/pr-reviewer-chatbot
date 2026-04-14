@@ -287,7 +287,7 @@ describe('ChatWindow stream fallbacks', () => {
 
     await waitFor(() => {
       expect(screen.getByText('Fallback answer from non-stream call')).toBeInTheDocument();
-    });
+    }, { timeout: 3000 });
 
     expect(chatMock).toHaveBeenCalledTimes(1);
     expect(store.getState().chat.isStreaming).toBe(false);

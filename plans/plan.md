@@ -4,6 +4,7 @@
 - [x] Align CI and Docker builder runtime with GitHub's Node 24 minimum guidance
 - [x] Pin project engine requirement to Node >=24 in package metadata
 - [x] Enforce Node engine checks during npm install with engine-strict
+- [x] Stabilize ChatWindow non-stream fallback test timing for slower CI runners
 - [x] Fix summary citation navigation so line citations preserve `focusedFileLine`
 - [x] Make summary citation-to-panel mapping deterministic (orientation vs per-focus-area)
 - [x] Add regression tests for line navigation and per-panel citation scoping
