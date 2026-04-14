@@ -1,0 +1,46 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "3899ed186729",
+  "strategy": "manual-commit",
+  "branch": "main",
+  "checkpoints_count": 4,
+  "files_touched": [
+    "openspec/changes/add-ci-and-code-scanning-signal-fusion/tasks.md",
+    "openspec/changes/add-diff-intelligence-layer/.openspec.yaml",
+    "openspec/changes/add-diff-intelligence-layer/design.md",
+    "openspec/changes/add-diff-intelligence-layer/proposal.md",
+    "openspec/changes/add-diff-intelligence-layer/specs/diff-intelligence/spec.md",
+    "openspec/changes/add-diff-intelligence-layer/specs/pr-review-summary/spec.md",
+    "openspec/changes/add-diff-intelligence-layer/tasks.md",
+    "openspec/specs/pr-review-summary/spec.md",
+    "plans/plan.md",
+    "src/components/ChatWindow.tsx",
+    "src/components/PRViewer.signals.test.tsx",
+    "src/components/PRViewer.tsx",
+    "src/components/Sidebar.tsx",
+    "src/services/github.test.ts",
+    "src/services/github.ts",
+    "src/services/llm.test.ts",
+    "src/services/llm.ts",
+    "src/services/signals.test.ts",
+    "src/services/signals.ts",
+    "src/store/slices/prsSlice.test.ts",
+    "src/store/slices/prsSlice.ts",
+    "src/types/index.ts"
+  ],
+  "sessions": [
+    {
+      "metadata": "/38/99ed186729/0/metadata.json",
+      "transcript": "/38/99ed186729/0/full.jsonl",
+      "content_hash": "/38/99ed186729/0/content_hash.txt",
+      "prompt": "/38/99ed186729/0/prompt.txt"
+    }
+  ],
+  "token_usage": {
+    "input_tokens": 291542,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 4672000,
+    "output_tokens": 18748,
+    "api_call_count": 64
+  }
+}
