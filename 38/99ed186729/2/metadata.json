@@ -1,0 +1,48 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "3899ed186729",
+  "session_id": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-14T20:51:53.626144Z",
+  "branch": "main",
+  "checkpoints_count": 1,
+  "files_touched": [
+    "openspec/specs/diff-intelligence/spec.md",
+    "openspec/specs/pr-review-summary/spec.md",
+    "plans/plan.md"
+  ],
+  "agent": "OpenCode",
+  "model": "gpt-5.3-codex",
+  "turn_id": "2ed13f952054",
+  "token_usage": {
+    "input_tokens": 22646,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 156416,
+    "output_tokens": 1750,
+    "api_call_count": 10
+  },
+  "session_metrics": {
+    "turn_count": 1
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-14T20:51:53.623063Z",
+    "agent_lines": 50,
+    "agent_removed": 1,
+    "human_added": 974,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 1024,
+    "total_lines_changed": 1222,
+    "agent_percentage": 4.173486088379706,
+    "metric_version": 2
+  },
+  "prompt_attributions": [
+    {
+      "checkpoint_number": 1,
+      "user_lines_added": 0,
+      "user_lines_removed": 0,
+      "agent_lines_added": 0,
+      "agent_lines_removed": 0
+    }
+  ]
+}

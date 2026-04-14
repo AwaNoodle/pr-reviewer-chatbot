@@ -1,0 +1,1424 @@
+{
+  "info": {
+    "id": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+    "slug": "kind-wizard",
+    "projectID": "348622467205f3a4969a26ec20f1654baed7f76d",
+    "directory": "/Users/mark/sandbox/personal/pr-review-chatbot",
+    "parentID": "ses_27299349dffeIyRbSuSNJmIZut",
+    "title": "Sync delta specs (@general subagent)",
+    "version": "1.4.3",
+    "summary": {
+      "additions": 41,
+      "deletions": 1,
+      "files": 3
+    },
+    "permission": [
+      {
+        "permission": "task",
+        "action": "deny",
+        "pattern": "*"
+      }
+    ],
+    "time": {
+      "created": 1776193964806,
+      "updated": 1776194005771
+    }
+  },
+  "messages": [
+    {
+      "info": {
+        "role": "user",
+        "time": {
+          "created": 1776193964815
+        },
+        "tools": {
+          "task": false
+        },
+        "agent": "general",
+        "model": {
+          "providerID": "opencode",
+          "modelID": "gpt-5.3-codex"
+        },
+        "summary": {
+          "diffs": [
+            {
+              "file": "openspec/specs/diff-intelligence/spec.md",
+              "patch": "Index: openspec/specs/diff-intelligence/spec.md\n===================================================================\n--- openspec/specs/diff-intelligence/spec.md\t\n+++ openspec/specs/diff-intelligence/spec.md\t\n@@ -0,0 +1,30 @@\n+## Requirements\n+\n+### Requirement: Assistant Claims Are Diff-Grounded\n+The system SHALL represent non-trivial assistant claims with one or more structured references to the current pull request diff.\n+\n+#### Scenario: Claim includes at least one reference\n+- **WHEN** the assistant emits a claim about risk, behavior, or correctness in summary or chat output\n+- **THEN** the claim SHALL include at least one reference containing file path\n+- **AND** the reference MAY include a line range or hunk/snippet anchor when available.\n+\n+### Requirement: Citation Navigation in Reviewer UI\n+The system SHALL allow users to navigate from a rendered citation to the relevant location in the pull request files view.\n+\n+#### Scenario: User opens citation target\n+- **WHEN** a user clicks a citation associated with an assistant claim\n+- **THEN** the system SHALL activate the Files view\n+- **AND** expand the referenced file\n+- **AND** scroll or focus to the best matching referenced hunk or line region.\n+\n+#### Scenario: Citation target cannot be resolved exactly\n+- **WHEN** the reference cannot be resolved to an exact line position\n+- **THEN** the system SHALL still open the referenced file\n+- **AND** indicate that an exact anchor could not be resolved.\n+\n+### Requirement: Citation Quality Visibility\n+The system SHALL distinguish cited and uncited assistant content in the UI.\n+\n+#### Scenario: Uncited claim rendering\n+- **WHEN** assistant output includes a claim without any reference data\n+- **THEN** the system SHALL render a visible uncited or low-confidence indicator for that claim.\n",
+              "additions": 30,
+              "deletions": 0,
+              "status": "added"
+            },
+            {
+              "file": "openspec/specs/pr-review-summary/spec.md",
+              "patch": "Index: openspec/specs/pr-review-summary/spec.md\n===================================================================\n--- openspec/specs/pr-review-summary/spec.md\t\n+++ openspec/specs/pr-review-summary/spec.md\t\n@@ -1,114 +1,118 @@\n ## Requirements\n \n ### Requirement: Automatic Summary Generation on PR Selection\n The system SHALL generate a reviewer-orientation summary when a pull request is selected and summary generation is enabled.\n \n #### Scenario: Summary generated for selected PR\n - **WHEN** a user selects a PR and summary generation is enabled\n - **THEN** the system SHALL request a summary using PR description, PR commit messages, and textual code changes as context.\n \n #### Scenario: Summary generation disabled\n - **WHEN** a user selects a PR and summary generation is disabled\n - **THEN** the system SHALL not request or refresh summary content.\n \n ### Requirement: Summary Uses Existing LLM Configuration\n The system SHALL use the existing LLM backend configuration for summary generation.\n \n #### Scenario: Summary request uses configured LLM settings\n - **WHEN** a summary request is issued\n - **THEN** the request SHALL use the currently configured `llmBackend`, `llmEndpoint`, `llmApiKey`, and `llmModel` values.\n \n ### Requirement: Summary Prompt Is Configurable and Persisted\n The system SHALL allow users to edit the summary prompt, persist it across sessions, and reset only the prompt to the default value.\n \n #### Scenario: Prompt edits persist\n - **WHEN** a user saves changes to the summary prompt in Settings\n - **THEN** the system SHALL persist the updated prompt and reuse it for future summary generation.\n \n #### Scenario: Reset restores default prompt only\n - **WHEN** a user chooses Reset Prompt in Settings\n - **THEN** the system SHALL restore only the summary prompt to the default text and SHALL NOT modify additional summary commands.\n \n ### Requirement: Additional Summary Commands Are Supported\n The system SHALL allow optional additional summary commands configured by the user and append them to summary-generation instructions.\n \n #### Scenario: Commands appended to summary prompt\n - **WHEN** one or more summary commands are configured\n - **THEN** the system SHALL append those commands to summary-generation instructions for the selected PR.\n \n ### Requirement: Summary Output Contract\n-The generated summary SHALL follow a structured response contract suitable for reviewer orientation.\n+The generated summary SHALL follow a structured response contract suitable for reviewer orientation and include diff-grounded references for non-trivial claims.\n \n #### Scenario: Orientation-first summary format\n - **WHEN** summary instructions are sent to the LLM\n - **THEN** the instructions SHALL require a concise orientation section of 2-4 lines.\n \n #### Scenario: Adaptive focus areas with cap\n - **WHEN** summary instructions are sent to the LLM\n - **THEN** the instructions SHALL allow adaptive `Focus Areas` inclusion based on meaningful risk/complexity/churn signals\n - **AND** the number of focus areas SHALL be capped at 4.\n \n #### Scenario: No focus areas for simple PRs\n - **WHEN** the PR is simple and no meaningful risk/complexity/churn signals are detected\n - **THEN** the summary MAY omit `Focus Areas`\n - **AND** this SHALL be considered a valid successful summary outcome.\n \n #### Scenario: Focus area content shape\n - **WHEN** one or more focus areas are emitted\n - **THEN** each focus area SHALL include: where to review, why it matters, and what to verify.\n \n+#### Scenario: Focus area includes diff references\n+- **WHEN** a focus area presents a non-trivial risk, behavior, or correctness claim\n+- **THEN** the output SHALL include at least one diff-grounded reference for that focus area.\n+\n ### Requirement: Summary Is Separate from Chat History\n Summary content SHALL be isolated from chat history and SHALL NOT be included in subsequent LLM chat context.\n \n #### Scenario: Summary excluded from chat context\n - **WHEN** a user sends a chat message after summary generation\n - **THEN** the outbound chat context SHALL NOT include summary content as a prior message or system/context segment.\n \n ### Requirement: Summary Presentation in PR Viewer\n The PR viewer SHALL provide a dedicated Summary tab with readable visual hierarchy, markdown legibility, responsive spacing, and metadata display.\n \n #### Scenario: Summary tab displays loading spinner\n - **WHEN** summary generation is in progress\n - **THEN** the Summary tab SHALL display a spinner indicator and loading state text.\n \n #### Scenario: Summary tab displays generated timestamp\n - **WHEN** summary generation succeeds\n - **THEN** the Summary tab SHALL display the summary content and a generation-time timestamp at the bottom of the pane.\n \n #### Scenario: Readable hierarchy for generated summary\n - **WHEN** summary content is rendered in the Summary tab\n - **THEN** the UI SHALL present clear visual hierarchy between headings, body text, and metadata using distinct typography and spacing.\n \n #### Scenario: Markdown content remains legible\n - **WHEN** generated summary includes markdown lists, emphasis, or inline/code blocks\n - **THEN** the Summary tab SHALL render those elements with readable spacing and contrast consistent with the active theme.\n \n #### Scenario: Readability preserved on small screens\n - **WHEN** the Summary tab is viewed on narrow/mobile viewport widths\n - **THEN** the UI SHALL adapt spacing and text layout to avoid cramped content and horizontal overflow.\n \n ### Requirement: Empty and Failure Fallback States\n The system SHALL provide explicit fallback states when summary generation is not possible, with readable and clearly differentiated messaging.\n \n #### Scenario: Empty PR state\n - **WHEN** a selected PR has no textual content to summarize\n - **THEN** the system SHALL skip summary generation and display `Nothing to Summarize` in the Summary tab.\n \n #### Scenario: LLM request failure state\n - **WHEN** the system cannot reach the LLM or summary generation fails\n - **THEN** the system SHALL display `Unable to generate summary` in the Summary tab.\n \n #### Scenario: Distinct fallback visual treatment\n - **WHEN** the Summary tab shows empty or error fallback content\n - **THEN** the UI SHALL provide state-specific visual cues so users can distinguish empty data from request failure at a glance.\n \n ### Requirement: Per-PR Rate Limiting and Session Cache\n The system SHALL limit summary generation to one request per minute per PR and cache generated summaries in session storage.\n \n #### Scenario: Per-PR one-minute generation limit\n - **WHEN** a summary was generated for a PR less than one minute ago\n - **THEN** the system SHALL NOT issue another summary generation request for that same PR during the one-minute window.\n \n #### Scenario: Cached summary reuse\n - **WHEN** a cached summary exists in session storage for the current PR and summary prompt fingerprint\n - **THEN** the system SHALL reuse the cached summary content and generated timestamp instead of issuing a new summary request.\n",
+              "additions": 5,
+              "deletions": 1,
+              "status": "modified"
+            },
+            {
+              "file": "plans/plan.md",
+              "patch": "Index: plans/plan.md\n===================================================================\n--- plans/plan.md\t\n+++ plans/plan.md\t\n@@ -1,401 +1,407 @@\n # PR Review Chatbot - Implementation Plan\n \n ## Priority: UI and LLM Integration First\n **Key Change**: Use dummy data for PR content to allow immediate interaction with the LLM without needing GitHub API credentials. GitHub integration can be added later.\n \n ---\n \n ## Tech Stack\n - Vite + React 18 + TypeScript\n - Redux Toolkit for state management\n - Axios for HTTP\n - Tailwind CSS for styling\n - Radix UI for accessible components\n \n ---\n \n ## Implementation Phases\n \n ### ✅ Phase 1: Project Setup (COMPLETED)\n - [x] Initialize Vite + React + TypeScript project\n - [x] Install dependencies (Redux Toolkit, Axios, Tailwind, Radix UI, react-markdown, react-syntax-highlighter, lucide-react)\n - [x] Configure Tailwind CSS with CSS variables for theming\n - [x] Set up project structure (`src/types`, `src/store`, `src/services`, `src/components`, `src/lib`)\n - [x] Create `vite-env.d.ts` for Vite environment type declarations\n - [x] Create `.env.example` with all configuration options\n - [x] Create `.gitignore`\n \n ### ✅ Phase 2: UI Shell & Configuration (COMPLETED)\n - [x] Create Redux store (`src/store/index.ts`)\n - [x] Implement `configSlice.ts` — env var defaults + localStorage runtime overrides\n - [x] Implement `chatSlice.ts` — messages, streaming state\n - [x] Implement `prsSlice.ts` — selected PR, files, comments, reviews\n - [x] Create typed Redux hooks (`src/store/hooks.ts`)\n - [x] Create `SettingsDialog.tsx` — runtime config override with demo mode toggle\n - [x] Create main `App.tsx` layout (sidebar + chat + PR viewer panels)\n - [x] Dark mode toggle in top bar\n - [x] Collapsible sidebar and PR viewer panels\n \n ### ✅ Phase 3: Chat Interface (COMPLETED)\n - [x] Build `ChatWindow.tsx` with message display\n - [x] User/assistant message bubbles with avatars\n - [x] Markdown rendering with `react-markdown` + `remark-gfm`\n - [x] Code syntax highlighting with `react-syntax-highlighter`\n - [x] Streaming response display (animated cursor)\n - [x] Auto-scroll to latest message\n - [x] Multi-line textarea input (auto-resize)\n - [x] Enter to send, Shift+Enter for new line\n - [x] Suggestion chips on empty state\n - [x] Clear conversation button\n - [x] Error display in message bubbles\n \n ### ✅ Phase 4: LLM Integration (COMPLETED)\n - [x] Implement `LLMService` class in `src/services/llm.ts`\n - [x] OpenAI v1 API support (`/chat/completions`)\n - [x] LiteLLM Proxy support (same API format)\n - [x] Streaming via Server-Sent Events (SSE)\n - [x] `buildSystemPrompt()` — injects full PR context (metadata, diffs, comments, reviews)\n - [x] Connect LLM service to `ChatWindow` with streaming dispatch\n - [x] Error handling for API failures\n \n ### ✅ Phase 5: Dummy Data & Demo Mode (COMPLETED)\n - [x] Create `src/services/dummyData.ts` with realistic sample PR\n   - Sample PR: JWT authentication feature (8 files, realistic diffs)\n   - Sample comments, review comments, and reviews\n - [x] Build `PRViewer.tsx` with:\n   - PR metadata header (state badge, author, branch, stats)\n   - Tabs: Files, Comments, Reviews\n   - Collapsible file items with diff view\n   - Diff syntax highlighting (green/red/blue lines)\n   - Status badges per file (added/modified/removed)\n - [x] Build `Sidebar.tsx` with demo mode toggle\n - [x] Auto-load dummy PR on startup in demo mode\n - [x] Demo mode toggle in sidebar and Settings dialog\n \n ### ✅ Phase 6: GitHub Integration (COMPLETED)\n - [x] Implement `GitHubService` class in `src/services/github.ts`\n - [x] PAT (Bearer token) authentication\n - [x] Support for github.com (`https://api.github.com`)\n - [x] Support for GHES (`https://<host>/api/v3`)\n - [x] Methods: `listRepositories`, `searchRepositories`, `listPullRequests`, `getPullRequest`, `getPRFiles`, `getPRComments`, `getPRReviewComments`, `getPRReviews`, `validateToken`\n - [x] Token validation method\n \n ### ✅ Phase 7: Polish (COMPLETED)\n - [x] Add loading states and loading indicators for GitHub API calls\n - [x] Add error handling for GitHub API failures (rate limiting, 404, auth errors)\n - [x] Polish UI/UX (animations, transitions)\n - [x] GitHub mode UI — allow entering repo/PR manually\n - [x] Context window management for very large PRs\n \n ---\n \n ## Documentation (COMPLETED)\n - [x] `README.md` — User-facing docs: quick start, configuration, LLM setup, GitHub setup, troubleshooting\n - [x] `agents.md` — Developer/agent docs: project structure, architecture, common tasks\n - [x] `.env.example` — Annotated environment variable reference\n \n ---\n \n ## Configuration\n \n ### Environment Variables (with defaults)\n ```\n VITE_GITHUB_PAT=          # GitHub Personal Access Token\n VITE_LLM_API_KEY=         # LLM API Key\n VITE_GITHUB_INSTANCE=     # \"github.com\" or URL for GHES\n VITE_LLM_BACKEND=         # \"openai\" or \"litellm\"\n VITE_LLM_ENDPOINT=        # API endpoint URL\n VITE_LLM_MODEL=           # Model name\n VITE_DEMO_MODE=           # \"true\" or \"false\"\n ```\n \n ### Runtime Override\n Settings dialog allows overriding env vars at runtime (persisted to localStorage).\n \n ---\n \n ## Architecture\n \n ### Services\n ```\n src/services/\n ├── github.ts      # Fetch PRs, details, diffs, comments (supports GHES)\n ├── llm.ts         # Unified interface for OpenAI v1 API + LiteLLM Proxy\n └── dummyData.ts   # Sample PR data for demo mode\n ```\n \n ### Redux Store\n ```\n src/store/\n ├── index.ts              # Store configuration\n ├── hooks.ts              # Typed useAppDispatch / useAppSelector\n └── slices/\n     ├── configSlice.ts    # App config (env defaults + runtime overrides)\n     ├── prsSlice.ts       # Current PR data\n     └── chatSlice.ts      # Messages + streaming state\n ```\n \n ### Components\n ```\n src/components/\n ├── SettingsDialog.tsx   # Runtime config override\n ├── Sidebar.tsx          # Repo/PR navigation (or demo mode toggle)\n ├── ChatWindow.tsx       # Chat messages + input\n └── PRViewer.tsx         # File diffs, metadata\n ```\n \n ---\n \n ## Data Types\n \n ### GitHub PR\n ```typescript\n interface PullRequest {\n   id: number;\n   number: number;\n   title: string;\n   body: string | null;\n   state: 'open' | 'closed';\n   merged: boolean;\n   merged_at: string | null;\n   user: GitHubUser;\n   created_at: string;\n   updated_at: string;\n   head: { ref: string; sha: string; repo: { full_name: string } | null };\n   base: { ref: string; sha: string; repo: { full_name: string } };\n   url: string;\n   html_url: string;\n   diff_url: string;\n   additions: number;\n   deletions: number;\n   changed_files: number;\n   comments: number;\n   review_comments: number;\n   commits: number;\n   labels: Array<{ id: number; name: string; color: string }>;\n   requested_reviewers: GitHubUser[];\n }\n ```\n \n ### Chat Message\n ```typescript\n interface ChatMessage {\n   id: string;\n   role: 'user' | 'assistant' | 'system';\n   content: string;\n   timestamp: number;\n   isStreaming?: boolean;\n   error?: string;\n }\n ```\n \n ### App Config\n ```typescript\n interface AppConfig {\n   githubPat: string;\n   llmApiKey: string;\n   githubInstance: string;\n   llmBackend: 'openai' | 'litellm';\n   llmEndpoint: string;\n   llmModel: string;\n   demoMode: boolean;\n }\n ```\n \n ---\n \n ## Error Handling\n \n ### LLM API Errors\n - Invalid API key: Error shown in message bubble\n - Rate limiting: Error shown in message bubble\n - Network errors: Error shown in message bubble\n - Streaming errors: Graceful fallback with error message\n \n ### GitHub API Errors (when enabled)\n - Invalid PAT: Prompt to update token\n - Rate limiting: Show remaining requests\n - Not found (404): Repository/PR not found\n \n ---\n \n ### ⏳ Phase 8: Code Quality & UX Improvements (PENDING)\n \n Identified during initial code review. These are non-blocking improvements to address after the Phase 7 polish work.\n \n #### Quality\n - [x] **ESLint v9 flat config** (`eslint.config.js`) — Added repository-level flat config so `npm run lint` works with ESLint 9.\n - [x] **`getPRFiles` pagination** (`src/services/github.ts:96`) — The GitHub API caps file lists at 100 per page. PRs with >100 changed files silently return incomplete data. Add pagination (loop until `response.data.length < perPage`) or at minimum show a warning banner in `PRViewer` when the file count equals the page limit.\n - [x] **Stable React keys in `DiffView`** (`src/components/PRViewer.tsx:41`) — Diff lines currently use array index as `key`. Replace with a content-based key (e.g. `` `${i}-${line.slice(0, 8)}` ``) to prevent React reusing DOM nodes incorrectly when switching between files.\n \n #### UX\n - [x] **Persist dark mode preference** (`src/App.tsx:10`) — Dark mode state resets on every page reload. Initialise from `localStorage` and respect the OS `prefers-color-scheme` media query:\n   ```ts\n   const [darkMode, setDarkMode] = useState(\n     () => localStorage.getItem('darkMode') === 'true'\n       || window.matchMedia('(prefers-color-scheme: dark)').matches\n   );\n   ```\n   Also persist the toggle: `localStorage.setItem('darkMode', String(!darkMode))` inside `toggleDarkMode`.\n - [x] **Wire up the Refresh button** (`src/components/Sidebar.tsx:111`) — The refresh `<button>` in the sidebar is rendered in GitHub mode but has no `onClick` handler. Either connect it to a `fetchPullRequests` thunk (part of Phase 7 GitHub UI work) or hide it with `{false && ...}` until that feature is ready, to avoid confusing users with a dead control.\n \n ---\n \n ## OpenSpec Alignment Notes (2026-03-14)\n \n - `openspec/changes/add-pr-summary-tab/tasks.md` was updated to capture quick-orientation behavior decisions from explore mode.\n - Summary behavior target: 2-4 line orientation section, adaptive `Focus Areas` with bounds `0..4`, and valid success output when focus areas are omitted for simple PRs.\n - Synced delta spec `openspec/changes/add-pr-summary-tab/specs/pr-review-summary/spec.md` into new main spec `openspec/specs/pr-review-summary/spec.md`.\n - Added change scaffold `openspec/changes/update-pr-review-summary-ui-readability/` with completed proposal, design, spec delta, and tasks artifacts for summary UI readability improvements.\n - Refined `update-pr-review-summary-ui-readability` scope to panelized Summary display: Orientation and each Focus Area render as separate cards styled like Comments/Reviews, with blue/yellow title accents and no spec contract changes.\n \n ---\n \n ## ✅ Phase 9: PR Summary Tab (COMPLETED)\n \n - [x] Extend `AppConfig` with summary fields: `summaryEnabled`, `summaryPrompt`, `summaryCommands`\n - [x] Add/export `DEFAULT_SUMMARY_PROMPT` and keep reset behavior prompt-only\n - [x] Add PR commits API loading (`getPRCommits`) and Redux state wiring\n - [x] Add summary lifecycle state in `prsSlice` (`status`, `content`, `generatedAt`, `error`)\n - [x] Implement summary orchestration utilities:\n   - per-PR+head+prompt cache keying\n   - sessionStorage read/write cache\n   - one-per-minute per-PR-head rate limiting\n   - empty textual diff detection\n - [x] Extend LLM service with structured summary prompt assembly (orientation + adaptive focus areas)\n - [x] Add Summary tab UI in `PRViewer` with loading/success/empty/error states and timestamp footer\n - [x] Wire summary generation on PR selection/load and keep summary separate from chat history/context\n - [x] Add/expand tests for config, GitHub service, PR slice, summary utilities, LLM prompt, Settings UI, and Summary tab rendering\n - [x] Update README and agent guidance for summary behavior, fallback states, and output contract\n \n ---\n \n ## OpenSpec Implementation Updates (2026-03-14)\n \n - [x] Completed OpenSpec change `update-pr-review-summary-ui-readability` implementation tasks (8/8) for panelized Summary tab readability updates.\n - [x] Updated Summary success rendering in `src/components/PRViewer.tsx` to show an `Orientation` panel and per-item `Focus Area N` panels with blue/yellow title accents.\n - [x] Kept summary generation flow and fallback state semantics unchanged (loading/empty/error behavior preserved).\n - [x] Updated `src/components/PRViewer.summary.test.tsx` assertions for orientation-only and orientation+focus-area panelized rendering.\n - [x] Validation run completed with `npm run lint && npm run build && npm run test`.\n \n ## OpenSpec Explore Decision Updates (2026-03-16)\n \n - [x] Clarified `repository-watcher` UX scope: `repo-pr-list` renders in the left `PR Review` pane (not center chat area or right PR viewer pane).\n - [x] Captured sidebar navigator behavior: controls/watchlist view and repo list view with explicit Back action.\n - [x] Captured `Load PR` behavior parity with demo mode: when PR number is provided, show a list containing one selected PR.\n - [x] Updated change artifacts (`proposal.md`, `design.md`, `tasks.md`, `specs/repo-pr-list/spec.md`, `specs/watched-repos/spec.md`) to reflect the decision.\n \n ## OpenSpec Implementation Updates (2026-03-16)\n \n - [x] Implemented `repository-watcher` change tasks end-to-end.\n - [x] Added watched repository state and persistence via `src/store/slices/watchedReposSlice.ts`.\n - [x] Added repository PR list loading in `src/store/slices/prsSlice.ts` using existing `listPullRequests()` integration.\n - [x] Added sidebar repo-list UI mode with Back navigation and new `src/components/PRList.tsx` component.\n - [x] Updated sidebar to support optional PR number flow (`Load PR` vs `Load All PRs`) and watchlist interactions.\n - [x] Added tests for watched repos, repository PR list loading, and sidebar list selection flows.\n - [x] Validation run completed with `npm run lint && npm run build && npm run test`.\n \n ## OpenSpec Spec Sync Updates (2026-03-16)\n \n - [x] Synced change `repository-watcher` delta specs into new main specs for `repo-pr-list` and `watched-repos`.\n - [x] Created `openspec/specs/repo-pr-list/spec.md` from `openspec/changes/repository-watcher/specs/repo-pr-list/spec.md`.\n - [x] Created `openspec/specs/watched-repos/spec.md` from `openspec/changes/repository-watcher/specs/watched-repos/spec.md`.\n \n ---\n \n ## Code Review Hardening Tasks (2026-03-17)\n \n - [x] Task 1: Add stale-response guards in `prsSlice` so older PR resource responses cannot overwrite newer selection state.\n - [x] Task 2: Add regression tests for rapid PR switching race in `src/store/slices/prsSlice.test.ts`.\n - [x] Task 3: Add `Dialog.Description` in `src/components/SettingsDialog.tsx` to satisfy Radix dialog accessibility contract.\n - [x] Task 4: Update settings dialog tests to assert description semantics and eliminate warning output.\n - [x] Task 5: Add chat stream request cancellation (`AbortController`) in `src/components/ChatWindow.tsx` and `src/services/llm.ts`.\n - [x] Task 6: Add tests for stream cancellation behavior and UI streaming state cleanup.\n \n ## Distribution and Release Automation (2026-03-17)\n \n - [x] Added multi-stage Docker image build with static asset runtime (`Dockerfile`) and SPA-safe nginx config (`nginx.conf`).\n - [x] Added `.dockerignore` and npm helper scripts (`docker:build`, `docker:run`) for local image usage.\n - [x] Added release-triggered GHCR publish workflow (`.github/workflows/docker-release.yml`) with semver-distance tagging (`vX.Y.Z-N`) and fallback (`v0.0.0-N`).\n - [x] Updated CI workflow (`.github/workflows/build.yml`) to run lint, tests, and production build.\n - [x] Updated `README.md` with local Docker usage, GHCR usage, tagging semantics, and distribution alternatives.\n \n ## LLM Key Warning Cleanup (2026-03-18)\n \n - [x] Verified non-OK LLM provider responses (including 4xx) are thrown by `LLMService` and surfaced in chat error bubbles.\n - [x] Removed chat footer warning that required configuring an LLM key in settings.\n - [x] Added tests to lock behavior for optional API key UI and 4xx error surfacing.\n \n ## Frontend Bundle Split Pass 1 (2026-03-18)\n \n - [x] Extracted assistant markdown + syntax highlighting rendering into lazy-loaded `src/components/AssistantMarkdown.tsx`.\n - [x] Updated `ChatWindow` to load assistant markdown renderer via `React.lazy` and `Suspense`.\n - [x] Added lightweight fallback UI in assistant bubbles while markdown chunk loads.\n \n ## Frontend Bundle Split Follow-ups (OPEN)\n \n - [ ] Pass 2: Lazy-load PR summary markdown rendering path in `src/components/PRViewer.tsx` (`SummaryPanel`) to reduce initial bundle size further.\n - [ ] Split syntax highlighting payload in `src/components/AssistantMarkdown.tsx` (language/style loading strategy) to shrink lazy chunk size.\n - [ ] Evaluate `vite.config.ts` manual chunking (`build.rollupOptions.output.manualChunks`) for stable vendor chunk boundaries and improved cacheability.\n \n ## Effect Migration - Phase 1 (COMPLETED 2026-03-19)\n \n Goal: introduce Effect on one narrow PR-loading path without changing app architecture or user-visible behavior.\n \n - [x] Add `effect` dependency and create `src/effect/runtime.ts` with a single shared runtime helper (`runEffect`).\n - [x] Define a small typed error model for the pilot path in `src/effect/errors.ts` (GitHub API error passthrough + unexpected error wrapper).\n - [x] Implement one Effect workflow in `src/effect/loadPullRequestContext.ts` that composes existing GitHub service calls (PR, files, comments, review comments, reviews, commits) with timeout/retry policy.\n - [x] Wire `loadPullRequestContext` into existing thunk flow in `src/store/slices/prsSlice.ts` via `runEffect`, keeping reducers/selectors/state shape unchanged.\n - [x] Add focused tests for success/failure/timeout parity with current behavior in `src/store/slices/prsSlice.test.ts` (or adjacent Effect unit tests).\n - [x] Update docs (`README.md` + `plans/plan.md`) with scope boundaries: \"Effect used for pilot orchestration only; no full migration yet.\"\n \n Exit criteria:\n - One PR-loading path uses Effect end-to-end.\n - Existing UI behavior and Redux state contracts remain stable.\n - Lint, test, and type/build checks pass.\n \n ## Effect Migration - Phase 1.5 (COMPLETED 2026-03-19)\n \n - [x] Unified GitHub thunk error mapping through `src/effect/errors.ts::toRejectedErrorData` for legacy PR thunks in `src/store/slices/prsSlice.ts`.\n - [x] Reused the same mapper in `src/store/slices/watchedReposSlice.ts` with context-specific fallback message.\n - [x] Removed duplicated slice-local `toRejectedError` helpers to keep rejected payload behavior consistent across legacy and Effect-backed paths.\n \n ## Effect Migration - Phase 1.6 (COMPLETED 2026-03-19)\n \n - [x] Removed redundant per-resource PR-loading thunks from `src/store/slices/prsSlice.ts` (`fetchPullRequest`, `fetchPRFiles`, `fetchPRComments`, `fetchPRReviewComments`, `fetchPRReviews`, `fetchPRCommits`).\n - [x] Removed obsolete per-resource reducer handlers and retained unified `fetchPullRequestContext` loading state handling.\n - [x] Updated tests/docs to use the single PR context loading entrypoint.\n \n ## Effect Migration - Phase 1.7 (COMPLETED 2026-03-19)\n \n - [x] Refined Effect retry behavior in `src/effect/loadPullRequestContext.ts` to retry only transient failures (`TimeoutError`, `NETWORK_ERROR`, `RATE_LIMITED`).\n - [x] Added Effect unit tests to verify deterministic errors are not retried and transient failures are retried.\n \n ## Docker Release Workflow Runtime Update (COMPLETED 2026-03-20)\n \n - [x] Updated `.github/workflows/docker-release.yml` action majors to Node 24-compatible versions: `actions/checkout@v5`, `docker/setup-buildx-action@v4`, `docker/login-action@v4`, `docker/build-push-action@v7`.\n - [x] Added workflow-level opt-in `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` for early compatibility with GitHub Actions runtime migration.\n - [x] Validation run completed with `npm run lint -- --max-warnings=0 && npm run build && npm run test`.\n \n ## Docker Release Pull Command Output (COMPLETED 2026-03-20)\n \n - [x] Added a post-publish step in `.github/workflows/docker-release.yml` that prints the exact `docker pull` commands for both release and SHA tags in workflow logs.\n - [x] Added the same pull commands to `$GITHUB_STEP_SUMMARY` so they are easy to copy from the run summary page.\n \n ## OpenSpec Proposal Updates (2026-03-20)\n \n - [x] Created change `openspec/changes/add-diff-intelligence-layer/` with proposal, design, capability specs, and implementation tasks.\n - [x] Added new capability spec delta `openspec/changes/add-diff-intelligence-layer/specs/diff-intelligence/spec.md`.\n - [x] Added `pr-review-summary` delta for diff-grounded summary references in `openspec/changes/add-diff-intelligence-layer/specs/pr-review-summary/spec.md`.\n - [x] Created change `openspec/changes/add-ci-and-code-scanning-signal-fusion/` with proposal, design, capability specs, and implementation tasks.\n - [x] Added new capability spec delta `openspec/changes/add-ci-and-code-scanning-signal-fusion/specs/pr-signal-fusion/spec.md`.\n - [x] Added `pr-review-summary` delta for CI/code-scanning signal-aware summary guidance in `openspec/changes/add-ci-and-code-scanning-signal-fusion/specs/pr-review-summary/spec.md`.\n \n ## OpenSpec Consistency Pass (2026-03-26)\n \n - [x] Aligned `add-ci-and-code-scanning-signal-fusion` proposal/design/spec/tasks wording around channel-aware signal fusion (summary richer, chat compact).\n - [x] Added explicit `pr-signal-fusion` requirements for code-scanning fetch, head-SHA invalidation, bounded deterministic top-N highlights, and raw-payload exclusion.\n - [x] Updated summary spec delta to include signal-state indicators and bounded normalized signal context language.\n - [x] Expanded tasks with ranking/capping/semantic-alignment verification coverage.\n - [x] Cleaned proposal capability taxonomy to avoid duplicate `pr-signal-fusion` classification across new/modified sections.\n - [x] Normalized terminology in signal-fusion specs to consistently use \"signal context\" instead of mixed \"signal data/context\" phrasing.\n+\n+## OpenSpec Spec Sync Updates (2026-04-14)\n+\n+- [x] Attempted to invoke `openspec-sync-specs` skill for `add-diff-intelligence-layer`; skill is not available in this workspace.\n+- [x] Synced new main spec `openspec/specs/diff-intelligence/spec.md` from `openspec/changes/add-diff-intelligence-layer/specs/diff-intelligence/spec.md`.\n+- [x] Synced `Summary Output Contract` updates from `openspec/changes/add-diff-intelligence-layer/specs/pr-review-summary/spec.md` into `openspec/specs/pr-review-summary/spec.md`.\n",
+              "additions": 6,
+              "deletions": 0,
+              "status": "modified"
+            }
+          ]
+        },
+        "id": "msg_d8d690b0d002p0Y3iy0yGPF8jn",
+        "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "Use Skill tool to invoke openspec-sync-specs for change 'add-diff-intelligence-layer'. Delta spec analysis: add new main spec for capability diff-intelligence from openspec/changes/add-diff-intelligence-layer/specs/diff-intelligence/spec.md (main spec currently missing); apply modifications from openspec/changes/add-diff-intelligence-layer/specs/pr-review-summary/spec.md to openspec/specs/pr-review-summary/spec.md to include diff-grounded reference requirements for non-trivial focus-area claims. Return what was synced and any errors.",
+          "id": "prt_d8d690b10001lLK6fCF74nnXKI",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d690b0d002p0Y3iy0yGPF8jn"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d8d690b0d002p0Y3iy0yGPF8jn",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.01964375,
+        "tokens": {
+          "total": 9958,
+          "input": 9777,
+          "output": 23,
+          "reasoning": 158,
+          "cache": {
+            "write": 0,
+            "read": 0
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776193964820,
+          "completed": 1776193970106
+        },
+        "finish": "tool-calls",
+        "id": "msg_d8d690b14001N9pW3V91ER6iii",
+        "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv"
+      },
+      "parts": [
+        {
+          "snapshot": "c07a58be52bfea4c2393364ff7bb6050c411b67d",
+          "type": "step-start",
+          "id": "prt_d8d690e4e00178LUDT75ONlEDh",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d690b14001N9pW3V91ER6iii"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776193965908,
+            "end": 1776193968716
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_00811a2fa8bd52460169de91add0d8819bac836da465c1a6d4",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d8d690f54001NqNjuPttpXG4HZ",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d690b14001N9pW3V91ER6iii"
+        },
+        {
+          "type": "tool",
+          "tool": "skill",
+          "callID": "call_pt379NwpGLudW15XUKGNHqiJ",
+          "state": {
+            "status": "error",
+            "input": {
+              "name": "openspec-sync-specs"
+            },
+            "error": "Skill \"openspec-sync-specs\" not found. Available skills: openspec-archive-change, openspec-apply-change, openspec-onboard, openspec-verify-change, openspec-propose, openspec-explore",
+            "time": {
+              "start": 1776193969934,
+              "end": 1776193969936
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_00811a2fa8bd52460169de91b06ab4819b970d63dcee6b772e"
+            }
+          },
+          "id": "prt_d8d691a4d0014alCKz4NMvhDJR",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d690b14001N9pW3V91ER6iii"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "c07a58be52bfea4c2393364ff7bb6050c411b67d",
+          "type": "step-finish",
+          "tokens": {
+            "total": 9958,
+            "input": 9777,
+            "output": 23,
+            "reasoning": 158,
+            "cache": {
+              "write": 0,
+              "read": 0
+            }
+          },
+          "cost": 0.01964375,
+          "id": "prt_d8d691f74001NijkUsqe3Mdj0B",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d690b14001N9pW3V91ER6iii"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d8d690b0d002p0Y3iy0yGPF8jn",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0042973,
+        "tokens": {
+          "total": 10178,
+          "input": 158,
+          "output": 126,
+          "reasoning": 38,
+          "cache": {
+            "write": 0,
+            "read": 9856
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776193970107,
+          "completed": 1776193972707
+        },
+        "finish": "tool-calls",
+        "id": "msg_d8d691fbb001B5G6XrB7RnYgf8",
+        "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv"
+      },
+      "parts": [
+        {
+          "snapshot": "c07a58be52bfea4c2393364ff7bb6050c411b67d",
+          "type": "step-start",
+          "id": "prt_d8d6922b3001ojUXl1ULyNRGci",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d691fbb001B5G6XrB7RnYgf8"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776193970947,
+            "end": 1776193972610
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_028d9537ef32e38f0169de91b2e47c81948a61285e573043ec",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d8d692303001Xhzj4AerB05i45",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d691fbb001B5G6XrB7RnYgf8"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_ViDB2IWbckVJVOVmCtbLHYoo",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "openspec/changes/add-diff-intelligence-layer/specs/**/*.md",
+              "path": "/Users/mark/sandbox/personal/pr-review-chatbot"
+            },
+            "output": "/Users/mark/sandbox/personal/pr-review-chatbot/openspec/changes/add-diff-intelligence-layer/specs/pr-review-summary/spec.md\n/Users/mark/sandbox/personal/pr-review-chatbot/openspec/changes/add-diff-intelligence-layer/specs/diff-intelligence/spec.md",
+            "metadata": {
+              "count": 2,
+              "truncated": false
+            },
+            "title": "",
+            "time": {
+              "start": 1776193972616,
+              "end": 1776193972647
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_028d9537ef32e38f0169de91b47bcc819494688f0fefdb1292"
+            }
+          },
+          "id": "prt_d8d692984001krGOxu5DCpBnBT",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d691fbb001B5G6XrB7RnYgf8"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_1GvhsBxjou44QNGe9cZhwAZU",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "openspec/specs/**/*.md",
+              "path": "/Users/mark/sandbox/personal/pr-review-chatbot"
+            },
+            "output": "/Users/mark/sandbox/personal/pr-review-chatbot/openspec/specs/watched-repos/spec.md\n/Users/mark/sandbox/personal/pr-review-chatbot/openspec/specs/repo-pr-list/spec.md\n/Users/mark/sandbox/personal/pr-review-chatbot/openspec/specs/pr-review-summary/spec.md",
+            "metadata": {
+              "count": 3,
+              "truncated": false
+            },
+            "title": "",
+            "time": {
+              "start": 1776193972619,
+              "end": 1776193972648
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_028d9537ef32e38f0169de91b47bdc8194abf64404af65cc12"
+            }
+          },
+          "id": "prt_d8d692989002Fav06EI2EdiadR",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d691fbb001B5G6XrB7RnYgf8"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_asKcrC87MsYcwUEUMOSOL9wl",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "plans/*.md",
+              "path": "/Users/mark/sandbox/personal/pr-review-chatbot"
+            },
+            "output": "/Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md",
+            "metadata": {
+              "count": 1,
+              "truncated": false
+            },
+            "title": "",
+            "time": {
+              "start": 1776193972621,
+              "end": 1776193972647
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_028d9537ef32e38f0169de91b47be0819487fe38783491f2e4"
+            }
+          },
+          "id": "prt_d8d69298c001RLf0wxhbj9fxbP",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d691fbb001B5G6XrB7RnYgf8"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "c07a58be52bfea4c2393364ff7bb6050c411b67d",
+          "type": "step-finish",
+          "tokens": {
+            "total": 10178,
+            "input": 158,
+            "output": 126,
+            "reasoning": 38,
+            "cache": {
+              "write": 0,
+              "read": 9856
+            }
+          },
+          "cost": 0.0042973,
+          "id": "prt_d8d6929a8002qK1Pd7VJ9BNWzN",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d691fbb001B5G6XrB7RnYgf8"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d8d690b0d002p0Y3iy0yGPF8jn",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.00534135,
+        "tokens": {
+          "total": 10578,
+          "input": 241,
+          "output": 210,
+          "reasoning": 15,
+          "cache": {
+            "write": 0,
+            "read": 10112
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776193972707,
+          "completed": 1776193975861
+        },
+        "finish": "tool-calls",
+        "id": "msg_d8d6929e3002qvEw1YirybRdcq",
+        "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv"
+      },
+      "parts": [
+        {
+          "snapshot": "c07a58be52bfea4c2393364ff7bb6050c411b67d",
+          "type": "step-start",
+          "id": "prt_d8d692cb5001avc729e4mnICao",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d6929e3002qvEw1YirybRdcq"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776193973531,
+            "end": 1776193975688
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_03e6755bf9e55a590169de91b57724819790ce92485705a90d",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d8d692d1b001zmWS47DFijQlUS",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d6929e3002qvEw1YirybRdcq"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_1EgpCtXhItc4G5NtbzWCrjrM",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/Users/mark/sandbox/personal/pr-review-chatbot/openspec/changes/add-diff-intelligence-layer/specs/diff-intelligence/spec.md",
+              "offset": 1,
+              "limit": 2000
+            },
+            "output": "<path>/Users/mark/sandbox/personal/pr-review-chatbot/openspec/changes/add-diff-intelligence-layer/specs/diff-intelligence/spec.md</path>\n<type>file</type>\n<content>\n1: ## ADDED Requirements\n2: \n3: ### Requirement: Assistant Claims Are Diff-Grounded\n4: The system SHALL represent non-trivial assistant claims with one or more structured references to the current pull request diff.\n5: \n6: #### Scenario: Claim includes at least one reference\n7: - **WHEN** the assistant emits a claim about risk, behavior, or correctness in summary or chat output\n8: - **THEN** the claim SHALL include at least one reference containing file path\n9: - **AND** the reference MAY include a line range or hunk/snippet anchor when available.\n10: \n11: ### Requirement: Citation Navigation in Reviewer UI\n12: The system SHALL allow users to navigate from a rendered citation to the relevant location in the pull request files view.\n13: \n14: #### Scenario: User opens citation target\n15: - **WHEN** a user clicks a citation associated with an assistant claim\n16: - **THEN** the system SHALL activate the Files view\n17: - **AND** expand the referenced file\n18: - **AND** scroll or focus to the best matching referenced hunk or line region.\n19: \n20: #### Scenario: Citation target cannot be resolved exactly\n21: - **WHEN** the reference cannot be resolved to an exact line position\n22: - **THEN** the system SHALL still open the referenced file\n23: - **AND** indicate that an exact anchor could not be resolved.\n24: \n25: ### Requirement: Citation Quality Visibility\n26: The system SHALL distinguish cited and uncited assistant content in the UI.\n27: \n28: #### Scenario: Uncited claim rendering\n29: - **WHEN** assistant output includes a claim without any reference data\n30: - **THEN** the system SHALL render a visible uncited or low-confidence indicator for that claim.\n\n(End of file - total 30 lines)\n</content>",
+            "metadata": {
+              "preview": "## ADDED Requirements\n\n### Requirement: Assistant Claims Are Diff-Grounded\nThe system SHALL represent non-trivial assistant claims with one or more structured references to the current pull request diff.\n\n#### Scenario: Claim includes at least one reference\n- **WHEN** the assistant emits a claim about risk, behavior, or correctness in summary or chat output\n- **THEN** the claim SHALL include at least one reference containing file path\n- **AND** the reference MAY include a line range or hunk/snippet anchor when available.\n\n### Requirement: Citation Navigation in Reviewer UI\nThe system SHALL allow users to navigate from a rendered citation to the relevant location in the pull request files view.\n\n#### Scenario: User opens citation target\n- **WHEN** a user clicks a citation associated with an assistant claim\n- **THEN** the system SHALL activate the Files view\n- **AND** expand the referenced file\n- **AND** scroll or focus to the best matching referenced hunk or line region.\n\n#### Scenario: Citation target cannot be resolved exactly",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "openspec/changes/add-diff-intelligence-layer/specs/diff-intelligence/spec.md",
+            "time": {
+              "start": 1776193975693,
+              "end": 1776193975707
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_03e6755bf9e55a590169de91b75e48819798584ad02bc5fbde"
+            }
+          },
+          "id": "prt_d8d69358a001efCLlpOTt8Mteg",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d6929e3002qvEw1YirybRdcq"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_A1Qe1OfK6BI13uyVNRRilp9V",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/Users/mark/sandbox/personal/pr-review-chatbot/openspec/changes/add-diff-intelligence-layer/specs/pr-review-summary/spec.md",
+              "offset": 1,
+              "limit": 2000
+            },
+            "output": "<path>/Users/mark/sandbox/personal/pr-review-chatbot/openspec/changes/add-diff-intelligence-layer/specs/pr-review-summary/spec.md</path>\n<type>file</type>\n<content>\n1: ## MODIFIED Requirements\n2: \n3: ### Requirement: Summary Output Contract\n4: The generated summary SHALL follow a structured response contract suitable for reviewer orientation and include diff-grounded references for non-trivial claims.\n5: \n6: #### Scenario: Orientation-first summary format\n7: - **WHEN** summary instructions are sent to the LLM\n8: - **THEN** the instructions SHALL require a concise orientation section of 2-4 lines.\n9: \n10: #### Scenario: Adaptive focus areas with cap\n11: - **WHEN** summary instructions are sent to the LLM\n12: - **THEN** the instructions SHALL allow adaptive `Focus Areas` inclusion based on meaningful risk/complexity/churn signals\n13: - **AND** the number of focus areas SHALL be capped at 4.\n14: \n15: #### Scenario: No focus areas for simple PRs\n16: - **WHEN** the PR is simple and no meaningful risk/complexity/churn signals are detected\n17: - **THEN** the summary MAY omit `Focus Areas`\n18: - **AND** this SHALL be considered a valid successful summary outcome.\n19: \n20: #### Scenario: Focus area content shape\n21: - **WHEN** one or more focus areas are emitted\n22: - **THEN** each focus area SHALL include: where to review, why it matters, and what to verify.\n23: \n24: #### Scenario: Focus area includes diff references\n25: - **WHEN** a focus area presents a non-trivial risk, behavior, or correctness claim\n26: - **THEN** the output SHALL include at least one diff-grounded reference for that focus area.\n\n(End of file - total 26 lines)\n</content>",
+            "metadata": {
+              "preview": "## MODIFIED Requirements\n\n### Requirement: Summary Output Contract\nThe generated summary SHALL follow a structured response contract suitable for reviewer orientation and include diff-grounded references for non-trivial claims.\n\n#### Scenario: Orientation-first summary format\n- **WHEN** summary instructions are sent to the LLM\n- **THEN** the instructions SHALL require a concise orientation section of 2-4 lines.\n\n#### Scenario: Adaptive focus areas with cap\n- **WHEN** summary instructions are sent to the LLM\n- **THEN** the instructions SHALL allow adaptive `Focus Areas` inclusion based on meaningful risk/complexity/churn signals\n- **AND** the number of focus areas SHALL be capped at 4.\n\n#### Scenario: No focus areas for simple PRs\n- **WHEN** the PR is simple and no meaningful risk/complexity/churn signals are detected\n- **THEN** the summary MAY omit `Focus Areas`\n- **AND** this SHALL be considered a valid successful summary outcome.\n\n#### Scenario: Focus area content shape",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "openspec/changes/add-diff-intelligence-layer/specs/pr-review-summary/spec.md",
+            "time": {
+              "start": 1776193975695,
+              "end": 1776193975708
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_03e6755bf9e55a590169de91b75e5481978afc93b6918c8a27"
+            }
+          },
+          "id": "prt_d8d69358e001vqh4obBAnW9Qsf",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d6929e3002qvEw1YirybRdcq"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_hMItFedG5T3LwXymujejJ19P",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/Users/mark/sandbox/personal/pr-review-chatbot/openspec/specs/pr-review-summary/spec.md",
+              "offset": 1,
+              "limit": 2000
+            },
+            "output": "<path>/Users/mark/sandbox/personal/pr-review-chatbot/openspec/specs/pr-review-summary/spec.md</path>\n<type>file</type>\n<content>\n1: ## Requirements\n2: \n3: ### Requirement: Automatic Summary Generation on PR Selection\n4: The system SHALL generate a reviewer-orientation summary when a pull request is selected and summary generation is enabled.\n5: \n6: #### Scenario: Summary generated for selected PR\n7: - **WHEN** a user selects a PR and summary generation is enabled\n8: - **THEN** the system SHALL request a summary using PR description, PR commit messages, and textual code changes as context.\n9: \n10: #### Scenario: Summary generation disabled\n11: - **WHEN** a user selects a PR and summary generation is disabled\n12: - **THEN** the system SHALL not request or refresh summary content.\n13: \n14: ### Requirement: Summary Uses Existing LLM Configuration\n15: The system SHALL use the existing LLM backend configuration for summary generation.\n16: \n17: #### Scenario: Summary request uses configured LLM settings\n18: - **WHEN** a summary request is issued\n19: - **THEN** the request SHALL use the currently configured `llmBackend`, `llmEndpoint`, `llmApiKey`, and `llmModel` values.\n20: \n21: ### Requirement: Summary Prompt Is Configurable and Persisted\n22: The system SHALL allow users to edit the summary prompt, persist it across sessions, and reset only the prompt to the default value.\n23: \n24: #### Scenario: Prompt edits persist\n25: - **WHEN** a user saves changes to the summary prompt in Settings\n26: - **THEN** the system SHALL persist the updated prompt and reuse it for future summary generation.\n27: \n28: #### Scenario: Reset restores default prompt only\n29: - **WHEN** a user chooses Reset Prompt in Settings\n30: - **THEN** the system SHALL restore only the summary prompt to the default text and SHALL NOT modify additional summary commands.\n31: \n32: ### Requirement: Additional Summary Commands Are Supported\n33: The system SHALL allow optional additional summary commands configured by the user and append them to summary-generation instructions.\n34: \n35: #### Scenario: Commands appended to summary prompt\n36: - **WHEN** one or more summary commands are configured\n37: - **THEN** the system SHALL append those commands to summary-generation instructions for the selected PR.\n38: \n39: ### Requirement: Summary Output Contract\n40: The generated summary SHALL follow a structured response contract suitable for reviewer orientation.\n41: \n42: #### Scenario: Orientation-first summary format\n43: - **WHEN** summary instructions are sent to the LLM\n44: - **THEN** the instructions SHALL require a concise orientation section of 2-4 lines.\n45: \n46: #### Scenario: Adaptive focus areas with cap\n47: - **WHEN** summary instructions are sent to the LLM\n48: - **THEN** the instructions SHALL allow adaptive `Focus Areas` inclusion based on meaningful risk/complexity/churn signals\n49: - **AND** the number of focus areas SHALL be capped at 4.\n50: \n51: #### Scenario: No focus areas for simple PRs\n52: - **WHEN** the PR is simple and no meaningful risk/complexity/churn signals are detected\n53: - **THEN** the summary MAY omit `Focus Areas`\n54: - **AND** this SHALL be considered a valid successful summary outcome.\n55: \n56: #### Scenario: Focus area content shape\n57: - **WHEN** one or more focus areas are emitted\n58: - **THEN** each focus area SHALL include: where to review, why it matters, and what to verify.\n59: \n60: ### Requirement: Summary Is Separate from Chat History\n61: Summary content SHALL be isolated from chat history and SHALL NOT be included in subsequent LLM chat context.\n62: \n63: #### Scenario: Summary excluded from chat context\n64: - **WHEN** a user sends a chat message after summary generation\n65: - **THEN** the outbound chat context SHALL NOT include summary content as a prior message or system/context segment.\n66: \n67: ### Requirement: Summary Presentation in PR Viewer\n68: The PR viewer SHALL provide a dedicated Summary tab with readable visual hierarchy, markdown legibility, responsive spacing, and metadata display.\n69: \n70: #### Scenario: Summary tab displays loading spinner\n71: - **WHEN** summary generation is in progress\n72: - **THEN** the Summary tab SHALL display a spinner indicator and loading state text.\n73: \n74: #### Scenario: Summary tab displays generated timestamp\n75: - **WHEN** summary generation succeeds\n76: - **THEN** the Summary tab SHALL display the summary content and a generation-time timestamp at the bottom of the pane.\n77: \n78: #### Scenario: Readable hierarchy for generated summary\n79: - **WHEN** summary content is rendered in the Summary tab\n80: - **THEN** the UI SHALL present clear visual hierarchy between headings, body text, and metadata using distinct typography and spacing.\n81: \n82: #### Scenario: Markdown content remains legible\n83: - **WHEN** generated summary includes markdown lists, emphasis, or inline/code blocks\n84: - **THEN** the Summary tab SHALL render those elements with readable spacing and contrast consistent with the active theme.\n85: \n86: #### Scenario: Readability preserved on small screens\n87: - **WHEN** the Summary tab is viewed on narrow/mobile viewport widths\n88: - **THEN** the UI SHALL adapt spacing and text layout to avoid cramped content and horizontal overflow.\n89: \n90: ### Requirement: Empty and Failure Fallback States\n91: The system SHALL provide explicit fallback states when summary generation is not possible, with readable and clearly differentiated messaging.\n92: \n93: #### Scenario: Empty PR state\n94: - **WHEN** a selected PR has no textual content to summarize\n95: - **THEN** the system SHALL skip summary generation and display `Nothing to Summarize` in the Summary tab.\n96: \n97: #### Scenario: LLM request failure state\n98: - **WHEN** the system cannot reach the LLM or summary generation fails\n99: - **THEN** the system SHALL display `Unable to generate summary` in the Summary tab.\n100: \n101: #### Scenario: Distinct fallback visual treatment\n102: - **WHEN** the Summary tab shows empty or error fallback content\n103: - **THEN** the UI SHALL provide state-specific visual cues so users can distinguish empty data from request failure at a glance.\n104: \n105: ### Requirement: Per-PR Rate Limiting and Session Cache\n106: The system SHALL limit summary generation to one request per minute per PR and cache generated summaries in session storage.\n107: \n108: #### Scenario: Per-PR one-minute generation limit\n109: - **WHEN** a summary was generated for a PR less than one minute ago\n110: - **THEN** the system SHALL NOT issue another summary generation request for that same PR during the one-minute window.\n111: \n112: #### Scenario: Cached summary reuse\n113: - **WHEN** a cached summary exists in session storage for the current PR and summary prompt fingerprint\n114: - **THEN** the system SHALL reuse the cached summary content and generated timestamp instead of issuing a new summary request.\n\n(End of file - total 114 lines)\n</content>",
+            "metadata": {
+              "preview": "## Requirements\n\n### Requirement: Automatic Summary Generation on PR Selection\nThe system SHALL generate a reviewer-orientation summary when a pull request is selected and summary generation is enabled.\n\n#### Scenario: Summary generated for selected PR\n- **WHEN** a user selects a PR and summary generation is enabled\n- **THEN** the system SHALL request a summary using PR description, PR commit messages, and textual code changes as context.\n\n#### Scenario: Summary generation disabled\n- **WHEN** a user selects a PR and summary generation is disabled\n- **THEN** the system SHALL not request or refresh summary content.\n\n### Requirement: Summary Uses Existing LLM Configuration\nThe system SHALL use the existing LLM backend configuration for summary generation.\n\n#### Scenario: Summary request uses configured LLM settings\n- **WHEN** a summary request is issued\n- **THEN** the request SHALL use the currently configured `llmBackend`, `llmEndpoint`, `llmApiKey`, and `llmModel` values.\n",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "openspec/specs/pr-review-summary/spec.md",
+            "time": {
+              "start": 1776193975697,
+              "end": 1776193975705
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_03e6755bf9e55a590169de91b75e5c81978f2562708f4ea193"
+            }
+          },
+          "id": "prt_d8d693590002yixsjyVecqRbJ1",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d6929e3002qvEw1YirybRdcq"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_Rs2Dw6YEKzNTBXKEPehNshIO",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md",
+              "offset": 1,
+              "limit": 2000
+            },
+            "output": "<path>/Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md</path>\n<type>file</type>\n<content>\n1: # PR Review Chatbot - Implementation Plan\n2: \n3: ## Priority: UI and LLM Integration First\n4: **Key Change**: Use dummy data for PR content to allow immediate interaction with the LLM without needing GitHub API credentials. GitHub integration can be added later.\n5: \n6: ---\n7: \n8: ## Tech Stack\n9: - Vite + React 18 + TypeScript\n10: - Redux Toolkit for state management\n11: - Axios for HTTP\n12: - Tailwind CSS for styling\n13: - Radix UI for accessible components\n14: \n15: ---\n16: \n17: ## Implementation Phases\n18: \n19: ### ✅ Phase 1: Project Setup (COMPLETED)\n20: - [x] Initialize Vite + React + TypeScript project\n21: - [x] Install dependencies (Redux Toolkit, Axios, Tailwind, Radix UI, react-markdown, react-syntax-highlighter, lucide-react)\n22: - [x] Configure Tailwind CSS with CSS variables for theming\n23: - [x] Set up project structure (`src/types`, `src/store`, `src/services`, `src/components`, `src/lib`)\n24: - [x] Create `vite-env.d.ts` for Vite environment type declarations\n25: - [x] Create `.env.example` with all configuration options\n26: - [x] Create `.gitignore`\n27: \n28: ### ✅ Phase 2: UI Shell & Configuration (COMPLETED)\n29: - [x] Create Redux store (`src/store/index.ts`)\n30: - [x] Implement `configSlice.ts` — env var defaults + localStorage runtime overrides\n31: - [x] Implement `chatSlice.ts` — messages, streaming state\n32: - [x] Implement `prsSlice.ts` — selected PR, files, comments, reviews\n33: - [x] Create typed Redux hooks (`src/store/hooks.ts`)\n34: - [x] Create `SettingsDialog.tsx` — runtime config override with demo mode toggle\n35: - [x] Create main `App.tsx` layout (sidebar + chat + PR viewer panels)\n36: - [x] Dark mode toggle in top bar\n37: - [x] Collapsible sidebar and PR viewer panels\n38: \n39: ### ✅ Phase 3: Chat Interface (COMPLETED)\n40: - [x] Build `ChatWindow.tsx` with message display\n41: - [x] User/assistant message bubbles with avatars\n42: - [x] Markdown rendering with `react-markdown` + `remark-gfm`\n43: - [x] Code syntax highlighting with `react-syntax-highlighter`\n44: - [x] Streaming response display (animated cursor)\n45: - [x] Auto-scroll to latest message\n46: - [x] Multi-line textarea input (auto-resize)\n47: - [x] Enter to send, Shift+Enter for new line\n48: - [x] Suggestion chips on empty state\n49: - [x] Clear conversation button\n50: - [x] Error display in message bubbles\n51: \n52: ### ✅ Phase 4: LLM Integration (COMPLETED)\n53: - [x] Implement `LLMService` class in `src/services/llm.ts`\n54: - [x] OpenAI v1 API support (`/chat/completions`)\n55: - [x] LiteLLM Proxy support (same API format)\n56: - [x] Streaming via Server-Sent Events (SSE)\n57: - [x] `buildSystemPrompt()` — injects full PR context (metadata, diffs, comments, reviews)\n58: - [x] Connect LLM service to `ChatWindow` with streaming dispatch\n59: - [x] Error handling for API failures\n60: \n61: ### ✅ Phase 5: Dummy Data & Demo Mode (COMPLETED)\n62: - [x] Create `src/services/dummyData.ts` with realistic sample PR\n63:   - Sample PR: JWT authentication feature (8 files, realistic diffs)\n64:   - Sample comments, review comments, and reviews\n65: - [x] Build `PRViewer.tsx` with:\n66:   - PR metadata header (state badge, author, branch, stats)\n67:   - Tabs: Files, Comments, Reviews\n68:   - Collapsible file items with diff view\n69:   - Diff syntax highlighting (green/red/blue lines)\n70:   - Status badges per file (added/modified/removed)\n71: - [x] Build `Sidebar.tsx` with demo mode toggle\n72: - [x] Auto-load dummy PR on startup in demo mode\n73: - [x] Demo mode toggle in sidebar and Settings dialog\n74: \n75: ### ✅ Phase 6: GitHub Integration (COMPLETED)\n76: - [x] Implement `GitHubService` class in `src/services/github.ts`\n77: - [x] PAT (Bearer token) authentication\n78: - [x] Support for github.com (`https://api.github.com`)\n79: - [x] Support for GHES (`https://<host>/api/v3`)\n80: - [x] Methods: `listRepositories`, `searchRepositories`, `listPullRequests`, `getPullRequest`, `getPRFiles`, `getPRComments`, `getPRReviewComments`, `getPRReviews`, `validateToken`\n81: - [x] Token validation method\n82: \n83: ### ✅ Phase 7: Polish (COMPLETED)\n84: - [x] Add loading states and loading indicators for GitHub API calls\n85: - [x] Add error handling for GitHub API failures (rate limiting, 404, auth errors)\n86: - [x] Polish UI/UX (animations, transitions)\n87: - [x] GitHub mode UI — allow entering repo/PR manually\n88: - [x] Context window management for very large PRs\n89: \n90: ---\n91: \n92: ## Documentation (COMPLETED)\n93: - [x] `README.md` — User-facing docs: quick start, configuration, LLM setup, GitHub setup, troubleshooting\n94: - [x] `agents.md` — Developer/agent docs: project structure, architecture, common tasks\n95: - [x] `.env.example` — Annotated environment variable reference\n96: \n97: ---\n98: \n99: ## Configuration\n100: \n101: ### Environment Variables (with defaults)\n102: ```\n103: VITE_GITHUB_PAT=          # GitHub Personal Access Token\n104: VITE_LLM_API_KEY=         # LLM API Key\n105: VITE_GITHUB_INSTANCE=     # \"github.com\" or URL for GHES\n106: VITE_LLM_BACKEND=         # \"openai\" or \"litellm\"\n107: VITE_LLM_ENDPOINT=        # API endpoint URL\n108: VITE_LLM_MODEL=           # Model name\n109: VITE_DEMO_MODE=           # \"true\" or \"false\"\n110: ```\n111: \n112: ### Runtime Override\n113: Settings dialog allows overriding env vars at runtime (persisted to localStorage).\n114: \n115: ---\n116: \n117: ## Architecture\n118: \n119: ### Services\n120: ```\n121: src/services/\n122: ├── github.ts      # Fetch PRs, details, diffs, comments (supports GHES)\n123: ├── llm.ts         # Unified interface for OpenAI v1 API + LiteLLM Proxy\n124: └── dummyData.ts   # Sample PR data for demo mode\n125: ```\n126: \n127: ### Redux Store\n128: ```\n129: src/store/\n130: ├── index.ts              # Store configuration\n131: ├── hooks.ts              # Typed useAppDispatch / useAppSelector\n132: └── slices/\n133:     ├── configSlice.ts    # App config (env defaults + runtime overrides)\n134:     ├── prsSlice.ts       # Current PR data\n135:     └── chatSlice.ts      # Messages + streaming state\n136: ```\n137: \n138: ### Components\n139: ```\n140: src/components/\n141: ├── SettingsDialog.tsx   # Runtime config override\n142: ├── Sidebar.tsx          # Repo/PR navigation (or demo mode toggle)\n143: ├── ChatWindow.tsx       # Chat messages + input\n144: └── PRViewer.tsx         # File diffs, metadata\n145: ```\n146: \n147: ---\n148: \n149: ## Data Types\n150: \n151: ### GitHub PR\n152: ```typescript\n153: interface PullRequest {\n154:   id: number;\n155:   number: number;\n156:   title: string;\n157:   body: string | null;\n158:   state: 'open' | 'closed';\n159:   merged: boolean;\n160:   merged_at: string | null;\n161:   user: GitHubUser;\n162:   created_at: string;\n163:   updated_at: string;\n164:   head: { ref: string; sha: string; repo: { full_name: string } | null };\n165:   base: { ref: string; sha: string; repo: { full_name: string } };\n166:   url: string;\n167:   html_url: string;\n168:   diff_url: string;\n169:   additions: number;\n170:   deletions: number;\n171:   changed_files: number;\n172:   comments: number;\n173:   review_comments: number;\n174:   commits: number;\n175:   labels: Array<{ id: number; name: string; color: string }>;\n176:   requested_reviewers: GitHubUser[];\n177: }\n178: ```\n179: \n180: ### Chat Message\n181: ```typescript\n182: interface ChatMessage {\n183:   id: string;\n184:   role: 'user' | 'assistant' | 'system';\n185:   content: string;\n186:   timestamp: number;\n187:   isStreaming?: boolean;\n188:   error?: string;\n189: }\n190: ```\n191: \n192: ### App Config\n193: ```typescript\n194: interface AppConfig {\n195:   githubPat: string;\n196:   llmApiKey: string;\n197:   githubInstance: string;\n198:   llmBackend: 'openai' | 'litellm';\n199:   llmEndpoint: string;\n200:   llmModel: string;\n201:   demoMode: boolean;\n202: }\n203: ```\n204: \n205: ---\n206: \n207: ## Error Handling\n208: \n209: ### LLM API Errors\n210: - Invalid API key: Error shown in message bubble\n211: - Rate limiting: Error shown in message bubble\n212: - Network errors: Error shown in message bubble\n213: - Streaming errors: Graceful fallback with error message\n214: \n215: ### GitHub API Errors (when enabled)\n216: - Invalid PAT: Prompt to update token\n217: - Rate limiting: Show remaining requests\n218: - Not found (404): Repository/PR not found\n219: \n220: ---\n221: \n222: ### ⏳ Phase 8: Code Quality & UX Improvements (PENDING)\n223: \n224: Identified during initial code review. These are non-blocking improvements to address after the Phase 7 polish work.\n225: \n226: #### Quality\n227: - [x] **ESLint v9 flat config** (`eslint.config.js`) — Added repository-level flat config so `npm run lint` works with ESLint 9.\n228: - [x] **`getPRFiles` pagination** (`src/services/github.ts:96`) — The GitHub API caps file lists at 100 per page. PRs with >100 changed files silently return incomplete data. Add pagination (loop until `response.data.length < perPage`) or at minimum show a warning banner in `PRViewer` when the file count equals the page limit.\n229: - [x] **Stable React keys in `DiffView`** (`src/components/PRViewer.tsx:41`) — Diff lines currently use array index as `key`. Replace with a content-based key (e.g. `` `${i}-${line.slice(0, 8)}` ``) to prevent React reusing DOM nodes incorrectly when switching between files.\n230: \n231: #### UX\n232: - [x] **Persist dark mode preference** (`src/App.tsx:10`) — Dark mode state resets on every page reload. Initialise from `localStorage` and respect the OS `prefers-color-scheme` media query:\n233:   ```ts\n234:   const [darkMode, setDarkMode] = useState(\n235:     () => localStorage.getItem('darkMode') === 'true'\n236:       || window.matchMedia('(prefers-color-scheme: dark)').matches\n237:   );\n238:   ```\n239:   Also persist the toggle: `localStorage.setItem('darkMode', String(!darkMode))` inside `toggleDarkMode`.\n240: - [x] **Wire up the Refresh button** (`src/components/Sidebar.tsx:111`) — The refresh `<button>` in the sidebar is rendered in GitHub mode but has no `onClick` handler. Either connect it to a `fetchPullRequests` thunk (part of Phase 7 GitHub UI work) or hide it with `{false && ...}` until that feature is ready, to avoid confusing users with a dead control.\n241: \n242: ---\n243: \n244: ## OpenSpec Alignment Notes (2026-03-14)\n245: \n246: - `openspec/changes/add-pr-summary-tab/tasks.md` was updated to capture quick-orientation behavior decisions from explore mode.\n247: - Summary behavior target: 2-4 line orientation section, adaptive `Focus Areas` with bounds `0..4`, and valid success output when focus areas are omitted for simple PRs.\n248: - Synced delta spec `openspec/changes/add-pr-summary-tab/specs/pr-review-summary/spec.md` into new main spec `openspec/specs/pr-review-summary/spec.md`.\n249: - Added change scaffold `openspec/changes/update-pr-review-summary-ui-readability/` with completed proposal, design, spec delta, and tasks artifacts for summary UI readability improvements.\n250: - Refined `update-pr-review-summary-ui-readability` scope to panelized Summary display: Orientation and each Focus Area render as separate cards styled like Comments/Reviews, with blue/yellow title accents and no spec contract changes.\n251: \n252: ---\n253: \n254: ## ✅ Phase 9: PR Summary Tab (COMPLETED)\n255: \n256: - [x] Extend `AppConfig` with summary fields: `summaryEnabled`, `summaryPrompt`, `summaryCommands`\n257: - [x] Add/export `DEFAULT_SUMMARY_PROMPT` and keep reset behavior prompt-only\n258: - [x] Add PR commits API loading (`getPRCommits`) and Redux state wiring\n259: - [x] Add summary lifecycle state in `prsSlice` (`status`, `content`, `generatedAt`, `error`)\n260: - [x] Implement summary orchestration utilities:\n261:   - per-PR+head+prompt cache keying\n262:   - sessionStorage read/write cache\n263:   - one-per-minute per-PR-head rate limiting\n264:   - empty textual diff detection\n265: - [x] Extend LLM service with structured summary prompt assembly (orientation + adaptive focus areas)\n266: - [x] Add Summary tab UI in `PRViewer` with loading/success/empty/error states and timestamp footer\n267: - [x] Wire summary generation on PR selection/load and keep summary separate from chat history/context\n268: - [x] Add/expand tests for config, GitHub service, PR slice, summary utilities, LLM prompt, Settings UI, and Summary tab rendering\n269: - [x] Update README and agent guidance for summary behavior, fallback states, and output contract\n270: \n271: ---\n272: \n273: ## OpenSpec Implementation Updates (2026-03-14)\n274: \n275: - [x] Completed OpenSpec change `update-pr-review-summary-ui-readability` implementation tasks (8/8) for panelized Summary tab readability updates.\n276: - [x] Updated Summary success rendering in `src/components/PRViewer.tsx` to show an `Orientation` panel and per-item `Focus Area N` panels with blue/yellow title accents.\n277: - [x] Kept summary generation flow and fallback state semantics unchanged (loading/empty/error behavior preserved).\n278: - [x] Updated `src/components/PRViewer.summary.test.tsx` assertions for orientation-only and orientation+focus-area panelized rendering.\n279: - [x] Validation run completed with `npm run lint && npm run build && npm run test`.\n280: \n281: ## OpenSpec Explore Decision Updates (2026-03-16)\n282: \n283: - [x] Clarified `repository-watcher` UX scope: `repo-pr-list` renders in the left `PR Review` pane (not center chat area or right PR viewer pane).\n284: - [x] Captured sidebar navigator behavior: controls/watchlist view and repo list view with explicit Back action.\n285: - [x] Captured `Load PR` behavior parity with demo mode: when PR number is provided, show a list containing one selected PR.\n286: - [x] Updated change artifacts (`proposal.md`, `design.md`, `tasks.md`, `specs/repo-pr-list/spec.md`, `specs/watched-repos/spec.md`) to reflect the decision.\n287: \n288: ## OpenSpec Implementation Updates (2026-03-16)\n289: \n290: - [x] Implemented `repository-watcher` change tasks end-to-end.\n291: - [x] Added watched repository state and persistence via `src/store/slices/watchedReposSlice.ts`.\n292: - [x] Added repository PR list loading in `src/store/slices/prsSlice.ts` using existing `listPullRequests()` integration.\n293: - [x] Added sidebar repo-list UI mode with Back navigation and new `src/components/PRList.tsx` component.\n294: - [x] Updated sidebar to support optional PR number flow (`Load PR` vs `Load All PRs`) and watchlist interactions.\n295: - [x] Added tests for watched repos, repository PR list loading, and sidebar list selection flows.\n296: - [x] Validation run completed with `npm run lint && npm run build && npm run test`.\n297: \n298: ## OpenSpec Spec Sync Updates (2026-03-16)\n299: \n300: - [x] Synced change `repository-watcher` delta specs into new main specs for `repo-pr-list` and `watched-repos`.\n301: - [x] Created `openspec/specs/repo-pr-list/spec.md` from `openspec/changes/repository-watcher/specs/repo-pr-list/spec.md`.\n302: - [x] Created `openspec/specs/watched-repos/spec.md` from `openspec/changes/repository-watcher/specs/watched-repos/spec.md`.\n303: \n304: ---\n305: \n306: ## Code Review Hardening Tasks (2026-03-17)\n307: \n308: - [x] Task 1: Add stale-response guards in `prsSlice` so older PR resource responses cannot overwrite newer selection state.\n309: - [x] Task 2: Add regression tests for rapid PR switching race in `src/store/slices/prsSlice.test.ts`.\n310: - [x] Task 3: Add `Dialog.Description` in `src/components/SettingsDialog.tsx` to satisfy Radix dialog accessibility contract.\n311: - [x] Task 4: Update settings dialog tests to assert description semantics and eliminate warning output.\n312: - [x] Task 5: Add chat stream request cancellation (`AbortController`) in `src/components/ChatWindow.tsx` and `src/services/llm.ts`.\n313: - [x] Task 6: Add tests for stream cancellation behavior and UI streaming state cleanup.\n314: \n315: ## Distribution and Release Automation (2026-03-17)\n316: \n317: - [x] Added multi-stage Docker image build with static asset runtime (`Dockerfile`) and SPA-safe nginx config (`nginx.conf`).\n318: - [x] Added `.dockerignore` and npm helper scripts (`docker:build`, `docker:run`) for local image usage.\n319: - [x] Added release-triggered GHCR publish workflow (`.github/workflows/docker-release.yml`) with semver-distance tagging (`vX.Y.Z-N`) and fallback (`v0.0.0-N`).\n320: - [x] Updated CI workflow (`.github/workflows/build.yml`) to run lint, tests, and production build.\n321: - [x] Updated `README.md` with local Docker usage, GHCR usage, tagging semantics, and distribution alternatives.\n322: \n323: ## LLM Key Warning Cleanup (2026-03-18)\n324: \n325: - [x] Verified non-OK LLM provider responses (including 4xx) are thrown by `LLMService` and surfaced in chat error bubbles.\n326: - [x] Removed chat footer warning that required configuring an LLM key in settings.\n327: - [x] Added tests to lock behavior for optional API key UI and 4xx error surfacing.\n328: \n329: ## Frontend Bundle Split Pass 1 (2026-03-18)\n330: \n331: - [x] Extracted assistant markdown + syntax highlighting rendering into lazy-loaded `src/components/AssistantMarkdown.tsx`.\n332: - [x] Updated `ChatWindow` to load assistant markdown renderer via `React.lazy` and `Suspense`.\n333: - [x] Added lightweight fallback UI in assistant bubbles while markdown chunk loads.\n334: \n335: ## Frontend Bundle Split Follow-ups (OPEN)\n336: \n337: - [ ] Pass 2: Lazy-load PR summary markdown rendering path in `src/components/PRViewer.tsx` (`SummaryPanel`) to reduce initial bundle size further.\n338: - [ ] Split syntax highlighting payload in `src/components/AssistantMarkdown.tsx` (language/style loading strategy) to shrink lazy chunk size.\n339: - [ ] Evaluate `vite.config.ts` manual chunking (`build.rollupOptions.output.manualChunks`) for stable vendor chunk boundaries and improved cacheability.\n340: \n341: ## Effect Migration - Phase 1 (COMPLETED 2026-03-19)\n342: \n343: Goal: introduce Effect on one narrow PR-loading path without changing app architecture or user-visible behavior.\n344: \n345: - [x] Add `effect` dependency and create `src/effect/runtime.ts` with a single shared runtime helper (`runEffect`).\n346: - [x] Define a small typed error model for the pilot path in `src/effect/errors.ts` (GitHub API error passthrough + unexpected error wrapper).\n347: - [x] Implement one Effect workflow in `src/effect/loadPullRequestContext.ts` that composes existing GitHub service calls (PR, files, comments, review comments, reviews, commits) with timeout/retry policy.\n348: - [x] Wire `loadPullRequestContext` into existing thunk flow in `src/store/slices/prsSlice.ts` via `runEffect`, keeping reducers/selectors/state shape unchanged.\n349: - [x] Add focused tests for success/failure/timeout parity with current behavior in `src/store/slices/prsSlice.test.ts` (or adjacent Effect unit tests).\n350: - [x] Update docs (`README.md` + `plans/plan.md`) with scope boundaries: \"Effect used for pilot orchestration only; no full migration yet.\"\n351: \n352: Exit criteria:\n353: - One PR-loading path uses Effect end-to-end.\n354: - Existing UI behavior and Redux state contracts remain stable.\n355: - Lint, test, and type/build checks pass.\n356: \n357: ## Effect Migration - Phase 1.5 (COMPLETED 2026-03-19)\n358: \n359: - [x] Unified GitHub thunk error mapping through `src/effect/errors.ts::toRejectedErrorData` for legacy PR thunks in `src/store/slices/prsSlice.ts`.\n360: - [x] Reused the same mapper in `src/store/slices/watchedReposSlice.ts` with context-specific fallback message.\n361: - [x] Removed duplicated slice-local `toRejectedError` helpers to keep rejected payload behavior consistent across legacy and Effect-backed paths.\n362: \n363: ## Effect Migration - Phase 1.6 (COMPLETED 2026-03-19)\n364: \n365: - [x] Removed redundant per-resource PR-loading thunks from `src/store/slices/prsSlice.ts` (`fetchPullRequest`, `fetchPRFiles`, `fetchPRComments`, `fetchPRReviewComments`, `fetchPRReviews`, `fetchPRCommits`).\n366: - [x] Removed obsolete per-resource reducer handlers and retained unified `fetchPullRequestContext` loading state handling.\n367: - [x] Updated tests/docs to use the single PR context loading entrypoint.\n368: \n369: ## Effect Migration - Phase 1.7 (COMPLETED 2026-03-19)\n370: \n371: - [x] Refined Effect retry behavior in `src/effect/loadPullRequestContext.ts` to retry only transient failures (`TimeoutError`, `NETWORK_ERROR`, `RATE_LIMITED`).\n372: - [x] Added Effect unit tests to verify deterministic errors are not retried and transient failures are retried.\n373: \n374: ## Docker Release Workflow Runtime Update (COMPLETED 2026-03-20)\n375: \n376: - [x] Updated `.github/workflows/docker-release.yml` action majors to Node 24-compatible versions: `actions/checkout@v5`, `docker/setup-buildx-action@v4`, `docker/login-action@v4`, `docker/build-push-action@v7`.\n377: - [x] Added workflow-level opt-in `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` for early compatibility with GitHub Actions runtime migration.\n378: - [x] Validation run completed with `npm run lint -- --max-warnings=0 && npm run build && npm run test`.\n379: \n380: ## Docker Release Pull Command Output (COMPLETED 2026-03-20)\n381: \n382: - [x] Added a post-publish step in `.github/workflows/docker-release.yml` that prints the exact `docker pull` commands for both release and SHA tags in workflow logs.\n383: - [x] Added the same pull commands to `$GITHUB_STEP_SUMMARY` so they are easy to copy from the run summary page.\n384: \n385: ## OpenSpec Proposal Updates (2026-03-20)\n386: \n387: - [x] Created change `openspec/changes/add-diff-intelligence-layer/` with proposal, design, capability specs, and implementation tasks.\n388: - [x] Added new capability spec delta `openspec/changes/add-diff-intelligence-layer/specs/diff-intelligence/spec.md`.\n389: - [x] Added `pr-review-summary` delta for diff-grounded summary references in `openspec/changes/add-diff-intelligence-layer/specs/pr-review-summary/spec.md`.\n390: - [x] Created change `openspec/changes/add-ci-and-code-scanning-signal-fusion/` with proposal, design, capability specs, and implementation tasks.\n391: - [x] Added new capability spec delta `openspec/changes/add-ci-and-code-scanning-signal-fusion/specs/pr-signal-fusion/spec.md`.\n392: - [x] Added `pr-review-summary` delta for CI/code-scanning signal-aware summary guidance in `openspec/changes/add-ci-and-code-scanning-signal-fusion/specs/pr-review-summary/spec.md`.\n393: \n394: ## OpenSpec Consistency Pass (2026-03-26)\n395: \n396: - [x] Aligned `add-ci-and-code-scanning-signal-fusion` proposal/design/spec/tasks wording around channel-aware signal fusion (summary richer, chat compact).\n397: - [x] Added explicit `pr-signal-fusion` requirements for code-scanning fetch, head-SHA invalidation, bounded deterministic top-N highlights, and raw-payload exclusion.\n398: - [x] Updated summary spec delta to include signal-state indicators and bounded normalized signal context language.\n399: - [x] Expanded tasks with ranking/capping/semantic-alignment verification coverage.\n400: - [x] Cleaned proposal capability taxonomy to avoid duplicate `pr-signal-fusion` classification across new/modified sections.\n401: - [x] Normalized terminology in signal-fusion specs to consistently use \"signal context\" instead of mixed \"signal data/context\" phrasing.\n\n(End of file - total 401 lines)\n</content>",
+            "metadata": {
+              "preview": "# PR Review Chatbot - Implementation Plan\n\n## Priority: UI and LLM Integration First\n**Key Change**: Use dummy data for PR content to allow immediate interaction with the LLM without needing GitHub API credentials. GitHub integration can be added later.\n\n---\n\n## Tech Stack\n- Vite + React 18 + TypeScript\n- Redux Toolkit for state management\n- Axios for HTTP\n- Tailwind CSS for styling\n- Radix UI for accessible components\n\n---\n\n## Implementation Phases\n\n### ✅ Phase 1: Project Setup (COMPLETED)\n- [x] Initialize Vite + React + TypeScript project",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "plans/plan.md",
+            "time": {
+              "start": 1776193975699,
+              "end": 1776193975709
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_03e6755bf9e55a590169de91b75e648197944c08a99b1bd047"
+            }
+          },
+          "id": "prt_d8d693592001yaixwCvoHyEmdN",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d6929e3002qvEw1YirybRdcq"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "c07a58be52bfea4c2393364ff7bb6050c411b67d",
+          "type": "step-finish",
+          "tokens": {
+            "total": 10578,
+            "input": 241,
+            "output": 210,
+            "reasoning": 15,
+            "cache": {
+              "write": 0,
+              "read": 10112
+            }
+          },
+          "cost": 0.00534135,
+          "id": "prt_d8d6935f200128rEw2AObS1lcS",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d6929e3002qvEw1YirybRdcq"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d8d690b0d002p0Y3iy0yGPF8jn",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0242718,
+        "tokens": {
+          "total": 19795,
+          "input": 8796,
+          "output": 403,
+          "reasoning": 100,
+          "cache": {
+            "write": 0,
+            "read": 10496
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776193975862,
+          "completed": 1776193981869
+        },
+        "finish": "tool-calls",
+        "id": "msg_d8d693636001E9SHNmfw752Zk5",
+        "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv"
+      },
+      "parts": [
+        {
+          "snapshot": "c07a58be52bfea4c2393364ff7bb6050c411b67d",
+          "type": "step-start",
+          "id": "prt_d8d6939f2001xyurbgO5ofJfDn",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d693636001E9SHNmfw752Zk5"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776193977122,
+            "end": 1776193978563
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_05c49e8e3223d9e70169de91b910d081939b9e3f07936e4111",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d8d693b22001zU3Jsonndcc2sI",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d693636001E9SHNmfw752Zk5"
+        },
+        {
+          "type": "tool",
+          "tool": "apply_patch",
+          "callID": "call_w8Bqdy9B1XPmmjH6im1CeFIr",
+          "state": {
+            "status": "completed",
+            "input": {
+              "patchText": "*** Begin Patch\n*** Add File: /Users/mark/sandbox/personal/pr-review-chatbot/openspec/specs/diff-intelligence/spec.md\n+## Requirements\n+\n+### Requirement: Assistant Claims Are Diff-Grounded\n+The system SHALL represent non-trivial assistant claims with one or more structured references to the current pull request diff.\n+\n+#### Scenario: Claim includes at least one reference\n+- **WHEN** the assistant emits a claim about risk, behavior, or correctness in summary or chat output\n+- **THEN** the claim SHALL include at least one reference containing file path\n+- **AND** the reference MAY include a line range or hunk/snippet anchor when available.\n+\n+### Requirement: Citation Navigation in Reviewer UI\n+The system SHALL allow users to navigate from a rendered citation to the relevant location in the pull request files view.\n+\n+#### Scenario: User opens citation target\n+- **WHEN** a user clicks a citation associated with an assistant claim\n+- **THEN** the system SHALL activate the Files view\n+- **AND** expand the referenced file\n+- **AND** scroll or focus to the best matching referenced hunk or line region.\n+\n+#### Scenario: Citation target cannot be resolved exactly\n+- **WHEN** the reference cannot be resolved to an exact line position\n+- **THEN** the system SHALL still open the referenced file\n+- **AND** indicate that an exact anchor could not be resolved.\n+\n+### Requirement: Citation Quality Visibility\n+The system SHALL distinguish cited and uncited assistant content in the UI.\n+\n+#### Scenario: Uncited claim rendering\n+- **WHEN** assistant output includes a claim without any reference data\n+- **THEN** the system SHALL render a visible uncited or low-confidence indicator for that claim.\n*** End Patch"
+            },
+            "output": "Success. Updated the following files:\nA openspec/specs/diff-intelligence/spec.md",
+            "metadata": {
+              "diff": "Index: /Users/mark/sandbox/personal/pr-review-chatbot/openspec/specs/diff-intelligence/spec.md\n===================================================================\n--- /Users/mark/sandbox/personal/pr-review-chatbot/openspec/specs/diff-intelligence/spec.md\n+++ /Users/mark/sandbox/personal/pr-review-chatbot/openspec/specs/diff-intelligence/spec.md\n@@ -0,0 +1,30 @@\n+## Requirements\n+\n+### Requirement: Assistant Claims Are Diff-Grounded\n+The system SHALL represent non-trivial assistant claims with one or more structured references to the current pull request diff.\n+\n+#### Scenario: Claim includes at least one reference\n+- **WHEN** the assistant emits a claim about risk, behavior, or correctness in summary or chat output\n+- **THEN** the claim SHALL include at least one reference containing file path\n+- **AND** the reference MAY include a line range or hunk/snippet anchor when available.\n+\n+### Requirement: Citation Navigation in Reviewer UI\n+The system SHALL allow users to navigate from a rendered citation to the relevant location in the pull request files view.\n+\n+#### Scenario: User opens citation target\n+- **WHEN** a user clicks a citation associated with an assistant claim\n+- **THEN** the system SHALL activate the Files view\n+- **AND** expand the referenced file\n+- **AND** scroll or focus to the best matching referenced hunk or line region.\n+\n+#### Scenario: Citation target cannot be resolved exactly\n+- **WHEN** the reference cannot be resolved to an exact line position\n+- **THEN** the system SHALL still open the referenced file\n+- **AND** indicate that an exact anchor could not be resolved.\n+\n+### Requirement: Citation Quality Visibility\n+The system SHALL distinguish cited and uncited assistant content in the UI.\n+\n+#### Scenario: Uncited claim rendering\n+- **WHEN** assistant output includes a claim without any reference data\n+- **THEN** the system SHALL render a visible uncited or low-confidence indicator for that claim.\n\n",
+              "files": [
+                {
+                  "filePath": "/Users/mark/sandbox/personal/pr-review-chatbot/openspec/specs/diff-intelligence/spec.md",
+                  "relativePath": "openspec/specs/diff-intelligence/spec.md",
+                  "type": "add",
+                  "patch": "Index: /Users/mark/sandbox/personal/pr-review-chatbot/openspec/specs/diff-intelligence/spec.md\n===================================================================\n--- /Users/mark/sandbox/personal/pr-review-chatbot/openspec/specs/diff-intelligence/spec.md\n+++ /Users/mark/sandbox/personal/pr-review-chatbot/openspec/specs/diff-intelligence/spec.md\n@@ -0,0 +1,30 @@\n+## Requirements\n+\n+### Requirement: Assistant Claims Are Diff-Grounded\n+The system SHALL represent non-trivial assistant claims with one or more structured references to the current pull request diff.\n+\n+#### Scenario: Claim includes at least one reference\n+- **WHEN** the assistant emits a claim about risk, behavior, or correctness in summary or chat output\n+- **THEN** the claim SHALL include at least one reference containing file path\n+- **AND** the reference MAY include a line range or hunk/snippet anchor when available.\n+\n+### Requirement: Citation Navigation in Reviewer UI\n+The system SHALL allow users to navigate from a rendered citation to the relevant location in the pull request files view.\n+\n+#### Scenario: User opens citation target\n+- **WHEN** a user clicks a citation associated with an assistant claim\n+- **THEN** the system SHALL activate the Files view\n+- **AND** expand the referenced file\n+- **AND** scroll or focus to the best matching referenced hunk or line region.\n+\n+#### Scenario: Citation target cannot be resolved exactly\n+- **WHEN** the reference cannot be resolved to an exact line position\n+- **THEN** the system SHALL still open the referenced file\n+- **AND** indicate that an exact anchor could not be resolved.\n+\n+### Requirement: Citation Quality Visibility\n+The system SHALL distinguish cited and uncited assistant content in the UI.\n+\n+#### Scenario: Uncited claim rendering\n+- **WHEN** assistant output includes a claim without any reference data\n+- **THEN** the system SHALL render a visible uncited or low-confidence indicator for that claim.\n",
+                  "additions": 30,
+                  "deletions": 0
+                }
+              ],
+              "diagnostics": {},
+              "truncated": false
+            },
+            "title": "Success. Updated the following files:\nA openspec/specs/diff-intelligence/spec.md",
+            "time": {
+              "start": 1776193981751,
+              "end": 1776193981771
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_05c49e8e3223d9e70169de91ba80e081939c191f2245db82d7"
+            }
+          },
+          "id": "prt_d8d6940c5001HLpoALnNQpbDrR",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d693636001E9SHNmfw752Zk5"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "700709b2131efc053d95fce6b44d135a92274c53",
+          "type": "step-finish",
+          "tokens": {
+            "total": 19795,
+            "input": 8796,
+            "output": 403,
+            "reasoning": 100,
+            "cache": {
+              "write": 0,
+              "read": 10496
+            }
+          },
+          "cost": 0.0242718,
+          "id": "prt_d8d694d510014LuxFQBCRCej38",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d693636001E9SHNmfw752Zk5"
+        },
+        {
+          "type": "patch",
+          "hash": "c07a58be52bfea4c2393364ff7bb6050c411b67d",
+          "files": [
+            "/Users/mark/sandbox/personal/pr-review-chatbot/openspec/specs/diff-intelligence/spec.md"
+          ],
+          "id": "prt_d8d694dac001jKN7biwspFCBlD",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d693636001E9SHNmfw752Zk5"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d8d690b0d002p0Y3iy0yGPF8jn",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0068516,
+        "tokens": {
+          "total": 20053,
+          "input": 112,
+          "output": 217,
+          "reasoning": 12,
+          "cache": {
+            "write": 0,
+            "read": 19712
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776193981870,
+          "completed": 1776193985071
+        },
+        "finish": "tool-calls",
+        "id": "msg_d8d694dae001wGaxWr0GX14tSG",
+        "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv"
+      },
+      "parts": [
+        {
+          "snapshot": "700709b2131efc053d95fce6b44d135a92274c53",
+          "type": "step-start",
+          "id": "prt_d8d6950de001tVz086thgmCCw4",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d694dae001wGaxWr0GX14tSG"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776193982811,
+            "end": 1776193983423
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_027924acaad7371a0169de91beb6b48193814c964eb1549f8e",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d8d69515b001jxOE8LOWvUYKC6",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d694dae001wGaxWr0GX14tSG"
+        },
+        {
+          "type": "tool",
+          "tool": "apply_patch",
+          "callID": "call_QJGdu8fwWJEPKrLlCBblcjkU",
+          "state": {
+            "status": "completed",
+            "input": {
+              "patchText": "*** Begin Patch\n*** Update File: /Users/mark/sandbox/personal/pr-review-chatbot/openspec/specs/pr-review-summary/spec.md\n@@\n-### Requirement: Summary Output Contract\n-The generated summary SHALL follow a structured response contract suitable for reviewer orientation.\n+### Requirement: Summary Output Contract\n+The generated summary SHALL follow a structured response contract suitable for reviewer orientation and include diff-grounded references for non-trivial claims.\n@@\n #### Scenario: Focus area content shape\n - **WHEN** one or more focus areas are emitted\n - **THEN** each focus area SHALL include: where to review, why it matters, and what to verify.\n+\n+#### Scenario: Focus area includes diff references\n+- **WHEN** a focus area presents a non-trivial risk, behavior, or correctness claim\n+- **THEN** the output SHALL include at least one diff-grounded reference for that focus area.\n*** End Patch"
+            },
+            "output": "Success. Updated the following files:\nM openspec/specs/pr-review-summary/spec.md",
+            "metadata": {
+              "diff": "Index: /Users/mark/sandbox/personal/pr-review-chatbot/openspec/specs/pr-review-summary/spec.md\n===================================================================\n--- /Users/mark/sandbox/personal/pr-review-chatbot/openspec/specs/pr-review-summary/spec.md\n+++ /Users/mark/sandbox/personal/pr-review-chatbot/openspec/specs/pr-review-summary/spec.md\n@@ -36,9 +36,9 @@\n - **WHEN** one or more summary commands are configured\n - **THEN** the system SHALL append those commands to summary-generation instructions for the selected PR.\n \n ### Requirement: Summary Output Contract\n-The generated summary SHALL follow a structured response contract suitable for reviewer orientation.\n+The generated summary SHALL follow a structured response contract suitable for reviewer orientation and include diff-grounded references for non-trivial claims.\n \n #### Scenario: Orientation-first summary format\n - **WHEN** summary instructions are sent to the LLM\n - **THEN** the instructions SHALL require a concise orientation section of 2-4 lines.\n@@ -56,8 +56,12 @@\n #### Scenario: Focus area content shape\n - **WHEN** one or more focus areas are emitted\n - **THEN** each focus area SHALL include: where to review, why it matters, and what to verify.\n \n+#### Scenario: Focus area includes diff references\n+- **WHEN** a focus area presents a non-trivial risk, behavior, or correctness claim\n+- **THEN** the output SHALL include at least one diff-grounded reference for that focus area.\n+\n ### Requirement: Summary Is Separate from Chat History\n Summary content SHALL be isolated from chat history and SHALL NOT be included in subsequent LLM chat context.\n \n #### Scenario: Summary excluded from chat context\n\n",
+              "files": [
+                {
+                  "filePath": "/Users/mark/sandbox/personal/pr-review-chatbot/openspec/specs/pr-review-summary/spec.md",
+                  "relativePath": "openspec/specs/pr-review-summary/spec.md",
+                  "type": "update",
+                  "patch": "Index: /Users/mark/sandbox/personal/pr-review-chatbot/openspec/specs/pr-review-summary/spec.md\n===================================================================\n--- /Users/mark/sandbox/personal/pr-review-chatbot/openspec/specs/pr-review-summary/spec.md\n+++ /Users/mark/sandbox/personal/pr-review-chatbot/openspec/specs/pr-review-summary/spec.md\n@@ -36,9 +36,9 @@\n - **WHEN** one or more summary commands are configured\n - **THEN** the system SHALL append those commands to summary-generation instructions for the selected PR.\n \n ### Requirement: Summary Output Contract\n-The generated summary SHALL follow a structured response contract suitable for reviewer orientation.\n+The generated summary SHALL follow a structured response contract suitable for reviewer orientation and include diff-grounded references for non-trivial claims.\n \n #### Scenario: Orientation-first summary format\n - **WHEN** summary instructions are sent to the LLM\n - **THEN** the instructions SHALL require a concise orientation section of 2-4 lines.\n@@ -56,8 +56,12 @@\n #### Scenario: Focus area content shape\n - **WHEN** one or more focus areas are emitted\n - **THEN** each focus area SHALL include: where to review, why it matters, and what to verify.\n \n+#### Scenario: Focus area includes diff references\n+- **WHEN** a focus area presents a non-trivial risk, behavior, or correctness claim\n+- **THEN** the output SHALL include at least one diff-grounded reference for that focus area.\n+\n ### Requirement: Summary Is Separate from Chat History\n Summary content SHALL be isolated from chat history and SHALL NOT be included in subsequent LLM chat context.\n \n #### Scenario: Summary excluded from chat context\n",
+                  "additions": 5,
+                  "deletions": 1
+                }
+              ],
+              "diagnostics": {},
+              "truncated": false
+            },
+            "title": "Success. Updated the following files:\nM openspec/specs/pr-review-summary/spec.md",
+            "time": {
+              "start": 1776193984857,
+              "end": 1776193984864
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_027924acaad7371a0169de91bf48dc8193ab41d767755e03ed"
+            }
+          },
+          "id": "prt_d8d6953c3001ZkO7Mu9kxY9mMT",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d694dae001wGaxWr0GX14tSG"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "318cf392df1267aab4c2f884d3e79adf08a72d1b",
+          "type": "step-finish",
+          "tokens": {
+            "total": 20053,
+            "input": 112,
+            "output": 217,
+            "reasoning": 12,
+            "cache": {
+              "write": 0,
+              "read": 19712
+            }
+          },
+          "cost": 0.0068516,
+          "id": "prt_d8d6959c8001GzNGXxF8LhBzh6",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d694dae001wGaxWr0GX14tSG"
+        },
+        {
+          "type": "patch",
+          "hash": "700709b2131efc053d95fce6b44d135a92274c53",
+          "files": [
+            "/Users/mark/sandbox/personal/pr-review-chatbot/openspec/specs/pr-review-summary/spec.md"
+          ],
+          "id": "prt_d8d695a2e001ePAe82DsgDsWwn",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d694dae001wGaxWr0GX14tSG"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d8d690b0d002p0Y3iy0yGPF8jn",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.00724815,
+        "tokens": {
+          "total": 20335,
+          "input": 113,
+          "output": 245,
+          "reasoning": 9,
+          "cache": {
+            "write": 0,
+            "read": 19968
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776193985071,
+          "completed": 1776193988612
+        },
+        "finish": "tool-calls",
+        "id": "msg_d8d695a2f002HWANKrLZmnZcI2",
+        "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv"
+      },
+      "parts": [
+        {
+          "snapshot": "318cf392df1267aab4c2f884d3e79adf08a72d1b",
+          "type": "step-start",
+          "id": "prt_d8d695ce8001nTUN4L36i9VluY",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d695a2f002HWANKrLZmnZcI2"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776193986005,
+            "end": 1776193986519
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_0619eae0d60445c70169de91c1eaf08193b112e107d8726a26",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d8d695dd5001Sknu7UV06yre93",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d695a2f002HWANKrLZmnZcI2"
+        },
+        {
+          "type": "tool",
+          "tool": "apply_patch",
+          "callID": "call_w78bOLOuqj9sxnD08W9MwST2",
+          "state": {
+            "status": "completed",
+            "input": {
+              "patchText": "*** Begin Patch\n*** Update File: /Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n@@\n ## OpenSpec Consistency Pass (2026-03-26)\n@@\n - [x] Normalized terminology in signal-fusion specs to consistently use \"signal context\" instead of mixed \"signal data/context\" phrasing.\n+\n+## OpenSpec Spec Sync Updates (2026-04-14)\n+\n+- [x] Attempted to invoke `openspec-sync-specs` skill for `add-diff-intelligence-layer`; skill is not available in this workspace.\n+- [x] Synced new main spec `openspec/specs/diff-intelligence/spec.md` from `openspec/changes/add-diff-intelligence-layer/specs/diff-intelligence/spec.md`.\n+- [x] Synced `Summary Output Contract` updates from `openspec/changes/add-diff-intelligence-layer/specs/pr-review-summary/spec.md` into `openspec/specs/pr-review-summary/spec.md`.\n*** End Patch"
+            },
+            "output": "Success. Updated the following files:\nM plans/plan.md",
+            "metadata": {
+              "diff": "Index: /Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n===================================================================\n--- /Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n+++ /Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n@@ -398,4 +398,10 @@\n - [x] Updated summary spec delta to include signal-state indicators and bounded normalized signal context language.\n - [x] Expanded tasks with ranking/capping/semantic-alignment verification coverage.\n - [x] Cleaned proposal capability taxonomy to avoid duplicate `pr-signal-fusion` classification across new/modified sections.\n - [x] Normalized terminology in signal-fusion specs to consistently use \"signal context\" instead of mixed \"signal data/context\" phrasing.\n+\n+## OpenSpec Spec Sync Updates (2026-04-14)\n+\n+- [x] Attempted to invoke `openspec-sync-specs` skill for `add-diff-intelligence-layer`; skill is not available in this workspace.\n+- [x] Synced new main spec `openspec/specs/diff-intelligence/spec.md` from `openspec/changes/add-diff-intelligence-layer/specs/diff-intelligence/spec.md`.\n+- [x] Synced `Summary Output Contract` updates from `openspec/changes/add-diff-intelligence-layer/specs/pr-review-summary/spec.md` into `openspec/specs/pr-review-summary/spec.md`.\n\n",
+              "files": [
+                {
+                  "filePath": "/Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md",
+                  "relativePath": "plans/plan.md",
+                  "type": "update",
+                  "patch": "Index: /Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n===================================================================\n--- /Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n+++ /Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n@@ -398,4 +398,10 @@\n - [x] Updated summary spec delta to include signal-state indicators and bounded normalized signal context language.\n - [x] Expanded tasks with ranking/capping/semantic-alignment verification coverage.\n - [x] Cleaned proposal capability taxonomy to avoid duplicate `pr-signal-fusion` classification across new/modified sections.\n - [x] Normalized terminology in signal-fusion specs to consistently use \"signal context\" instead of mixed \"signal data/context\" phrasing.\n+\n+## OpenSpec Spec Sync Updates (2026-04-14)\n+\n+- [x] Attempted to invoke `openspec-sync-specs` skill for `add-diff-intelligence-layer`; skill is not available in this workspace.\n+- [x] Synced new main spec `openspec/specs/diff-intelligence/spec.md` from `openspec/changes/add-diff-intelligence-layer/specs/diff-intelligence/spec.md`.\n+- [x] Synced `Summary Output Contract` updates from `openspec/changes/add-diff-intelligence-layer/specs/pr-review-summary/spec.md` into `openspec/specs/pr-review-summary/spec.md`.\n",
+                  "additions": 6,
+                  "deletions": 0
+                }
+              ],
+              "diagnostics": {},
+              "truncated": false
+            },
+            "title": "Success. Updated the following files:\nM plans/plan.md",
+            "time": {
+              "start": 1776193988478,
+              "end": 1776193988485
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_0619eae0d60445c70169de91c264e8819388c9e99f196e13d0"
+            }
+          },
+          "id": "prt_d8d695fd8001ZjLdxeTKt5dWXT",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d695a2f002HWANKrLZmnZcI2"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "99c7e0b8317b0d1857623137e8febb5c35bbf3b4",
+          "type": "step-finish",
+          "tokens": {
+            "total": 20335,
+            "input": 113,
+            "output": 245,
+            "reasoning": 9,
+            "cache": {
+              "write": 0,
+              "read": 19968
+            }
+          },
+          "cost": 0.00724815,
+          "id": "prt_d8d6967a70017k9le9bH3jACs5",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d695a2f002HWANKrLZmnZcI2"
+        },
+        {
+          "type": "patch",
+          "hash": "318cf392df1267aab4c2f884d3e79adf08a72d1b",
+          "files": [
+            "/Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md"
+          ],
+          "id": "prt_d8d696803001MvNddSvs5U1qPJ",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d695a2f002HWANKrLZmnZcI2"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d8d690b0d002p0Y3iy0yGPF8jn",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0060277,
+        "tokens": {
+          "total": 20519,
+          "input": 134,
+          "output": 148,
+          "reasoning": 13,
+          "cache": {
+            "write": 0,
+            "read": 20224
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776193988612,
+          "completed": 1776193992125
+        },
+        "finish": "tool-calls",
+        "id": "msg_d8d696804002iofiUashSAh51M",
+        "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv"
+      },
+      "parts": [
+        {
+          "snapshot": "99c7e0b8317b0d1857623137e8febb5c35bbf3b4",
+          "type": "step-start",
+          "id": "prt_d8d696ae9001NqRO8yUeOWtrbL",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d696804002iofiUashSAh51M"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776193990321,
+            "end": 1776193991971
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_0364dd6c09ae06470169de91c640fc8197af6cf9bd1f5f3763",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d8d696eb1001caTzWixWeBpj5S",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d696804002iofiUashSAh51M"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_T63b7SytXLSmHyoaxeNY2FbB",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/Users/mark/sandbox/personal/pr-review-chatbot/openspec/specs/diff-intelligence/spec.md",
+              "offset": 1,
+              "limit": 2000
+            },
+            "output": "<path>/Users/mark/sandbox/personal/pr-review-chatbot/openspec/specs/diff-intelligence/spec.md</path>\n<type>file</type>\n<content>\n1: ## Requirements\n2: \n3: ### Requirement: Assistant Claims Are Diff-Grounded\n4: The system SHALL represent non-trivial assistant claims with one or more structured references to the current pull request diff.\n5: \n6: #### Scenario: Claim includes at least one reference\n7: - **WHEN** the assistant emits a claim about risk, behavior, or correctness in summary or chat output\n8: - **THEN** the claim SHALL include at least one reference containing file path\n9: - **AND** the reference MAY include a line range or hunk/snippet anchor when available.\n10: \n11: ### Requirement: Citation Navigation in Reviewer UI\n12: The system SHALL allow users to navigate from a rendered citation to the relevant location in the pull request files view.\n13: \n14: #### Scenario: User opens citation target\n15: - **WHEN** a user clicks a citation associated with an assistant claim\n16: - **THEN** the system SHALL activate the Files view\n17: - **AND** expand the referenced file\n18: - **AND** scroll or focus to the best matching referenced hunk or line region.\n19: \n20: #### Scenario: Citation target cannot be resolved exactly\n21: - **WHEN** the reference cannot be resolved to an exact line position\n22: - **THEN** the system SHALL still open the referenced file\n23: - **AND** indicate that an exact anchor could not be resolved.\n24: \n25: ### Requirement: Citation Quality Visibility\n26: The system SHALL distinguish cited and uncited assistant content in the UI.\n27: \n28: #### Scenario: Uncited claim rendering\n29: - **WHEN** assistant output includes a claim without any reference data\n30: - **THEN** the system SHALL render a visible uncited or low-confidence indicator for that claim.\n\n(End of file - total 30 lines)\n</content>",
+            "metadata": {
+              "preview": "## Requirements\n\n### Requirement: Assistant Claims Are Diff-Grounded\nThe system SHALL represent non-trivial assistant claims with one or more structured references to the current pull request diff.\n\n#### Scenario: Claim includes at least one reference\n- **WHEN** the assistant emits a claim about risk, behavior, or correctness in summary or chat output\n- **THEN** the claim SHALL include at least one reference containing file path\n- **AND** the reference MAY include a line range or hunk/snippet anchor when available.\n\n### Requirement: Citation Navigation in Reviewer UI\nThe system SHALL allow users to navigate from a rendered citation to the relevant location in the pull request files view.\n\n#### Scenario: User opens citation target\n- **WHEN** a user clicks a citation associated with an assistant claim\n- **THEN** the system SHALL activate the Files view\n- **AND** expand the referenced file\n- **AND** scroll or focus to the best matching referenced hunk or line region.\n\n#### Scenario: Citation target cannot be resolved exactly",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "openspec/specs/diff-intelligence/spec.md",
+            "time": {
+              "start": 1776193991977,
+              "end": 1776193991984
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_0364dd6c09ae06470169de91c7e7a481978eacd1a1b7a218f6"
+            }
+          },
+          "id": "prt_d8d697526001U24fITsjBw0GWx",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d696804002iofiUashSAh51M"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_ux3Opw33CasD5iFP8qsnsu94",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/Users/mark/sandbox/personal/pr-review-chatbot/openspec/specs/pr-review-summary/spec.md",
+              "offset": 34,
+              "limit": 40
+            },
+            "output": "<path>/Users/mark/sandbox/personal/pr-review-chatbot/openspec/specs/pr-review-summary/spec.md</path>\n<type>file</type>\n<content>\n34: \n35: #### Scenario: Commands appended to summary prompt\n36: - **WHEN** one or more summary commands are configured\n37: - **THEN** the system SHALL append those commands to summary-generation instructions for the selected PR.\n38: \n39: ### Requirement: Summary Output Contract\n40: The generated summary SHALL follow a structured response contract suitable for reviewer orientation and include diff-grounded references for non-trivial claims.\n41: \n42: #### Scenario: Orientation-first summary format\n43: - **WHEN** summary instructions are sent to the LLM\n44: - **THEN** the instructions SHALL require a concise orientation section of 2-4 lines.\n45: \n46: #### Scenario: Adaptive focus areas with cap\n47: - **WHEN** summary instructions are sent to the LLM\n48: - **THEN** the instructions SHALL allow adaptive `Focus Areas` inclusion based on meaningful risk/complexity/churn signals\n49: - **AND** the number of focus areas SHALL be capped at 4.\n50: \n51: #### Scenario: No focus areas for simple PRs\n52: - **WHEN** the PR is simple and no meaningful risk/complexity/churn signals are detected\n53: - **THEN** the summary MAY omit `Focus Areas`\n54: - **AND** this SHALL be considered a valid successful summary outcome.\n55: \n56: #### Scenario: Focus area content shape\n57: - **WHEN** one or more focus areas are emitted\n58: - **THEN** each focus area SHALL include: where to review, why it matters, and what to verify.\n59: \n60: #### Scenario: Focus area includes diff references\n61: - **WHEN** a focus area presents a non-trivial risk, behavior, or correctness claim\n62: - **THEN** the output SHALL include at least one diff-grounded reference for that focus area.\n63: \n64: ### Requirement: Summary Is Separate from Chat History\n65: Summary content SHALL be isolated from chat history and SHALL NOT be included in subsequent LLM chat context.\n66: \n67: #### Scenario: Summary excluded from chat context\n68: - **WHEN** a user sends a chat message after summary generation\n69: - **THEN** the outbound chat context SHALL NOT include summary content as a prior message or system/context segment.\n70: \n71: ### Requirement: Summary Presentation in PR Viewer\n72: The PR viewer SHALL provide a dedicated Summary tab with readable visual hierarchy, markdown legibility, responsive spacing, and metadata display.\n73: \n\n(Showing lines 34-73 of 118. Use offset=74 to continue.)\n</content>",
+            "metadata": {
+              "preview": "\n#### Scenario: Commands appended to summary prompt\n- **WHEN** one or more summary commands are configured\n- **THEN** the system SHALL append those commands to summary-generation instructions for the selected PR.\n\n### Requirement: Summary Output Contract\nThe generated summary SHALL follow a structured response contract suitable for reviewer orientation and include diff-grounded references for non-trivial claims.\n\n#### Scenario: Orientation-first summary format\n- **WHEN** summary instructions are sent to the LLM\n- **THEN** the instructions SHALL require a concise orientation section of 2-4 lines.\n\n#### Scenario: Adaptive focus areas with cap\n- **WHEN** summary instructions are sent to the LLM\n- **THEN** the instructions SHALL allow adaptive `Focus Areas` inclusion based on meaningful risk/complexity/churn signals\n- **AND** the number of focus areas SHALL be capped at 4.\n\n#### Scenario: No focus areas for simple PRs\n- **WHEN** the PR is simple and no meaningful risk/complexity/churn signals are detected\n- **THEN** the summary MAY omit `Focus Areas`",
+              "truncated": true,
+              "loaded": []
+            },
+            "title": "openspec/specs/pr-review-summary/spec.md",
+            "time": {
+              "start": 1776193991987,
+              "end": 1776193991990
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_0364dd6c09ae06470169de91c7e7b48197b82a60d85f897c00"
+            }
+          },
+          "id": "prt_d8d69752b001dqyl2wrbdmjgXR",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d696804002iofiUashSAh51M"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_tg2l6OiLUAWsrm2eQADxOfrC",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md",
+              "offset": 390,
+              "limit": 30
+            },
+            "output": "<path>/Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md</path>\n<type>file</type>\n<content>\n390: - [x] Created change `openspec/changes/add-ci-and-code-scanning-signal-fusion/` with proposal, design, capability specs, and implementation tasks.\n391: - [x] Added new capability spec delta `openspec/changes/add-ci-and-code-scanning-signal-fusion/specs/pr-signal-fusion/spec.md`.\n392: - [x] Added `pr-review-summary` delta for CI/code-scanning signal-aware summary guidance in `openspec/changes/add-ci-and-code-scanning-signal-fusion/specs/pr-review-summary/spec.md`.\n393: \n394: ## OpenSpec Consistency Pass (2026-03-26)\n395: \n396: - [x] Aligned `add-ci-and-code-scanning-signal-fusion` proposal/design/spec/tasks wording around channel-aware signal fusion (summary richer, chat compact).\n397: - [x] Added explicit `pr-signal-fusion` requirements for code-scanning fetch, head-SHA invalidation, bounded deterministic top-N highlights, and raw-payload exclusion.\n398: - [x] Updated summary spec delta to include signal-state indicators and bounded normalized signal context language.\n399: - [x] Expanded tasks with ranking/capping/semantic-alignment verification coverage.\n400: - [x] Cleaned proposal capability taxonomy to avoid duplicate `pr-signal-fusion` classification across new/modified sections.\n401: - [x] Normalized terminology in signal-fusion specs to consistently use \"signal context\" instead of mixed \"signal data/context\" phrasing.\n402: \n403: ## OpenSpec Spec Sync Updates (2026-04-14)\n404: \n405: - [x] Attempted to invoke `openspec-sync-specs` skill for `add-diff-intelligence-layer`; skill is not available in this workspace.\n406: - [x] Synced new main spec `openspec/specs/diff-intelligence/spec.md` from `openspec/changes/add-diff-intelligence-layer/specs/diff-intelligence/spec.md`.\n407: - [x] Synced `Summary Output Contract` updates from `openspec/changes/add-diff-intelligence-layer/specs/pr-review-summary/spec.md` into `openspec/specs/pr-review-summary/spec.md`.\n\n(End of file - total 407 lines)\n</content>",
+            "metadata": {
+              "preview": "- [x] Created change `openspec/changes/add-ci-and-code-scanning-signal-fusion/` with proposal, design, capability specs, and implementation tasks.\n- [x] Added new capability spec delta `openspec/changes/add-ci-and-code-scanning-signal-fusion/specs/pr-signal-fusion/spec.md`.\n- [x] Added `pr-review-summary` delta for CI/code-scanning signal-aware summary guidance in `openspec/changes/add-ci-and-code-scanning-signal-fusion/specs/pr-review-summary/spec.md`.\n\n## OpenSpec Consistency Pass (2026-03-26)\n\n- [x] Aligned `add-ci-and-code-scanning-signal-fusion` proposal/design/spec/tasks wording around channel-aware signal fusion (summary richer, chat compact).\n- [x] Added explicit `pr-signal-fusion` requirements for code-scanning fetch, head-SHA invalidation, bounded deterministic top-N highlights, and raw-payload exclusion.\n- [x] Updated summary spec delta to include signal-state indicators and bounded normalized signal context language.\n- [x] Expanded tasks with ranking/capping/semantic-alignment verification coverage.\n- [x] Cleaned proposal capability taxonomy to avoid duplicate `pr-signal-fusion` classification across new/modified sections.\n- [x] Normalized terminology in signal-fusion specs to consistently use \"signal context\" instead of mixed \"signal data/context\" phrasing.\n\n## OpenSpec Spec Sync Updates (2026-04-14)\n\n- [x] Attempted to invoke `openspec-sync-specs` skill for `add-diff-intelligence-layer`; skill is not available in this workspace.\n- [x] Synced new main spec `openspec/specs/diff-intelligence/spec.md` from `openspec/changes/add-diff-intelligence-layer/specs/diff-intelligence/spec.md`.\n- [x] Synced `Summary Output Contract` updates from `openspec/changes/add-diff-intelligence-layer/specs/pr-review-summary/spec.md` into `openspec/specs/pr-review-summary/spec.md`.",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "plans/plan.md",
+            "time": {
+              "start": 1776193992013,
+              "end": 1776193992016
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_0364dd6c09ae06470169de91c7e7bc81979a3a805df600e604"
+            }
+          },
+          "id": "prt_d8d697533002nvjr2oK2LoslhC",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d696804002iofiUashSAh51M"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "99c7e0b8317b0d1857623137e8febb5c35bbf3b4",
+          "type": "step-finish",
+          "tokens": {
+            "total": 20519,
+            "input": 134,
+            "output": 148,
+            "reasoning": 13,
+            "cache": {
+              "write": 0,
+              "read": 20224
+            }
+          },
+          "cost": 0.0060277,
+          "id": "prt_d8d697574001mq81K4CaxcbMQK",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d696804002iofiUashSAh51M"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d8d690b0d002p0Y3iy0yGPF8jn",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0087556,
+        "tokens": {
+          "total": 22235,
+          "input": 1728,
+          "output": 64,
+          "reasoning": 91,
+          "cache": {
+            "write": 0,
+            "read": 20352
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776193992125,
+          "completed": 1776194002132
+        },
+        "finish": "tool-calls",
+        "id": "msg_d8d6975bd002hqMi1sTsG5akZ0",
+        "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv"
+      },
+      "parts": [
+        {
+          "snapshot": "99c7e0b8317b0d1857623137e8febb5c35bbf3b4",
+          "type": "step-start",
+          "id": "prt_d8d6978ec001CjQlQYTYvLvrPo",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d6975bd002hqMi1sTsG5akZ0"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776193992947,
+            "end": 1776193994622
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_0c01072405d90d540169de91c8d814819ba57b501502f29f1f",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d8d6978f3001D2AHtfpRC9vWp0",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d6975bd002hqMi1sTsG5akZ0"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_xhXou7FZ0343bP3FX7bfX22F",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "npm run lint && npm run build && npm run test",
+              "timeout": 1200000,
+              "workdir": "/Users/mark/sandbox/personal/pr-review-chatbot",
+              "description": "Run lint, build, and test validation suite"
+            },
+            "output": "Error: No available formula with the name \"openssl@1.1\". Did you mean openssl@3.5, openssl@3.0 or openssl@3?\n\n> pr-review-chatbot@0.1.0 lint\n> eslint .\n\n\n> pr-review-chatbot@0.1.0 build\n> tsc -b && vite build\n\nvite v6.4.2 building for production...\ntransforming...\n✓ 3642 modules transformed.\n[esbuild css minify]\n▲ [WARNING] \"file\" is not a known CSS property [unsupported-css-property]\n\n    <stdin>:1358:2:\n      1358 │   file: path#L-L;\n           │   ~~~~\n           ╵   flex\n\n  Did you mean \"flex\" instead?\n\n\n▲ [WARNING] \"file\" is not a known CSS property [unsupported-css-property]\n\n    <stdin>:1361:2:\n      1361 │   file: path#L;\n           │   ~~~~\n           ╵   flex\n\n  Did you mean \"flex\" instead?\n\n\n▲ [WARNING] \"file\" is not a known CSS property [unsupported-css-property]\n\n    <stdin>:1364:2:\n      1364 │   file: path;\n           │   ~~~~\n           ╵   flex\n\n  Did you mean \"flex\" instead?\n\n\n▲ [WARNING] \"file\" is not a known CSS property [unsupported-css-property]\n\n    <stdin>:1367:2:\n      1367 │   file: src/auth.ts#L10-L20;\n           │   ~~~~\n           ╵   flex\n\n  Did you mean \"flex\" instead?\n\n\n▲ [WARNING] \"file\" is not a known CSS property [unsupported-css-property]\n\n    <stdin>:1370:2:\n      1370 │   file: src/auth.ts#L10;\n           │   ~~~~\n           ╵   flex\n\n  Did you mean \"flex\" instead?\n\n\n▲ [WARNING] \"file\" is not a known CSS property [unsupported-css-property]\n\n    <stdin>:1373:2:\n      1373 │   file: src/auth.ts#L45;\n           │   ~~~~\n           ╵   flex\n\n  Did you mean \"flex\" instead?\n\n\n▲ [WARNING] \"file\" is not a known CSS property [unsupported-css-property]\n\n    <stdin>:1376:2:\n      1376 │   file: src/auth.ts#L5;\n           │   ~~~~\n           ╵   flex\n\n  Did you mean \"flex\" instead?\n\n\n▲ [WARNING] \"file\" is not a known CSS property [unsupported-css-property]\n\n    <stdin>:1379:2:\n      1379 │   file: src/auth.ts;\n           │   ~~~~\n           ╵   flex\n\n  Did you mean \"flex\" instead?\n\n\n▲ [WARNING] \"file\" is not a known CSS property [unsupported-css-property]\n\n    <stdin>:1382:2:\n      1382 │   file: src/middleware.ts#L12;\n           │   ~~~~\n           ╵   flex\n\n  Did you mean \"flex\" instead?\n\n\n▲ [WARNING] \"file\" is not a known CSS property [unsupported-css-property]\n\n    <stdin>:1385:2:\n      1385 │   file: src/middleware.ts;\n           │   ~~~~\n           ╵   flex\n\n  Did you mean \"flex\" instead?\n\n\nrendering chunks...\ncomputing gzip size...\ndist/index.html                              0.46 kB │ gzip:   0.30 kB\ndist/assets/index-CiWHVM1r.css              26.39 kB │ gzip:   5.51 kB\ndist/assets/index-CxG6bnde.js              644.38 kB │ gzip: 204.52 kB\ndist/assets/AssistantMarkdown-CpGKYhgH.js  648.21 kB │ gzip: 229.68 kB\n✓ built in 2.02s\n\n(!) Some chunks are larger than 500 kB after minification. Consider:\n- Using dynamic import() to code-split the application\n- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks\n- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.\n\n> pr-review-chatbot@0.1.0 test\n> vitest run\n\n\n RUN  v4.1.4 /Users/mark/sandbox/personal/pr-review-chatbot\n\n(node:69562) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:69566) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:69569) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:69565) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:69564) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:69577) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:69578) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n\n Test Files  16 passed (16)\n      Tests  140 passed (140)\n   Start at  20:13:20\n   Duration  1.61s (transform 726ms, setup 809ms, import 3.04s, tests 1.26s, environment 5.43s)\n\n",
+            "metadata": {
+              "output": "Error: No available formula with the name \"openssl@1.1\". Did you mean openssl@3.5, openssl@3.0 or openssl@3?\n\n> pr-review-chatbot@0.1.0 lint\n> eslint .\n\n\n> pr-review-chatbot@0.1.0 build\n> tsc -b && vite build\n\nvite v6.4.2 building for production...\ntransforming...\n✓ 3642 modules transformed.\n[esbuild css minify]\n▲ [WARNING] \"file\" is not a known CSS property [unsupported-css-property]\n\n    <stdin>:1358:2:\n      1358 │   file: path#L-L;\n           │   ~~~~\n           ╵   flex\n\n  Did you mean \"flex\" instead?\n\n\n▲ [WARNING] \"file\" is not a known CSS property [unsupported-css-property]\n\n    <stdin>:1361:2:\n      1361 │   file: path#L;\n           │   ~~~~\n           ╵   flex\n\n  Did you mean \"flex\" instead?\n\n\n▲ [WARNING] \"file\" is not a known CSS property [unsupported-css-property]\n\n    <stdin>:1364:2:\n      1364 │   file: path;\n           │   ~~~~\n           ╵   flex\n\n  Did you mean \"flex\" instead?\n\n\n▲ [WARNING] \"file\" is not a known CSS property [unsupported-css-property]\n\n    <stdin>:1367:2:\n      1367 │   file: src/auth.ts#L10-L20;\n           │   ~~~~\n           ╵   flex\n\n  Did you mean \"flex\" instead?\n\n\n▲ [WARNING] \"file\" is not a known CSS property [unsupported-css-property]\n\n    <stdin>:1370:2:\n      1370 │   file: src/auth.ts#L10;\n           │   ~~~~\n           ╵   flex\n\n  Did you mean \"flex\" instead?\n\n\n▲ [WARNING] \"file\" is not a known CSS property [unsupported-css-property]\n\n    <stdin>:1373:2:\n      1373 │   file: src/auth.ts#L45;\n           │   ~~~~\n           ╵   flex\n\n  Did you mean \"flex\" instead?\n\n\n▲ [WARNING] \"file\" is not a known CSS property [unsupported-css-property]\n\n    <stdin>:1376:2:\n      1376 │   file: src/auth.ts#L5;\n           │   ~~~~\n           ╵   flex\n\n  Did you mean \"flex\" instead?\n\n\n▲ [WARNING] \"file\" is not a known CSS property [unsupported-css-property]\n\n    <stdin>:1379:2:\n      1379 │   file: src/auth.ts;\n           │   ~~~~\n           ╵   flex\n\n  Did you mean \"flex\" instead?\n\n\n▲ [WARNING] \"file\" is not a known CSS property [unsupported-css-property]\n\n    <stdin>:1382:2:\n      1382 │   file: src/middleware.ts#L12;\n           │   ~~~~\n           ╵   flex\n\n  Did you mean \"flex\" instead?\n\n\n▲ [WARNING] \"file\" is not a known CSS property [unsupported-css-property]\n\n    <stdin>:1385:2:\n      1385 │   file: src/middleware.ts;\n           │   ~~~~\n           ╵   flex\n\n  Did you mean \"flex\" instead?\n\n\nrendering chunks...\ncomputing gzip size...\ndist/index.html                              0.46 kB │ gzip:   0.30 kB\ndist/assets/index-CiWHVM1r.css              26.39 kB │ gzip:   5.51 kB\ndist/assets/index-CxG6bnde.js              644.38 kB │ gzip: 204.52 kB\ndist/assets/AssistantMarkdown-CpGKYhgH.js  648.21 kB │ gzip: 229.68 kB\n✓ built in 2.02s\n\n(!) Some chunks are larger than 500 kB after minification. Consider:\n- Using dynamic import() to code-split the application\n- Use build.rollupOptions.output.manualChunks to improve chunking: https://rollupjs.org/configuration-options/#output-manualchunks\n- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.\n\n> pr-review-chatbot@0.1.0 test\n> vitest run\n\n\n RUN  v4.1.4 /Users/mark/sandbox/personal/pr-review-chatbot\n\n(node:69562) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:69566) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:69569) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:69565) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:69564) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:69577) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:69578) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n\n Test Files  16 passed (16)\n      Tests  140 passed (140)\n   Start at  20:13:20\n   Duration  1.61s (transform 726ms, setup 809ms, import 3.04s, tests 1.26s, environment 5.43s)\n\n",
+              "exit": 0,
+              "description": "Run lint, build, and test validation suite",
+              "truncated": false
+            },
+            "title": "Run lint, build, and test validation suite",
+            "time": {
+              "start": 1776194002039,
+              "end": 1776194002074
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_0c01072405d90d540169de91ca8b04819bb4a0cd98635d7a6c"
+            }
+          },
+          "id": "prt_d8d697f80001dwl9maYndWPPA7",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d6975bd002hqMi1sTsG5akZ0"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "99c7e0b8317b0d1857623137e8febb5c35bbf3b4",
+          "type": "step-finish",
+          "tokens": {
+            "total": 22235,
+            "input": 1728,
+            "output": 64,
+            "reasoning": 91,
+            "cache": {
+              "write": 0,
+              "read": 20352
+            }
+          },
+          "cost": 0.0087556,
+          "id": "prt_d8d699c9a002ImJDibVmbC9JqA",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d6975bd002hqMi1sTsG5akZ0"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d8d690b0d002p0Y3iy0yGPF8jn",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.00818895,
+        "tokens": {
+          "total": 23671,
+          "input": 1393,
+          "output": 52,
+          "reasoning": 82,
+          "cache": {
+            "write": 0,
+            "read": 22144
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776194002133,
+          "completed": 1776194005746
+        },
+        "finish": "tool-calls",
+        "id": "msg_d8d699cd5001BWV92fnE1grXrC",
+        "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv"
+      },
+      "parts": [
+        {
+          "snapshot": "99c7e0b8317b0d1857623137e8febb5c35bbf3b4",
+          "type": "step-start",
+          "id": "prt_d8d699f90001ASd859oJJakJUd",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d699cd5001BWV92fnE1grXrC"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776194003092,
+            "end": 1776194004659
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_05b457dd649abc8d0169de91d30628819a88e75561c848965b",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d8d69a094001Yn0HFIqblbRTKb",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d699cd5001BWV92fnE1grXrC"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_4dOqjpCiOCjPvx5IjUQ03pdz",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git status --short",
+              "timeout": 120000,
+              "workdir": "/Users/mark/sandbox/personal/pr-review-chatbot",
+              "description": "Show modified and added files"
+            },
+            "output": "Error: No available formula with the name \"openssl@1.1\". Did you mean openssl@3.5, openssl@3.0 or openssl@3?\n M openspec/specs/pr-review-summary/spec.md\n M plans/plan.md\n?? openspec/specs/diff-intelligence/\n",
+            "metadata": {
+              "output": "Error: No available formula with the name \"openssl@1.1\". Did you mean openssl@3.5, openssl@3.0 or openssl@3?\n M openspec/specs/pr-review-summary/spec.md\n M plans/plan.md\n?? openspec/specs/diff-intelligence/\n",
+              "exit": 0,
+              "description": "Show modified and added files",
+              "truncated": false
+            },
+            "title": "Show modified and added files",
+            "time": {
+              "start": 1776194005696,
+              "end": 1776194005697
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_05b457dd649abc8d0169de91d493bc819a94a499034ffd2081"
+            }
+          },
+          "id": "prt_d8d69a6b50013DrrmfDfUFBjf1",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d699cd5001BWV92fnE1grXrC"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "99c7e0b8317b0d1857623137e8febb5c35bbf3b4",
+          "type": "step-finish",
+          "tokens": {
+            "total": 23671,
+            "input": 1393,
+            "output": 52,
+            "reasoning": 82,
+            "cache": {
+              "write": 0,
+              "read": 22144
+            }
+          },
+          "cost": 0.00818895,
+          "id": "prt_d8d69aac1002nip493JEv4vF6S",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d699cd5001BWV92fnE1grXrC"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d8d690b0d002p0Y3iy0yGPF8jn",
+        "role": "assistant",
+        "mode": "general",
+        "agent": "general",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0085351,
+        "tokens": {
+          "total": 24037,
+          "input": 194,
+          "output": 262,
+          "reasoning": 29,
+          "cache": {
+            "write": 0,
+            "read": 23552
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776194005747,
+          "completed": 1776194010363
+        },
+        "finish": "stop",
+        "id": "msg_d8d69aaf3001td3KHrWd9x5xuB",
+        "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv"
+      },
+      "parts": [
+        {
+          "snapshot": "99c7e0b8317b0d1857623137e8febb5c35bbf3b4",
+          "type": "step-start",
+          "id": "prt_d8d69add3001cH2gjq6yiL0WMn",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d69aaf3001td3KHrWd9x5xuB"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776194006563,
+            "end": 1776194008459
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_0e3a6ded73e9006a0169de91d67c248199aa5cab7b1d92c029",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d8d69ae23001BqQw1FHQm8hBcS",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d69aaf3001td3KHrWd9x5xuB"
+        },
+        {
+          "type": "text",
+          "text": "Synced requested OpenSpec deltas, with one tooling error upfront:\n\n- Tried to invoke `openspec-sync-specs` via Skill tool, but it is not available in this workspace (error: skill not found).\n- Added new main spec `openspec/specs/diff-intelligence/spec.md` by syncing content from `openspec/changes/add-diff-intelligence-layer/specs/diff-intelligence/spec.md`.\n- Updated `openspec/specs/pr-review-summary/spec.md` to match the delta in `openspec/changes/add-diff-intelligence-layer/specs/pr-review-summary/spec.md`:\n  - Expanded `Summary Output Contract` requirement text to include diff-grounded references for non-trivial claims.\n  - Added scenario `Focus area includes diff references`.\n- Updated tracking plan at `plans/plan.md` with a new sync entry documenting the above and the missing-skill error.\n\nValidation I ran after syncing:\n- `npm run lint` passed\n- `npm run build` passed\n- `npm run test` passed (140/140)\n\nNotable environment noise (non-blocking):\n- Shell prints `Error: No available formula with the name \"openssl@1.1\"` before commands; it did not block lint/build/test execution.",
+          "time": {
+            "start": 1776194008461,
+            "end": 1776194010244
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "msg_0e3a6ded73e9006a0169de91d862188199a5c67268d4663a65",
+              "phase": "final_answer"
+            }
+          },
+          "id": "prt_d8d69b58d001J5lSLmX0cIoW4m",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d69aaf3001td3KHrWd9x5xuB"
+        },
+        {
+          "reason": "stop",
+          "snapshot": "99c7e0b8317b0d1857623137e8febb5c35bbf3b4",
+          "type": "step-finish",
+          "tokens": {
+            "total": 24037,
+            "input": 194,
+            "output": 262,
+            "reasoning": 29,
+            "cache": {
+              "write": 0,
+              "read": 23552
+            }
+          },
+          "cost": 0.0085351,
+          "id": "prt_d8d69bc9e001hTT2u3A7RVD2Ix",
+          "sessionID": "ses_27296f4f9ffeUkoL9K4Ghkx9Vv",
+          "messageID": "msg_d8d69aaf3001td3KHrWd9x5xuB"
+        }
+      ]
+    }
+  ]
+}
