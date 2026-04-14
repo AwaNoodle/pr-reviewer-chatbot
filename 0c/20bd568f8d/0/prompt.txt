@@ -1,0 +1,1 @@
+Tests run locally. The GH actions show one failure: https://github.com/AwaNoodle/pr-reviewer-chatbot/actions/runs/24425204693/job/71357507079
