@@ -37,7 +37,7 @@ The system SHALL allow optional additional summary commands configured by the us
 - **THEN** the system SHALL append those commands to summary-generation instructions for the selected PR.
 
 ### Requirement: Summary Output Contract
-The generated summary SHALL follow a structured response contract suitable for reviewer orientation.
+The generated summary SHALL follow a structured response contract suitable for reviewer orientation and include diff-grounded references for non-trivial claims.
 
 #### Scenario: Orientation-first summary format
 - **WHEN** summary instructions are sent to the LLM
@@ -56,6 +56,10 @@ The generated summary SHALL follow a structured response contract suitable for r
 #### Scenario: Focus area content shape
 - **WHEN** one or more focus areas are emitted
 - **THEN** each focus area SHALL include: where to review, why it matters, and what to verify.
+
+#### Scenario: Focus area includes diff references
+- **WHEN** a focus area presents a non-trivial risk, behavior, or correctness claim
+- **THEN** the output SHALL include at least one diff-grounded reference for that focus area.
 
 ### Requirement: Summary Is Separate from Chat History
 Summary content SHALL be isolated from chat history and SHALL NOT be included in subsequent LLM chat context.

@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { LLMService } from './llm';
-import type { AppConfig, PRContext, PullRequest, PRFile } from '../types';
+import type { AppConfig, PRContext, PullRequest, PRFile, PRSignals } from '../types';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -92,6 +92,43 @@ const mockContext: PRContext = {
   ],
 };
 
+const mockSignals: PRSignals = {
+  checks: {
+    sourceState: 'ok',
+    total: 2,
+    failing: 1,
+    pending: 0,
+    items: [
+      { id: 1, name: 'lint', status: 'completed', conclusion: 'failure' },
+      { id: 2, name: 'tests', status: 'completed', conclusion: 'success' },
+    ],
+  },
+  statuses: {
+    sourceState: 'ok',
+    state: 'failure',
+    statuses: [{ context: 'build', state: 'failure', description: null }],
+  },
+  scanning: {
+    sourceState: 'ok',
+    openAlerts: 1,
+    highSeverityCount: 1,
+    severityBuckets: {
+      critical: 1,
+      high: 0,
+      medium: 0,
+      low: 0,
+      error: 0,
+      warning: 0,
+      note: 0,
+      none: 0,
+      unknown: 0,
+    },
+    items: [{ number: 1, ruleId: 'sql-injection', severity: 'critical', state: 'open', location: 'src/auth.ts:12' }],
+  },
+  fetchedAt: Date.now(),
+  headSha: 'abc12345',
+};
+
 // ---------------------------------------------------------------------------
 // buildSystemPrompt tests
 // ---------------------------------------------------------------------------
@@ -168,6 +205,13 @@ describe('LLMService.buildSystemPrompt', () => {
     expect(prompt).toContain('APPROVED');
   });
 
+  it('includes compact CI/scanning snapshot when signals are provided', () => {
+    const prompt = svc.buildSystemPrompt(mockContext, mockSignals);
+    expect(prompt).toContain('### CI/Scanning Snapshot');
+    expect(prompt).toContain('CI/Scanning:');
+    expect(prompt).toContain('Checks: 1 failing');
+  });
+
   it('omits the PR Comments section when there are no comments', () => {
     const ctx = { ...mockContext, comments: [] };
     const prompt = svc.buildSystemPrompt(ctx);
@@ -218,6 +262,14 @@ describe('LLMService.buildSummaryPrompt', () => {
     const prompt = svc.buildSummaryPrompt(mockContext, 'Keep this short.', '');
     expect(prompt).not.toContain('Additional commands:');
     expect(prompt).toContain('Add a "Focus Areas" section only when meaningful risk');
+  });
+
+  it('includes bounded summary signal context when provided', () => {
+    const prompt = svc.buildSummaryPrompt(mockContext, 'Keep this short.', '', mockSignals);
+
+    expect(prompt).toContain('### CI/Check and Scanning Signals');
+    expect(prompt).toContain('Check runs: 1 failing');
+    expect(prompt).toContain('Code scanning: 1 open alert');
   });
 });
 

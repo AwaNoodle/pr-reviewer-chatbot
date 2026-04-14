@@ -267,17 +267,27 @@ export const fetchPullRequestContext = createAsyncThunk<
   PullRequestContextPayload,
   PRRequestArgs,
   { state: RootState; rejectValue: GitHubApiErrorData }
->('prs/fetchPullRequestContext', async ({ owner, repo, prNumber }, { getState, rejectWithValue }) => {
+>('prs/fetchPullRequestContext', async ({ owner, repo, prNumber }, { getState, rejectWithValue, dispatch }) => {
   const service = createGitHubService(getState().config.config);
 
   try {
-    return await runEffect(
+    const payload = await runEffect(
       loadPullRequestContext(service, {
         owner,
         repo,
         prNumber,
       })
     );
+
+    await dispatch(
+      fetchPRSignals({
+        owner,
+        repo,
+        headSha: payload.pullRequest.head.sha,
+      })
+    );
+
+    return payload;
   } catch (error) {
     return rejectWithValue(toRejectedErrorData(error));
   }

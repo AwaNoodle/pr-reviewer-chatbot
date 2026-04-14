@@ -136,6 +136,7 @@ export function ChatWindow() {
   const prComments = useAppSelector((state) => state.prs.comments);
   const prReviewComments = useAppSelector((state) => state.prs.reviewComments);
   const prReviews = useAppSelector((state) => state.prs.reviews);
+  const prSignals = useAppSelector((state) => state.prs.signals.data);
 
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -240,7 +241,7 @@ export function ChatWindow() {
 
       const llmService = createLLMService(config);
       const prContext = getPRContext();
-      const systemPrompt = llmService.buildSystemPrompt(prContext);
+      const systemPrompt = llmService.buildSystemPrompt(prContext, prSignals);
 
       // Build message history for LLM.
       // Keep only the most recent turns to avoid exceeding the model's context
@@ -276,7 +277,7 @@ export function ChatWindow() {
     } finally {
       activeStreamAbortRef.current = null;
     }
-  }, [input, isStreaming, dispatch, config, messages, getPRContext]); // messages still needed for history building
+  }, [input, isStreaming, dispatch, config, messages, getPRContext, prSignals]); // messages still needed for history building
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === 'Enter' && !e.shiftKey) {

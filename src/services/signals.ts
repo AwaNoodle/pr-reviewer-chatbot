@@ -68,11 +68,15 @@ export function rankAndCapFailingChecks(
     .filter(
       (r) => r.status === 'completed' && FAILING_CONCLUSIONS.has(r.conclusion ?? '')
     )
-    .sort(
-      (a, b) =>
+    .sort((a, b) => {
+      const byConclusion =
         (CONCLUSION_RANK[a.conclusion ?? ''] ?? 99) -
-        (CONCLUSION_RANK[b.conclusion ?? ''] ?? 99)
-    )
+        (CONCLUSION_RANK[b.conclusion ?? ''] ?? 99);
+      if (byConclusion !== 0) {
+        return byConclusion;
+      }
+      return a.name.localeCompare(b.name);
+    })
     .slice(0, limit);
 }
 
@@ -80,7 +84,10 @@ export function rankAndCapPendingChecks(
   items: NormalizedCheckRun[],
   limit: number
 ): NormalizedCheckRun[] {
-  return items.filter((r) => r.status !== 'completed').slice(0, limit);
+  return items
+    .filter((r) => r.status !== 'completed')
+    .sort((a, b) => a.name.localeCompare(b.name))
+    .slice(0, limit);
 }
 
 export function rankAndCapScanningAlerts(
@@ -88,9 +95,17 @@ export function rankAndCapScanningAlerts(
   limit: number
 ): NormalizedScanningAlert[] {
   return [...items]
-    .sort(
-      (a, b) => (SEVERITY_RANK[a.severity] ?? 99) - (SEVERITY_RANK[b.severity] ?? 99)
-    )
+    .sort((a, b) => {
+      const bySeverity = (SEVERITY_RANK[a.severity] ?? 99) - (SEVERITY_RANK[b.severity] ?? 99);
+      if (bySeverity !== 0) {
+        return bySeverity;
+      }
+      const byRule = a.ruleId.localeCompare(b.ruleId);
+      if (byRule !== 0) {
+        return byRule;
+      }
+      return a.location.localeCompare(b.location);
+    })
     .slice(0, limit);
 }
 

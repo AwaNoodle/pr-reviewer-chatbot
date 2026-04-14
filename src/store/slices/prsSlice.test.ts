@@ -15,6 +15,7 @@ import prsReducer, {
   fetchPullRequestContext,
   fetchRepositoryPRList,
   generatePRSummary,
+  fetchPRSignals,
 } from './prsSlice';
 import configReducer from './configSlice';
 import chatReducer from './chatSlice';
@@ -183,6 +184,9 @@ type MockGitHubService = {
   getPRReviewComments: ReturnType<typeof vi.fn>;
   getPRReviews: ReturnType<typeof vi.fn>;
   getPRCommits: ReturnType<typeof vi.fn>;
+  getCheckRuns: ReturnType<typeof vi.fn>;
+  getCombinedStatus: ReturnType<typeof vi.fn>;
+  getCodeScanningAlerts: ReturnType<typeof vi.fn>;
 };
 
 function createDeferred<T>() {
@@ -241,6 +245,25 @@ function setupMockService(): MockGitHubService {
     getPRReviewComments: vi.fn(),
     getPRReviews: vi.fn(),
     getPRCommits: vi.fn(),
+    getCheckRuns: vi.fn().mockResolvedValue({ sourceState: 'ok-empty', total: 0, failing: 0, pending: 0, items: [] }),
+    getCombinedStatus: vi.fn().mockResolvedValue({ sourceState: 'ok-empty', state: null, statuses: [] }),
+    getCodeScanningAlerts: vi.fn().mockResolvedValue({
+      sourceState: 'ok-empty',
+      openAlerts: 0,
+      highSeverityCount: 0,
+      severityBuckets: {
+        critical: 0,
+        high: 0,
+        medium: 0,
+        low: 0,
+        error: 0,
+        warning: 0,
+        note: 0,
+        none: 0,
+        unknown: 0,
+      },
+      items: [],
+    }),
   };
   vi.spyOn(githubService, 'createGitHubService').mockReturnValue(
     service as unknown as ReturnType<typeof githubService.createGitHubService>
@@ -493,6 +516,69 @@ describe('prsSlice', () => {
       expect(state.reviewComments[0]?.body).toBe('review-comment-b');
       expect(state.reviews[0]?.body).toBe('review-b');
       expect(state.commits[0]?.sha).toBe('commit-b');
+    });
+
+    it('updates signals lifecycle on fetchPRSignals success', async () => {
+      const store = makeStore();
+      const service = setupMockService();
+      service.getCheckRuns.mockResolvedValueOnce({
+        sourceState: 'ok',
+        total: 1,
+        failing: 1,
+        pending: 0,
+        items: [{ id: 1, name: 'lint', status: 'completed', conclusion: 'failure' }],
+      });
+      service.getCombinedStatus.mockResolvedValueOnce({
+        sourceState: 'ok',
+        state: 'failure',
+        statuses: [{ context: 'build', state: 'failure', description: null }],
+      });
+      service.getCodeScanningAlerts.mockResolvedValueOnce({
+        sourceState: 'ok-empty',
+        openAlerts: 0,
+        highSeverityCount: 0,
+        severityBuckets: {
+          critical: 0,
+          high: 0,
+          medium: 0,
+          low: 0,
+          error: 0,
+          warning: 0,
+          note: 0,
+          none: 0,
+          unknown: 0,
+        },
+        items: [],
+      });
+
+      const action = store.dispatch(fetchPRSignals({ owner: 'org', repo: 'repo', headSha: 'sha-123' }));
+      expect(store.getState().prs.signals.status).toBe('loading');
+      await action;
+
+      const signals = store.getState().prs.signals;
+      expect(signals.status).toBe('success');
+      expect(signals.data?.headSha).toBe('sha-123');
+      expect(signals.data?.checks.failing).toBe(1);
+    });
+
+    it('invalidates and reloads signals when head SHA changes', async () => {
+      const store = makeStore();
+      const service = setupMockService();
+
+      const prA = { ...mockPR, id: 50, number: 50, head: { ...mockPR.head, sha: 'sha-a' } };
+      const prB = { ...mockPR, id: 50, number: 50, head: { ...mockPR.head, sha: 'sha-b' } };
+      service.getPullRequest.mockResolvedValueOnce(prA).mockResolvedValueOnce(prB);
+      service.getPRFiles.mockResolvedValue([mockFile]);
+      service.getPRComments.mockResolvedValue([]);
+      service.getPRReviewComments.mockResolvedValue([]);
+      service.getPRReviews.mockResolvedValue([]);
+      service.getPRCommits.mockResolvedValue([]);
+
+      await store.dispatch(fetchPullRequestContext({ owner: 'org', repo: 'repo', prNumber: 50 }));
+      expect(store.getState().prs.signals.data?.headSha).toBe('sha-a');
+
+      await store.dispatch(fetchPullRequestContext({ owner: 'org', repo: 'repo', prNumber: 50 }));
+      expect(store.getState().prs.signals.data?.headSha).toBe('sha-b');
     });
   });
 });

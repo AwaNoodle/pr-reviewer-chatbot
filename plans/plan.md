@@ -399,3 +399,18 @@ Exit criteria:
 - [x] Expanded tasks with ranking/capping/semantic-alignment verification coverage.
 - [x] Cleaned proposal capability taxonomy to avoid duplicate `pr-signal-fusion` classification across new/modified sections.
 - [x] Normalized terminology in signal-fusion specs to consistently use "signal context" instead of mixed "signal data/context" phrasing.
+
+## OpenSpec Spec Sync Updates (2026-04-14)
+
+- [x] Attempted to invoke `openspec-sync-specs` skill for `add-diff-intelligence-layer`; skill is not available in this workspace.
+- [x] Synced new main spec `openspec/specs/diff-intelligence/spec.md` from `openspec/changes/add-diff-intelligence-layer/specs/diff-intelligence/spec.md`.
+- [x] Synced `Summary Output Contract` updates from `openspec/changes/add-diff-intelligence-layer/specs/pr-review-summary/spec.md` into `openspec/specs/pr-review-summary/spec.md`.
+
+## OpenSpec Implementation Updates (2026-04-14)
+
+- [x] Implemented change `add-ci-and-code-scanning-signal-fusion` tasks end-to-end (20/20 complete).
+- [x] Added/extended normalized signal contracts, GitHub signal endpoint normalization, and explicit unavailable/error source-state semantics.
+- [x] Wired signal loading into PR context orchestration and connected signal snapshots into both summary and chat prompt construction.
+- [x] Added `Signals` tab rendering in `src/components/PRViewer.tsx` with loading/success/unavailable/error/empty states and deterministic highlight ordering.
+- [x] Added test coverage for service mapping, signal prompt snapshots, slice lifecycle, and signals UI rendering.
+- [x] Validation run completed with `npm run lint -- --max-warnings=0`, `npm run build`, and `npm run test`.

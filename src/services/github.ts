@@ -215,6 +215,20 @@ function normalizeAlertState(state: string): 'open' | 'dismissed' | 'fixed' {
   }
 }
 
+function createEmptySeverityBuckets(): Record<CodeScanningSeverity, number> {
+  return {
+    critical: 0,
+    high: 0,
+    medium: 0,
+    low: 0,
+    error: 0,
+    warning: 0,
+    note: 0,
+    none: 0,
+    unknown: 0,
+  };
+}
+
 export class GitHubService {
   private client: AxiosInstance;
   private config: AppConfig;
@@ -531,11 +545,16 @@ export class GitHubService {
       const highSeverityCount = items.filter(
         (a) => a.severity === 'critical' || a.severity === 'high'
       ).length;
+      const severityBuckets = createEmptySeverityBuckets();
+      for (const alert of items) {
+        severityBuckets[alert.severity] += 1;
+      }
 
       return {
         sourceState: items.length === 0 ? 'ok-empty' : 'ok',
         openAlerts: items.length,
         highSeverityCount,
+        severityBuckets,
         items,
       };
     } catch (error) {
@@ -545,10 +564,22 @@ export class GitHubService {
           error.code === 'NOT_FOUND' ||
           error.code === 'VALIDATION_ERROR'
         ) {
-          return { sourceState: 'unavailable', openAlerts: 0, highSeverityCount: 0, items: [] };
+          return {
+            sourceState: 'unavailable',
+            openAlerts: 0,
+            highSeverityCount: 0,
+            severityBuckets: createEmptySeverityBuckets(),
+            items: [],
+          };
         }
       }
-      return { sourceState: 'error', openAlerts: 0, highSeverityCount: 0, items: [] };
+      return {
+        sourceState: 'error',
+        openAlerts: 0,
+        highSeverityCount: 0,
+        severityBuckets: createEmptySeverityBuckets(),
+        items: [],
+      };
     }
   }
 

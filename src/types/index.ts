@@ -273,6 +273,7 @@ export interface ScanningSignals {
   sourceState: SignalSourceState;
   openAlerts: number;
   highSeverityCount: number;
+  severityBuckets: Record<CodeScanningSeverity, number>;
   items: NormalizedScanningAlert[];
 }
 

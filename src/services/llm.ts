@@ -6,7 +6,9 @@ import type {
   PRContext,
   PRCommit,
   AppConfig,
+  PRSignals,
 } from '../types';
+import { buildSignalSnapshotForChat, buildSignalSnapshotForSummary } from './signals';
 
 export class LLMService {
   private static readonly MAX_SYSTEM_PROMPT_CHARS = 24_000;
@@ -127,7 +129,7 @@ export class LLMService {
     }
   }
 
-  buildSystemPrompt(context: PRContext): string {
+  buildSystemPrompt(context: PRContext, signalsData?: PRSignals | null): string {
     const { pr, files, comments, reviewComments, reviews } = context;
 
     const filesSummary = files
@@ -156,6 +158,8 @@ export class LLMService {
     const reviewsSection = reviews.length > 0 ? `### Reviews\n${reviewsContent}` : '';
     const inlineCommentsSection =
       reviewComments.length > 0 ? `### Inline Review Comments\n${reviewCommentsContent}` : '';
+    const signalSnapshot = signalsData ? buildSignalSnapshotForChat(signalsData) : '';
+    const signalSection = signalSnapshot ? `### CI/Scanning Snapshot\n${signalSnapshot}` : '';
 
     const promptPreamble = `You are an expert code reviewer assistant helping to analyze a GitHub Pull Request.
 
@@ -174,7 +178,9 @@ ${filesSummary}
 
 ### Diffs`;
 
-    const promptPostamble = `${commentsSection ? `\n\n${commentsSection}` : ''}
+    const promptPostamble = `${signalSection ? `\n\n${signalSection}` : ''}
+
+${commentsSection ? `\n\n${commentsSection}` : ''}
 
 ${reviewsSection ? `\n\n${reviewsSection}` : ''}
 
@@ -242,9 +248,9 @@ Citations should use exact file paths from the changed files list. Keep claims p
     context: PRContext,
     summaryPrompt: string,
     summaryCommands: string,
-    signalsData?: unknown
+    signalsData?: PRSignals | null
   ): string {
-    void signalsData;
+    const signalSection = signalsData ? `\n\n${buildSignalSnapshotForSummary(signalsData)}` : '';
     const commitMessages = (context.commits ?? [])
       .map((commit: PRCommit) => `- ${commit.commit.message.split('\n')[0]}`)
       .join('\n');
@@ -291,7 +297,7 @@ Citation grounding (required for non-trivial claims):
 - Use format: [file:path#L] for single lines or [file:path#L-L] for ranges.
 - Example: "Missing null check" → "[src/auth.ts#L45]"
 - If exact line citation is not possible, cite the file-level: "[src/auth.ts]"
-- Every non-trivial claim SHOULD have at least one citation.`;
+- Every non-trivial claim SHOULD have at least one citation.${signalSection}`;
   }
 }
 

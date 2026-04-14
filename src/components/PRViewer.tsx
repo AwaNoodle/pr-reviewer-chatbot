@@ -1,11 +1,12 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
-import { ChevronRight, FileCode, FilePlus, FileMinus, FileEdit, Loader2, AlertCircle, Inbox, HelpCircle } from 'lucide-react';
+import { ChevronRight, FileCode, FilePlus, FileMinus, FileEdit, Loader2, AlertCircle, Inbox, HelpCircle, ShieldAlert, Clock3, CheckCircle2, XCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
 import { useAppSelector, useAppDispatch } from '../store/hooks';
 import { setFocusedFile } from '../store/slices/prsSlice';
 import { cn, formatDate } from '../lib/utils';
 import { resolveCitationForNavigation, normalizeCitationPayload } from '../services/citations';
+import { rankAndCapFailingChecks, rankAndCapPendingChecks, rankAndCapScanningAlerts } from '../services/signals';
 import type { PRFile, DiffCitation } from '../types';
 import { buildDiffLineKeys } from './prViewerUtils';
 
@@ -324,12 +325,46 @@ function SummaryPanel({
   );
 }
 
+function SignalsList({ title, items, tone }: { title: string; items: string[]; tone: 'danger' | 'warning' }) {
+  if (items.length === 0) {
+    return null;
+  }
+
+  const toneClasses =
+    tone === 'danger'
+      ? 'border-red-200 bg-red-50 text-red-800 dark:border-red-900/40 dark:bg-red-950/20 dark:text-red-300'
+      : 'border-amber-200 bg-amber-50 text-amber-800 dark:border-amber-900/40 dark:bg-amber-950/20 dark:text-amber-300';
+
+  return (
+    <div className={cn('rounded-md border p-3 space-y-1.5', toneClasses)}>
+      <div className="text-xs font-semibold uppercase tracking-wide">{title}</div>
+      <ul className="space-y-1 text-xs">
+        {items.map((item) => (
+          <li key={item} className="font-mono truncate">{item}</li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function rankStatusContexts(
+  items: Array<{ context: string; state: 'pending' | 'success' | 'failure' | 'error' }>,
+  state: 'pending' | 'failure' | 'error',
+  limit: number
+): string[] {
+  return items
+    .filter((item) => item.state === state)
+    .map((item) => item.context)
+    .sort((a, b) => a.localeCompare(b))
+    .slice(0, limit);
+}
+
 export function PRViewer() {
   const dispatch = useAppDispatch();
-  const { selectedPR, files, comments, reviews, summary, loadingByResource, errorByResource, focusedFileIndex, focusedFileLine } =
+  const { selectedPR, files, comments, reviews, summary, signals, loadingByResource, errorByResource, focusedFileIndex, focusedFileLine } =
     useAppSelector((state) => state.prs);
   const summaryEnabled = useAppSelector((state) => state.config.config.summaryEnabled);
-  const [activeTab, setActiveTab] = useState<'summary' | 'files' | 'comments' | 'reviews'>('summary');
+  const [activeTab, setActiveTab] = useState<'summary' | 'signals' | 'files' | 'comments' | 'reviews'>('summary');
 
   useEffect(() => {
     const handleCitationNavigate = (event: Event) => {
@@ -381,6 +416,7 @@ export function PRViewer() {
 
   const tabs = [
     { id: 'summary' as const, label: 'Summary' },
+    { id: 'signals' as const, label: 'Signals' },
     { id: 'files' as const, label: `Files (${files.length})` },
     { id: 'comments' as const, label: `Comments (${comments.length})` },
     { id: 'reviews' as const, label: `Reviews (${reviews.length})` },
@@ -498,6 +534,132 @@ export function PRViewer() {
               </div>
             ) : (
               <EmptyState message="Summary will appear after PR data loads." />
+            )}
+          </div>
+        )}
+
+        {activeTab === 'signals' && (
+          <div className="space-y-3 animate-fade-slide-in">
+            {signals.status === 'loading' ? (
+              <LoadingState label="Loading CI and scanning signals..." />
+            ) : signals.status === 'error' ? (
+              <ErrorState message={signals.error || 'Unable to load signals'} />
+            ) : !signals.data ? (
+              <EmptyState message="Signal data will appear after PR data loads." />
+            ) : (
+              (() => {
+                const failingChecks = rankAndCapFailingChecks(signals.data.checks.items, 5).map(
+                  (check) => `${check.name} (${check.conclusion ?? 'unknown'})`
+                );
+                const pendingChecks = rankAndCapPendingChecks(signals.data.checks.items, 5).map(
+                  (check) => check.name
+                );
+                const failingStatuses = [
+                  ...rankStatusContexts(signals.data.statuses.statuses, 'failure', 5),
+                  ...rankStatusContexts(signals.data.statuses.statuses, 'error', 5),
+                ].slice(0, 5);
+                const pendingStatuses = rankStatusContexts(signals.data.statuses.statuses, 'pending', 5);
+                const topAlerts = rankAndCapScanningAlerts(signals.data.scanning.items, 5).map(
+                  (alert) => `${alert.ruleId} @ ${alert.location} (${alert.severity})`
+                );
+
+                return (
+                  <>
+                    <div className="rounded-md border border-border bg-muted/10 p-3">
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="flex items-center gap-2 text-sm font-medium text-foreground">
+                          <ShieldAlert className="h-4 w-4" />
+                          <span>Signal Overview</span>
+                        </div>
+                        <span className="text-xs text-muted-foreground">
+                          Head SHA {signals.data.headSha.slice(0, 8)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid gap-2 md:grid-cols-3">
+                      <div className="rounded-md border border-border p-3 space-y-2">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-foreground">Checks</div>
+                        {signals.data.checks.sourceState === 'unavailable' ? (
+                          <p className="text-xs text-muted-foreground">Unavailable (not confirmed passing)</p>
+                        ) : signals.data.checks.sourceState === 'error' ? (
+                          <p className="text-xs text-muted-foreground">Error loading checks (not confirmed passing)</p>
+                        ) : signals.data.checks.sourceState === 'ok-empty' ? (
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            <span>No check runs configured</span>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex items-center gap-3 text-xs">
+                              <span className="inline-flex items-center gap-1 text-red-600 dark:text-red-400">
+                                <XCircle className="h-3.5 w-3.5" />
+                                {signals.data.checks.failing} failing
+                              </span>
+                              <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                                <Clock3 className="h-3.5 w-3.5" />
+                                {signals.data.checks.pending} pending
+                              </span>
+                            </div>
+                            <SignalsList title="Failing checks" items={failingChecks} tone="danger" />
+                            <SignalsList title="Pending checks" items={pendingChecks} tone="warning" />
+                          </>
+                        )}
+                      </div>
+
+                      <div className="rounded-md border border-border p-3 space-y-2">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-foreground">Commit Statuses</div>
+                        {signals.data.statuses.sourceState === 'unavailable' ? (
+                          <p className="text-xs text-muted-foreground">Unavailable (not confirmed passing)</p>
+                        ) : signals.data.statuses.sourceState === 'error' ? (
+                          <p className="text-xs text-muted-foreground">Error loading statuses (not confirmed passing)</p>
+                        ) : signals.data.statuses.sourceState === 'ok-empty' ? (
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            <span>No commit statuses reported</span>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="text-xs text-muted-foreground">
+                              Aggregate state: <span className="font-medium text-foreground">{signals.data.statuses.state ?? 'unknown'}</span>
+                            </div>
+                            <SignalsList title="Failing statuses" items={failingStatuses} tone="danger" />
+                            <SignalsList title="Pending statuses" items={pendingStatuses} tone="warning" />
+                          </>
+                        )}
+                      </div>
+
+                      <div className="rounded-md border border-border p-3 space-y-2">
+                        <div className="text-xs font-semibold uppercase tracking-wide text-foreground">Code Scanning</div>
+                        {signals.data.scanning.sourceState === 'unavailable' ? (
+                          <p className="text-xs text-muted-foreground">Unavailable (not confirmed passing)</p>
+                        ) : signals.data.scanning.sourceState === 'error' ? (
+                          <p className="text-xs text-muted-foreground">Error loading code scanning (not confirmed passing)</p>
+                        ) : signals.data.scanning.sourceState === 'ok-empty' ? (
+                          <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
+                            <CheckCircle2 className="h-3.5 w-3.5" />
+                            <span>No open alerts</span>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="flex items-center gap-3 text-xs">
+                              <span className="inline-flex items-center gap-1 text-red-600 dark:text-red-400">
+                                <XCircle className="h-3.5 w-3.5" />
+                                {signals.data.scanning.openAlerts} open
+                              </span>
+                              <span className="inline-flex items-center gap-1 text-amber-600 dark:text-amber-400">
+                                <ShieldAlert className="h-3.5 w-3.5" />
+                                {signals.data.scanning.highSeverityCount} critical/high
+                              </span>
+                            </div>
+                            <SignalsList title="Top alerts" items={topAlerts} tone="danger" />
+                          </>
+                        )}
+                      </div>
+                    </div>
+                  </>
+                );
+              })()
             )}
           </div>
         )}

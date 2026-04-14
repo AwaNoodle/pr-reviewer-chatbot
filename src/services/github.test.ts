@@ -221,6 +221,106 @@ describe('GitHubService — getPRCommits', () => {
   });
 });
 
+describe('GitHubService — signal endpoint normalization', () => {
+  beforeEach(() => {
+    vi.stubEnv('VITE_USE_PROXY', '');
+  });
+
+  it('normalizes check runs and computes failing/pending counts', async () => {
+    const svc = new GitHubService(makeConfig());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.spyOn(svc as any, 'get').mockResolvedValueOnce({
+      total_count: 3,
+      check_runs: [
+        { id: 1, name: 'lint', status: 'completed', conclusion: 'failure' },
+        { id: 2, name: 'tests', status: 'in_progress', conclusion: null },
+        { id: 3, name: 'typecheck', status: 'completed', conclusion: 'success' },
+      ],
+    });
+
+    const checks = await svc.getCheckRuns('org', 'repo', 'sha');
+
+    expect(checks.sourceState).toBe('ok');
+    expect(checks.failing).toBe(1);
+    expect(checks.pending).toBe(1);
+    expect(checks.items.map((i) => i.name)).toEqual(['lint', 'tests', 'typecheck']);
+  });
+
+  it('maps forbidden check-run access to unavailable state', async () => {
+    const svc = new GitHubService(makeConfig());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.spyOn(svc as any, 'get').mockRejectedValueOnce(
+      new GitHubApiError({
+        code: 'FORBIDDEN',
+        status: 403,
+        message: 'forbidden',
+        userMessage: 'forbidden',
+      })
+    );
+
+    const checks = await svc.getCheckRuns('org', 'repo', 'sha');
+    expect(checks.sourceState).toBe('unavailable');
+  });
+
+  it('normalizes commit status response and scanning severity buckets', async () => {
+    const svc = new GitHubService(makeConfig());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const getSpy = vi.spyOn(svc as any, 'get');
+    getSpy
+      .mockResolvedValueOnce({
+        state: 'failure',
+        statuses: [
+          { context: 'build', state: 'failure', description: 'failed' },
+          { context: 'tests', state: 'pending', description: 'running' },
+        ],
+      })
+      .mockResolvedValueOnce([
+        {
+          number: 10,
+          rule: { id: 'sql-injection', severity: 'critical' },
+          state: 'open',
+          most_recent_instance: { location: { path: 'src/auth.ts', start_line: 10 } },
+        },
+        {
+          number: 11,
+          rule: { id: 'xss', severity: 'medium' },
+          state: 'open',
+          most_recent_instance: { location: { path: 'src/view.ts', start_line: 6 } },
+        },
+      ]);
+
+    const statuses = await svc.getCombinedStatus('org', 'repo', 'sha');
+    const scanning = await svc.getCodeScanningAlerts('org', 'repo', 'sha');
+
+    expect(statuses.sourceState).toBe('ok');
+    expect(statuses.state).toBe('failure');
+    expect(statuses.statuses[1].state).toBe('pending');
+
+    expect(scanning.sourceState).toBe('ok');
+    expect(scanning.highSeverityCount).toBe(1);
+    expect(scanning.severityBuckets.critical).toBe(1);
+    expect(scanning.severityBuckets.medium).toBe(1);
+    expect(scanning.severityBuckets.high).toBe(0);
+  });
+
+  it('maps validation-limited code scanning access to unavailable', async () => {
+    const svc = new GitHubService(makeConfig());
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    vi.spyOn(svc as any, 'get').mockRejectedValueOnce(
+      new GitHubApiError({
+        code: 'VALIDATION_ERROR',
+        status: 422,
+        message: 'validation',
+        userMessage: 'validation',
+      })
+    );
+
+    const scanning = await svc.getCodeScanningAlerts('org', 'repo', 'sha');
+    expect(scanning.sourceState).toBe('unavailable');
+    expect(scanning.openAlerts).toBe(0);
+  });
+});
+
 // ---------------------------------------------------------------------------
 // Error parsing tests
 // ---------------------------------------------------------------------------
