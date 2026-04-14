@@ -1,0 +1,50 @@
+{
+  "cli_version": "0.5.5",
+  "checkpoint_id": "cabb6f357fd0",
+  "session_id": "ses_2727be644ffeJcNyIHXEQZECMH",
+  "strategy": "manual-commit",
+  "created_at": "2026-04-14T20:52:28.338147Z",
+  "branch": "main",
+  "checkpoints_count": 0,
+  "files_touched": [
+    "openspec/changes/add-ci-and-code-scanning-signal-fusion/.openspec.yaml",
+    "openspec/changes/add-ci-and-code-scanning-signal-fusion/design.md",
+    "openspec/changes/add-ci-and-code-scanning-signal-fusion/proposal.md",
+    "openspec/changes/add-ci-and-code-scanning-signal-fusion/specs/pr-review-summary/spec.md",
+    "openspec/changes/add-ci-and-code-scanning-signal-fusion/specs/pr-signal-fusion/spec.md",
+    "openspec/changes/add-ci-and-code-scanning-signal-fusion/tasks.md",
+    "openspec/changes/archive/2026-04-14-add-ci-and-code-scanning-signal-fusion/.openspec.yaml",
+    "openspec/changes/archive/2026-04-14-add-ci-and-code-scanning-signal-fusion/design.md",
+    "openspec/changes/archive/2026-04-14-add-ci-and-code-scanning-signal-fusion/proposal.md",
+    "openspec/changes/archive/2026-04-14-add-ci-and-code-scanning-signal-fusion/specs/pr-review-summary/spec.md",
+    "openspec/changes/archive/2026-04-14-add-ci-and-code-scanning-signal-fusion/specs/pr-signal-fusion/spec.md",
+    "openspec/changes/archive/2026-04-14-add-ci-and-code-scanning-signal-fusion/tasks.md"
+  ],
+  "agent": "OpenCode",
+  "model": "gpt-5.3-codex",
+  "turn_id": "7eba319ca298",
+  "checkpoint_transcript_start": 69,
+  "transcript_lines_at_start": 69,
+  "token_usage": {
+    "input_tokens": 3936,
+    "cache_creation_tokens": 0,
+    "cache_read_tokens": 417536,
+    "output_tokens": 416,
+    "api_call_count": 6
+  },
+  "session_metrics": {
+    "turn_count": 4
+  },
+  "initial_attribution": {
+    "calculated_at": "2026-04-14T20:52:28.322336Z",
+    "agent_lines": 245,
+    "agent_removed": 245,
+    "human_added": 0,
+    "human_modified": 0,
+    "human_removed": 0,
+    "total_committed": 245,
+    "total_lines_changed": 490,
+    "agent_percentage": 100,
+    "metric_version": 2
+  }
+}
