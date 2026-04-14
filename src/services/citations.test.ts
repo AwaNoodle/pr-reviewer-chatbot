@@ -47,9 +47,11 @@ const mockFiles: PRFile[] = [
   },
 ];
 
+const cite = (target: string) => `[${['file', target].join(':')}]`;
+
 describe('parseCitationsFromText', () => {
   it('parses single file citation', () => {
-    const result = parseCitationsFromText('Missing authentication check [file:src/auth.ts]');
+    const result = parseCitationsFromText(`Missing authentication check ${cite('src/auth.ts')}`);
     expect(result.claims).toHaveLength(1);
     expect(result.claims[0].citations).toHaveLength(1);
     expect(result.claims[0].citations[0].file).toBe('src/auth.ts');
@@ -57,14 +59,14 @@ describe('parseCitationsFromText', () => {
   });
 
   it('parses citation with line number', () => {
-    const result = parseCitationsFromText('Null check missing [file:src/auth.ts#L45]');
+    const result = parseCitationsFromText(`Null check missing ${cite('src/auth.ts#L45')}`);
     expect(result.claims).toHaveLength(1);
     expect(result.claims[0].citations[0].file).toBe('src/auth.ts');
     expect(result.claims[0].citations[0].lineStart).toBe(45);
   });
 
   it('parses citation with line range', () => {
-    const result = parseCitationsFromText('Code block [file:src/auth.ts#L10-L20]');
+    const result = parseCitationsFromText(`Code block ${cite('src/auth.ts#L10-L20')}`);
     expect(result.claims).toHaveLength(1);
     expect(result.claims[0].citations[0].file).toBe('src/auth.ts');
     expect(result.claims[0].citations[0].lineStart).toBe(10);
@@ -87,7 +89,7 @@ describe('parseCitationsFromText', () => {
 
   it('handles multiple citations in one text', () => {
     const result = parseCitationsFromText(
-      'Check both [file:src/auth.ts#L5] and [file:src/middleware.ts#L12]'
+      `Check both ${cite('src/auth.ts#L5')} and ${cite('src/middleware.ts#L12')}`
     );
     expect(result.claims).toHaveLength(1);
     expect(result.claims[0].citations).toHaveLength(2);
@@ -95,7 +97,7 @@ describe('parseCitationsFromText', () => {
 
   it('handles list items with citations', () => {
     const result = parseCitationsFromText(
-      '- First item [file:src/auth.ts]\n- Second item [file:src/middleware.ts]'
+      `- First item ${cite('src/auth.ts')}\n- Second item ${cite('src/middleware.ts')}`
     );
     expect(result.claims.length).toBeGreaterThanOrEqual(1);
   });
@@ -182,7 +184,7 @@ describe('resolveCitationForNavigation', () => {
 
 describe('normalizeCitationPayload', () => {
   it('returns parsed result on success', () => {
-    const result = normalizeCitationPayload('Test [file:src/auth.ts]');
+    const result = normalizeCitationPayload(`Test ${cite('src/auth.ts')}`);
     expect(result.claims).toHaveLength(1);
     expect(result.parseErrors).toHaveLength(0);
   });
@@ -197,7 +199,7 @@ describe('normalizeCitationPayload', () => {
 describe('extractMarkdownWithoutCitations', () => {
   it('removes citation markers from text', () => {
     const result = extractMarkdownWithoutCitations(
-      'Missing check [file:src/auth.ts#L45] in the code'
+      `Missing check ${cite('src/auth.ts#L45')} in the code`
     );
     expect(result).toBe('Missing check  in the code');
     expect(result).not.toContain('[file:');

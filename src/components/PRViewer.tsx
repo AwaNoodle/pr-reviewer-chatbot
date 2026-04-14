@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { ChevronRight, FileCode, FilePlus, FileMinus, FileEdit, Loader2, AlertCircle, Inbox, HelpCircle, ShieldAlert, Clock3, CheckCircle2, XCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 import remarkGfm from 'remark-gfm';
@@ -43,7 +43,7 @@ function getStatusBadge(status: PRFile['status']) {
 interface CitationChipProps {
   citation: DiffCitation;
   files: PRFile[];
-  onNavigate: (fileIndex: number) => void;
+  onNavigate: (fileIndex: number, line: number | null) => void;
 }
 
 function CitationChip({ citation, files, onNavigate }: CitationChipProps) {
@@ -56,7 +56,7 @@ function CitationChip({ citation, files, onNavigate }: CitationChipProps) {
 
   return (
     <button
-      onClick={() => nav.fileIndex !== null && onNavigate(nav.fileIndex)}
+      onClick={() => nav.fileIndex !== null && onNavigate(nav.fileIndex, nav.line)}
       disabled={nav.fileIndex === null}
       className={cn(
         'inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-xs font-mono',
@@ -237,8 +237,18 @@ function EmptyState({ message }: { message: string }) {
 }
 
 interface SummaryPanels {
-  orientation: string;
-  focusAreas: string[];
+  orientation: {
+    content: string;
+    citations: DiffCitation[];
+  };
+  focusAreas: Array<{
+    content: string;
+    citations: DiffCitation[];
+  }>;
+}
+
+function extractCitations(content: string): DiffCitation[] {
+  return normalizeCitationPayload(content).claims.flatMap((claim) => claim.citations);
 }
 
 function parseSummaryPanels(content: string): SummaryPanels {
@@ -247,7 +257,10 @@ function parseSummaryPanels(content: string): SummaryPanels {
 
   if (!focusHeadingMatch || focusHeadingMatch.index === undefined) {
     return {
-      orientation: normalized,
+      orientation: {
+        content: normalized,
+        citations: extractCitations(normalized),
+      },
       focusAreas: [],
     };
   }
@@ -260,7 +273,10 @@ function parseSummaryPanels(content: string): SummaryPanels {
 
   if (!focusAreaBlock) {
     return {
-      orientation,
+      orientation: {
+        content: orientation,
+        citations: extractCitations(orientation),
+      },
       focusAreas: [],
     };
   }
@@ -288,8 +304,14 @@ function parseSummaryPanels(content: string): SummaryPanels {
   }
 
   return {
-    orientation,
-    focusAreas,
+    orientation: {
+      content: orientation,
+      citations: extractCitations(orientation),
+    },
+    focusAreas: focusAreas.map((focusArea) => ({
+      content: focusArea,
+      citations: extractCitations(focusArea),
+    })),
   };
 }
 
@@ -306,7 +328,7 @@ function SummaryPanel({
   content: string;
   citations?: DiffCitation[];
   files?: PRFile[];
-  onNavigate?: (fileIndex: number) => void;
+  onNavigate?: (fileIndex: number, line: number | null) => void;
 }) {
   return (
     <div className="rounded-md border border-border p-3 sm:p-4 space-y-2 bg-muted/10">
@@ -378,17 +400,12 @@ export function PRViewer() {
   }, [dispatch]);
 
   const handleNavigateToFile = useCallback(
-    (fileIndex: number) => {
-      dispatch(setFocusedFile({ fileIndex, line: null }));
+    (fileIndex: number, line: number | null) => {
+      dispatch(setFocusedFile({ fileIndex, line }));
       setActiveTab('files');
     },
     [dispatch]
   );
-
-  const summaryCitations = useMemo(() => {
-    if (!summary.content) return [];
-    return normalizeCitationPayload(summary.content).claims.flatMap((c) => c.citations);
-  }, [summary.content]);
 
   if (!selectedPR) {
     if (loadingByResource.metadata) {
@@ -504,20 +521,19 @@ export function PRViewer() {
                       <SummaryPanel
                         title="Orientation"
                         titleClassName="text-blue-700 dark:text-blue-300"
-                        content={panels.orientation || summary.content}
-                        citations={summaryCitations}
+                        content={panels.orientation.content || summary.content}
+                        citations={panels.orientation.citations}
                         files={files}
                         onNavigate={handleNavigateToFile}
                       />
                       {panels.focusAreas.map((focusArea, index) => {
-                        const focusCitations = summaryCitations.slice(index * 2, index * 2 + 2);
                         return (
                           <SummaryPanel
-                            key={`${focusArea.slice(0, 40)}::${index}`}
+                            key={`${focusArea.content.slice(0, 40)}::${index}`}
                             title={`Focus Area ${index + 1}`}
                             titleClassName="text-yellow-700 dark:text-yellow-300"
-                            content={focusArea}
-                            citations={focusCitations}
+                            content={focusArea.content}
+                            citations={focusArea.citations}
                             files={files}
                             onNavigate={handleNavigateToFile}
                           />

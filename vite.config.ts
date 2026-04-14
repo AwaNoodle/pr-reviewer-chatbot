@@ -34,6 +34,54 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks(id) {
+            if (!id.includes('node_modules')) {
+              return undefined
+            }
+
+            if (
+              id.includes('/react/') ||
+              id.includes('/react-dom/') ||
+              id.includes('/scheduler/')
+            ) {
+              return 'vendor-react'
+            }
+
+            if (
+              id.includes('/react-markdown/') ||
+              id.includes('/remark-gfm/') ||
+              id.includes('/react-syntax-highlighter/') ||
+              id.includes('/prismjs/')
+            ) {
+              return 'vendor-markdown'
+            }
+
+            if (
+              id.includes('/@reduxjs/') ||
+              id.includes('/react-redux/') ||
+              id.includes('/axios/') ||
+              id.includes('/effect/')
+            ) {
+              return 'vendor-data'
+            }
+
+            if (
+              id.includes('/@radix-ui/') ||
+              id.includes('/lucide-react/') ||
+              id.includes('/tailwind-merge/') ||
+              id.includes('/clsx/')
+            ) {
+              return 'vendor-ui'
+            }
+
+            return undefined
+          },
+        },
+      },
+    },
     test: {
       globals: true,
       environment: 'jsdom',

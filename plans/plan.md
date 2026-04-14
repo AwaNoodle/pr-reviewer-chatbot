@@ -1,5 +1,12 @@
 # PR Review Chatbot - Implementation Plan
 
+## Current Work (Apr 2026)
+- [x] Fix summary citation navigation so line citations preserve `focusedFileLine`
+- [x] Make summary citation-to-panel mapping deterministic (orientation vs per-focus-area)
+- [x] Add regression tests for line navigation and per-panel citation scoping
+- [x] Remove Tailwind/esbuild `file:` CSS warnings by avoiding literal `[file:...]` tokens in prompt source strings
+- [x] Reduce build chunk sizes by splitting vendor bundles and slimming syntax highlighter payload
+
 ## Priority: UI and LLM Integration First
 **Key Change**: Use dummy data for PR content to allow immediate interaction with the LLM without needing GitHub API credentials. GitHub integration can be added later.
 

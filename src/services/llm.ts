@@ -208,6 +208,9 @@ export class LLMService {
 
   buildSystemPrompt(context: PRContext, signalsData?: PRSignals | null): string {
     const { pr, files, comments, reviewComments, reviews } = context;
+    const fileCitationExample = `[${'file:src/auth.ts'}]`;
+    const lineCitationExample = `[${'file:src/auth.ts#L45'}]`;
+    const rangeCitationExample = `[${'file:src/auth.ts#L10-L20'}]`;
 
     const filesSummary = files
       .map(
@@ -311,11 +314,11 @@ You have full context of this PR metadata and file summaries. Included diffs may
 
 When making non-trivial claims about code behavior, risk, correctness, or security implications, you SHOULD cite the specific file(s) and line(s) from the diff. Use this format:
 
-- **[file:path]** - for file-level citations
-- **[file:path#L]** or **[file:path#L-L]** - for line range citations
+- **${fileCitationExample}** - for file-level citations
+- **${lineCitationExample}** or **${rangeCitationExample}** - for line range citations
 
 Example citations:
-- "The JWT secret validation is missing" → cite with "[src/auth.ts#L12]" or similar
+- "The JWT secret validation is missing" -> cite with "${lineCitationExample}" or similar
 - "Memory leak in error path" → cite the relevant code lines
 
 Citations should use exact file paths from the changed files list. Keep claims precise and verifiable.`;
@@ -327,6 +330,10 @@ Citations should use exact file paths from the changed files list. Keep claims p
     summaryCommands: string,
     signalsData?: PRSignals | null
   ): string {
+    const summaryLineCitationExample = `[${'file:src/auth.ts#L45'}]`;
+    const summaryRangeCitationExample = `[${'file:src/auth.ts#L10-L20'}]`;
+    const summaryFileCitationExample = `[${'file:src/auth.ts'}]`;
+
     const signalSection = signalsData ? `\n\n${buildSignalSnapshotForSummary(signalsData)}` : '';
     const commitMessages = (context.commits ?? [])
       .map((commit: PRCommit) => `- ${commit.commit.message.split('\n')[0]}`)
@@ -371,9 +378,9 @@ Response contract (required):
 
 Citation grounding (required for non-trivial claims):
 - When a Focus Area makes a non-trivial claim about risk, behavior, or correctness, cite the specific file(s) and line(s) from the diff.
-- Use format: [file:path#L] for single lines or [file:path#L-L] for ranges.
-- Example: "Missing null check" → "[src/auth.ts#L45]"
-- If exact line citation is not possible, cite the file-level: "[src/auth.ts]"
+- Use format: ${summaryLineCitationExample} for single lines or ${summaryRangeCitationExample} for ranges.
+- Example: "Missing null check" -> "${summaryLineCitationExample}"
+- If exact line citation is not possible, cite the file-level: "${summaryFileCitationExample}"
 - Every non-trivial claim SHOULD have at least one citation.${signalSection}`;
   }
 }

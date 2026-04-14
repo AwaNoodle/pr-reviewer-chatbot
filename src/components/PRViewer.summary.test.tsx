@@ -1,12 +1,12 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { Provider } from 'react-redux';
-import { describe, expect, it } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { beforeAll, describe, expect, it, vi } from 'vitest';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { PRViewer } from './PRViewer';
 import configReducer from '../store/slices/configSlice';
 import prsReducer from '../store/slices/prsSlice';
 import chatReducer from '../store/slices/chatSlice';
-import type { PullRequest } from '../types';
+import type { PRFile, PullRequest } from '../types';
 
 const selectedPRFixture: PullRequest = {
   id: 1,
@@ -34,12 +34,59 @@ const selectedPRFixture: PullRequest = {
   requested_reviewers: [],
 };
 
-function renderViewer(summaryState: {
+beforeAll(() => {
+  Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', {
+    configurable: true,
+    value: vi.fn(),
+  });
+});
+
+const filesFixture: PRFile[] = [
+  {
+    sha: 'file-sha-auth',
+    filename: 'src/auth.ts',
+    status: 'modified',
+    additions: 1,
+    deletions: 0,
+    changes: 1,
+    patch: ['@@ -8,3 +8,4 @@', ' const isValid = true;', ' const user = getUser();', '+const token = getToken();', ' return isValid && !!user;'].join('\n'),
+    contents_url: 'https://example.com/auth.ts',
+  },
+  {
+    sha: 'file-sha-orientation',
+    filename: 'src/orientation.ts',
+    status: 'modified',
+    additions: 1,
+    deletions: 1,
+    changes: 2,
+    patch: ['@@ -2,2 +2,2 @@', '-const oldValue = true;', '+const newValue = true;'].join('\n'),
+    contents_url: 'https://example.com/orientation.ts',
+  },
+  {
+    sha: 'file-sha-payments',
+    filename: 'src/payments.ts',
+    status: 'modified',
+    additions: 1,
+    deletions: 1,
+    changes: 2,
+    patch: ['@@ -44,2 +44,2 @@', '-const previousTotal = 0;', '+const currentTotal = 1;'].join('\n'),
+    contents_url: 'https://example.com/payments.ts',
+  },
+];
+
+const cite = (target: string) => `[${['file', target].join(':')}]`;
+
+function renderViewer(
+  summaryState: {
   status: 'idle' | 'loading' | 'success' | 'empty' | 'error';
   content: string | null;
   generatedAt: number | null;
   error: string | null;
-}) {
+},
+  options?: {
+    files?: PRFile[];
+  }
+) {
   const store = configureStore({
     reducer: {
       config: configReducer,
@@ -65,7 +112,7 @@ function renderViewer(summaryState: {
         selectedPR: selectedPRFixture,
         activeRepository: null,
         prList: [],
-        files: [],
+        files: options?.files ?? [],
         comments: [],
         reviewComments: [],
         reviews: [],
@@ -122,11 +169,13 @@ function renderViewer(summaryState: {
     },
   });
 
-  return render(
+  const renderResult = render(
     <Provider store={store}>
       <PRViewer />
     </Provider>
   );
+
+  return { ...renderResult, store };
 }
 
 describe('PRViewer summary tab', () => {
@@ -175,13 +224,87 @@ describe('PRViewer summary tab', () => {
 });
 
 describe('PRViewer citation navigation', () => {
+  it('navigates to files tab and preserves line focus for line citations', async () => {
+    renderViewer({
+      status: 'success',
+      content: `Test summary with ${cite('src/auth.ts#L10')} citation.`,
+      generatedAt: Date.now(),
+      error: null,
+    }, { files: filesFixture });
+
+    fireEvent.click(screen.getByRole('button', { name: 'src/auth.ts#10' }));
+
+    await waitFor(() => {
+      expect(screen.getByText('+const token = getToken();')).toBeInTheDocument();
+    });
+
+    const focusedLine = screen.getByText('+const token = getToken();');
+    expect(focusedLine).toHaveClass('ring-yellow-400');
+  });
+
+  it('navigates to files tab and leaves line unset for file citations', async () => {
+    const { store } = renderViewer({
+      status: 'success',
+      content: `Test summary with ${cite('src/auth.ts')} citation.`,
+      generatedAt: Date.now(),
+      error: null,
+    }, { files: filesFixture });
+
+    fireEvent.click(screen.getByRole('button', { name: 'src/auth.ts' }));
+
+    await waitFor(() => {
+      expect(store.getState().prs.focusedFileIndex).toBe(0);
+    });
+
+    expect(store.getState().prs.focusedFileLine).toBeNull();
+  });
+
+  it('keeps orientation and focus-area citations scoped to their own panel', () => {
+    renderViewer({
+      status: 'success',
+      content: [
+        `Orientation line with citation ${cite('src/orientation.ts#L3')}.`,
+        '',
+        '## Focus Areas',
+        `- **where to review**: auth paths ${cite('src/auth.ts#L10')}`,
+        '  **why it matters**: token handling correctness',
+        '  **what to verify**: invalid token rejection',
+        `- **where to review**: payment totals ${cite('src/payments.ts#L44')}`,
+        '  **why it matters**: totals can drift',
+        '  **what to verify**: total remains deterministic',
+      ].join('\n'),
+      generatedAt: Date.now(),
+      error: null,
+    }, { files: filesFixture });
+
+    const orientationPanel = screen.getByText('Orientation').parentElement;
+    const focusAreaOnePanel = screen.getByText('Focus Area 1').parentElement;
+    const focusAreaTwoPanel = screen.getByText('Focus Area 2').parentElement;
+
+    expect(orientationPanel).not.toBeNull();
+    expect(focusAreaOnePanel).not.toBeNull();
+    expect(focusAreaTwoPanel).not.toBeNull();
+
+    expect(within(orientationPanel as HTMLElement).getByRole('button', { name: 'src/orientation.ts#3' })).toBeInTheDocument();
+    expect(within(orientationPanel as HTMLElement).queryByRole('button', { name: 'src/auth.ts#10' })).not.toBeInTheDocument();
+    expect(within(orientationPanel as HTMLElement).queryByRole('button', { name: 'src/payments.ts#44' })).not.toBeInTheDocument();
+
+    expect(within(focusAreaOnePanel as HTMLElement).getByRole('button', { name: 'src/auth.ts#10' })).toBeInTheDocument();
+    expect(within(focusAreaOnePanel as HTMLElement).queryByRole('button', { name: 'src/orientation.ts#3' })).not.toBeInTheDocument();
+    expect(within(focusAreaOnePanel as HTMLElement).queryByRole('button', { name: 'src/payments.ts#44' })).not.toBeInTheDocument();
+
+    expect(within(focusAreaTwoPanel as HTMLElement).getByRole('button', { name: 'src/payments.ts#44' })).toBeInTheDocument();
+    expect(within(focusAreaTwoPanel as HTMLElement).queryByRole('button', { name: 'src/orientation.ts#3' })).not.toBeInTheDocument();
+    expect(within(focusAreaTwoPanel as HTMLElement).queryByRole('button', { name: 'src/auth.ts#10' })).not.toBeInTheDocument();
+  });
+
   it('navigates to files tab when citation-navigate event is dispatched', async () => {
     const { getByRole } = renderViewer({
       status: 'success',
-      content: 'Test summary with [file:src/auth.ts#L10] citation.',
+      content: `Test summary with ${cite('src/auth.ts#L10')} citation.`,
       generatedAt: Date.now(),
       error: null,
-    });
+    }, { files: filesFixture });
 
     const filesTab = getByRole('button', { name: /files \(\d+\)/i });
     expect(filesTab).toBeInTheDocument();
