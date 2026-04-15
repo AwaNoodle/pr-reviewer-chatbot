@@ -1,0 +1,1 @@
+Ensure x86 and arm64 docker images are built with the release Github action

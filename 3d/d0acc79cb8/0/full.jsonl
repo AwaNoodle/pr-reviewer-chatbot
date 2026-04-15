@@ -1,0 +1,1437 @@
+{
+  "info": {
+    "id": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+    "slug": "curious-otter",
+    "projectID": "348622467205f3a4969a26ec20f1654baed7f76d",
+    "directory": "/Users/mark/sandbox/personal/pr-review-chatbot",
+    "title": "Multi-arch release docker images with Github Action",
+    "version": "1.4.3",
+    "summary": {
+      "additions": 6,
+      "deletions": 0,
+      "files": 3
+    },
+    "time": {
+      "created": 1776290208407,
+      "updated": 1776290308886
+    }
+  },
+  "messages": [
+    {
+      "info": {
+        "role": "user",
+        "time": {
+          "created": 1776290208415
+        },
+        "agent": "build",
+        "model": {
+          "providerID": "opencode",
+          "modelID": "gpt-5.3-codex"
+        },
+        "summary": {
+          "diffs": [
+            {
+              "file": ".github/workflows/docker-release.yml",
+              "patch": "Index: .github/workflows/docker-release.yml\n===================================================================\n--- .github/workflows/docker-release.yml\t\n+++ .github/workflows/docker-release.yml\t\n@@ -1,97 +1,101 @@\n name: Docker Release\n \n on:\n   release:\n     types:\n       - published\n \n permissions:\n   contents: read\n   packages: write\n \n jobs:\n   publish:\n     name: Build and Publish Docker Image\n     runs-on: ubuntu-latest\n     env:\n       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: \"true\"\n \n     steps:\n       - name: Checkout\n         uses: actions/checkout@v5\n         with:\n           fetch-depth: 0\n \n+      - name: Set up QEMU\n+        uses: docker/setup-qemu-action@v3\n+\n       - name: Set up Docker Buildx\n         uses: docker/setup-buildx-action@v4\n \n       - name: Log in to GHCR\n         uses: docker/login-action@v4\n         with:\n           registry: ghcr.io\n           username: ${{ github.actor }}\n           password: ${{ secrets.GITHUB_TOKEN }}\n \n       - name: Compute Docker tags\n         id: version\n         shell: bash\n         run: |\n           set -euo pipefail\n \n           image=\"ghcr.io/${GITHUB_REPOSITORY,,}\"\n           last_semver_tag=\"$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*' 2>/dev/null || true)\"\n \n           if [ -n \"$last_semver_tag\" ]; then\n             distance=\"$(git rev-list \"${last_semver_tag}..HEAD\" --count)\"\n             base_tag=\"$last_semver_tag\"\n           else\n             distance=\"$(git rev-list HEAD --count)\"\n             base_tag=\"v0.0.0\"\n           fi\n \n           version_tag=\"${base_tag}-${distance}\"\n           sha_tag=\"sha-${GITHUB_SHA::7}\"\n \n           echo \"image=$image\" >> \"$GITHUB_OUTPUT\"\n           echo \"version_tag=$version_tag\" >> \"$GITHUB_OUTPUT\"\n           echo \"sha_tag=$sha_tag\" >> \"$GITHUB_OUTPUT\"\n \n       - name: Build and push image\n         uses: docker/build-push-action@v7\n         with:\n           context: .\n           file: ./Dockerfile\n           push: true\n+          platforms: linux/amd64,linux/arm64\n           tags: |\n             ${{ steps.version.outputs.image }}:${{ steps.version.outputs.version_tag }}\n             ${{ steps.version.outputs.image }}:${{ steps.version.outputs.sha_tag }}\n           labels: |\n             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}\n             org.opencontainers.image.revision=${{ github.sha }}\n             org.opencontainers.image.version=${{ steps.version.outputs.version_tag }}\n \n       - name: Print pull commands\n         shell: bash\n         run: |\n           set -euo pipefail\n \n           image=\"${{ steps.version.outputs.image }}\"\n           version_tag=\"${{ steps.version.outputs.version_tag }}\"\n           sha_tag=\"${{ steps.version.outputs.sha_tag }}\"\n \n           echo \"Published Docker image tags:\"\n           echo \"- ${image}:${version_tag}\"\n           echo \"- ${image}:${sha_tag}\"\n           echo\n           echo \"Pull commands:\"\n           echo \"docker pull ${image}:${version_tag}\"\n           echo \"docker pull ${image}:${sha_tag}\"\n \n           {\n             echo \"## Docker image published\"\n             echo\n             echo \"\\`\\`\\`bash\"\n             echo \"docker pull ${image}:${version_tag}\"\n             echo \"docker pull ${image}:${sha_tag}\"\n             echo \"\\`\\`\\`\"\n           } >> \"$GITHUB_STEP_SUMMARY\"\n",
+              "additions": 4,
+              "deletions": 0,
+              "status": "modified"
+            },
+            {
+              "file": "agents.md",
+              "patch": "Index: agents.md\n===================================================================\n--- agents.md\t\n+++ agents.md\t\n@@ -1,218 +1,219 @@\n # PR Review Chatbot - Agent Instructions\n \n ## Project Overview\n \n This is a standalone React + TypeScript webapp that acts as a chatbot interface for reviewing and asking questions about GitHub Pull Requests. It uses an LLM (via OpenAI v1 API or LiteLLM Proxy) to answer questions about PR content.\n \n ## Tech Stack\n \n - **Vite** + **React 18** + **TypeScript**\n - **Redux Toolkit** for state management\n - **Tailwind CSS** for styling\n - **Radix UI** for accessible components\n - **Axios** for HTTP (GitHub API)\n - **Effect** for phase-1 PR context orchestration\n - **react-markdown** + **react-syntax-highlighter** for message rendering\n \n ## Project Structure\n \n ```\n src/\n ├── App.tsx                    # Root component with layout\n ├── main.tsx                   # Entry point with Redux Provider\n ├── index.css                  # Tailwind + CSS variables\n ├── vite-env.d.ts              # Vite environment type declarations\n ├── types/\n │   └── index.ts               # All TypeScript interfaces\n ├── store/\n │   ├── index.ts               # Redux store configuration\n │   ├── hooks.ts               # Typed useAppDispatch / useAppSelector\n │   └── slices/\n │       ├── configSlice.ts     # App config (env vars + localStorage overrides)\n │       ├── chatSlice.ts       # Chat messages + streaming state\n │       ├── prsSlice.ts        # Selected PR data + repo PR lists + commits + summary lifecycle state\n │       └── watchedReposSlice.ts # Watched repositories + PR count badges (localStorage)\n ├── services/\n │   ├── llm.ts                 # LLM service (OpenAI v1 API + LiteLLM, streaming)\n │   ├── github.ts              # GitHub API service (github.com + GHES)\n │   ├── summary.ts             # Summary cache/rate-limit/empty-diff utilities\n │   └── dummyData.ts           # Sample PR data for demo mode\n ├── components/\n │   ├── Sidebar.tsx            # Demo toggle + watchlist + controls/list sidebar views\n │   ├── PRList.tsx             # Sidebar repository PR list view with back navigation\n │   ├── ChatWindow.tsx         # Chat interface with streaming\n │   ├── PRViewer.tsx           # PR details, summary tab, diffs, comments, reviews\n │   └── SettingsDialog.tsx     # Runtime configuration override + summary controls\n └── lib/\n     └── utils.ts               # cn(), formatDate(), generateId()\n ```\n \n ## Key Features\n \n ### Demo Mode (Default)\n - Pre-loaded with a sample JWT authentication PR\n - No GitHub credentials required\n - Toggle in sidebar or Settings dialog\n - Allows immediate LLM interaction\n \n ### LLM Integration\n - Supports **OpenAI v1 API** and **LiteLLM Proxy** (same API format)\n - Streaming responses via Server-Sent Events\n - PR context injected as system prompt (PR metadata, diffs, comments, reviews)\n - Configurable endpoint, model, and API key\n - API key is optional for providers/endpoints that do not require auth\n - HTTP API failures (including provider 4xx errors) are surfaced in assistant message bubbles\n - Assistant markdown rendering (markdown + syntax highlighting) is lazy-loaded to reduce initial bundle cost; chat shows a lightweight fallback while that chunk loads\n - Separate summary prompt assembly path (`buildSummaryPrompt`) for orientation-first PR kickoff summaries\n \n ### GitHub Integration\n - PAT (Personal Access Token) authentication\n - Supports **github.com** and **GitHub Enterprise Server (GHES)**\n - GHES base URL: `https://<host>/api/v3`\n - Manual GitHub mode input in sidebar: `owner/repo` + optional PR number\n - Sidebar supports `Load PR` (single selected list item) and `Load All PRs` (repository list)\n - Watch repositories in sidebar and display open PR count badges\n - Fetches: PR metadata, file diffs, issue comments, review comments, reviews, commit messages\n - Refresh actions re-fetch currently selected PR, repository lists, and watched repo PR counts\n - User-friendly GitHub API errors (auth, not found, rate limit, network)\n \n ### Settings\n - Runtime override of all configuration\n - Persisted to `localStorage`\n - Defaults from environment variables (`VITE_*`)\n - Includes summary controls (`summaryEnabled`, editable `summaryPrompt`, optional `summaryCommands`, reset prompt)\n \n ### PR Summary Flow\n - Summary generation triggers on PR selection/load when `summaryEnabled` is true\n - Summary state is isolated from chat state (`prsSlice.summary`)\n - Fallback states:\n   - `Nothing to Summarize` when no textual diffs exist\n   - `Unable to generate summary` on generation failure\n - Uses session-scoped cache and one-per-minute per-PR-head rate limit\n - Summary output contract:\n   - 2-4 line orientation section\n   - adaptive `Focus Areas` (`0..4`)\n   - each focus area includes where/why/what-to-verify\n \n ## Environment Variables\n \n ```bash\n VITE_GITHUB_PAT=          # GitHub Personal Access Token\n VITE_LLM_API_KEY=         # LLM API Key\n VITE_GITHUB_INSTANCE=github.com  # \"github.com\" or GHES hostname\n VITE_LLM_BACKEND=openai   # \"openai\" or \"litellm\"\n VITE_LLM_ENDPOINT=https://api.openai.com/v1\n VITE_LLM_MODEL=gpt-4o\n VITE_DEMO_MODE=true\n VITE_SUMMARY_ENABLED=true\n VITE_SUMMARY_COMMANDS=\n ```\n \n ## Development\n \n ```bash\n npm install       # Install dependencies\n npm run dev       # Start dev server (http://localhost:5173)\n npm run lint      # Run ESLint (flat config in eslint.config.js)\n npm run build     # TypeScript check + production build\n npm run preview   # Preview production build\n npm run docker:build # Build Docker image locally\n npm run docker:run   # Run Docker image locally on :8080\n ```\n \n ## CI/CD and Distribution\n \n - CI workflow: `.github/workflows/build.yml`\n   - Runs `npm ci`, `npm run lint`, `npm test`, and `npm run build` on pushes/PRs to `main`.\n - Docker release workflow: `.github/workflows/docker-release.yml`\n   - Triggers on GitHub Release `published`.\n   - Publishes image to `ghcr.io/<owner>/<repo>`.\n+  - Builds and publishes a multi-arch manifest for `linux/amd64` and `linux/arm64`.\n   - Computes image tags as semver-distance:\n     - primary: `vX.Y.Z-N` (latest reachable semver tag + commit distance)\n     - fallback: `v0.0.0-N` when no semver tags exist\n     - traceability: `sha-<shortsha>`\n - Docker runtime setup:\n   - `Dockerfile` uses multi-stage Node build + nginx runtime.\n   - `nginx.conf` serves SPA routes via `try_files ... /index.html`.\n   - `.dockerignore` excludes local build, VCS, and env artifacts from build context.\n \n ## Common Tasks for AI Agents\n \n ### Adding a new Redux slice\n 1. Create `src/store/slices/<name>Slice.ts` following the pattern in existing slices\n 2. Add the reducer to `src/store/index.ts`\n 3. Export typed selectors using `useAppSelector`\n \n ### Adding a new component\n 1. Create `src/components/<Name>.tsx`\n 2. Use `useAppSelector` and `useAppDispatch` from `src/store/hooks.ts`\n 3. Use `cn()` from `src/lib/utils.ts` for conditional class names\n 4. Follow Tailwind CSS + CSS variable pattern for theming\n \n ### Modifying the LLM system prompt\n - Edit `buildSystemPrompt()` in [`src/services/llm.ts`](src/services/llm.ts)\n - The method receives a `PRContext` object with `pr`, `files`, `comments`, `reviewComments`, `reviews`\n - Prompt construction uses a deterministic character budget for very large PRs and emits an omission summary when some diffs are excluded\n \n ### Modifying summary behavior\n - Summary orchestration policy lives in [`src/services/summary.ts`](src/services/summary.ts)\n - Summary state transitions and async generation thunk live in [`src/store/slices/prsSlice.ts`](src/store/slices/prsSlice.ts)\n - Summary prompt contract lives in `buildSummaryPrompt()` in [`src/services/llm.ts`](src/services/llm.ts)\n - Summary UI rendering lives in [`src/components/PRViewer.tsx`](src/components/PRViewer.tsx)\n \n ### Adding GitHub API endpoints\n - Add methods to the `GitHubService` class in [`src/services/github.ts`](src/services/github.ts)\n - The service automatically handles github.com vs GHES URL routing\n - Prefer using the centralized GitHub error parsing (`parseGitHubError`) and `GitHubApiError` for consistent UI-friendly failures\n - For thunk rejected payloads, prefer `toRejectedErrorData` in `src/effect/errors.ts` to keep all slice paths consistent\n \n ### GitHub data loading flow\n - `prsSlice` uses Effect-backed full-context loading for PR selection:\n   - `fetchPullRequestContext` (uses `src/effect/loadPullRequestContext.ts` via `runEffect`)\n - Retry policy in `loadPullRequestContext` is transient-only (timeouts/network/rate-limit) to avoid retrying deterministic failures like 404/auth errors\n - Use `loadingByResource` and `errorByResource` for UI state; legacy aggregate `isLoading` and `error` are still populated for compatibility\n \n ### Active OpenSpec context\n - Current proposed (not yet implemented) changes:\n   - `openspec/changes/add-diff-intelligence-layer`\n   - `openspec/changes/add-ci-and-code-scanning-signal-fusion`\n - Main baseline specs relevant to these proposals:\n   - `openspec/specs/pr-review-summary/spec.md`\n   - `openspec/specs/repo-pr-list/spec.md`\n   - `openspec/specs/watched-repos/spec.md`\n - Proposal intents:\n   - diff intelligence: grounded claim citations with click-to-diff navigation\n   - signal fusion: CI/check/code-scanning context for reviewer prioritization and summary enrichment\n \n ### Modifying dummy data\n - Edit [`src/services/dummyData.ts`](src/services/dummyData.ts)\n - The `dummyPRContext` export is used by `ChatWindow` and `Sidebar` in demo mode\n \n ## Architecture Notes\n \n ### State Flow\n ```\n User types message\n   → ChatWindow dispatches addMessage (user)\n   → ChatWindow dispatches addMessage (assistant, isStreaming: true)\n   → LLMService.chatStream() yields chunks\n   → ChatWindow dispatches appendStreamingContent for each chunk\n   → ChatWindow dispatches finalizeStreamingMessage when done\n ```\n \n ### Config Priority\n ```\n localStorage override > environment variable > hardcoded default\n ```\n \n ### GHES URL Construction\n ```typescript\n // github.com → https://api.github.com\n // mycompany.com → https://mycompany.com/api/v3\n ```\n \n ## Known Limitations / Future Work\n \n - No pagination for PR lists\n - No OAuth flow (PAT only)\n - No conversation persistence across page reloads\n",
+              "additions": 1,
+              "deletions": 0,
+              "status": "modified"
+            },
+            {
+              "file": "plans/plan.md",
+              "patch": "Index: plans/plan.md\n===================================================================\n--- plans/plan.md\t\n+++ plans/plan.md\t\n@@ -1,434 +1,435 @@\n # PR Review Chatbot - Implementation Plan\n \n ## Current Work (Apr 2026)\n+- [x] Ensure release Docker workflow publishes a multi-arch manifest for linux/amd64 and linux/arm64\n - [x] Align CI and Docker builder runtime with GitHub's Node 24 minimum guidance\n - [x] Pin project engine requirement to Node >=24 in package metadata\n - [x] Enforce Node engine checks during npm install with engine-strict\n - [x] Stabilize ChatWindow non-stream fallback test timing for slower CI runners\n - [x] Fix summary citation navigation so line citations preserve `focusedFileLine`\n - [x] Make summary citation-to-panel mapping deterministic (orientation vs per-focus-area)\n - [x] Add regression tests for line navigation and per-panel citation scoping\n - [x] Remove Tailwind/esbuild `file:` CSS warnings by avoiding literal `[file:...]` tokens in prompt source strings\n - [x] Reduce build chunk sizes by splitting vendor bundles and slimming syntax highlighter payload\n \n ## Priority: UI and LLM Integration First\n **Key Change**: Use dummy data for PR content to allow immediate interaction with the LLM without needing GitHub API credentials. GitHub integration can be added later.\n \n ---\n \n ## Tech Stack\n - Vite + React 18 + TypeScript\n - Redux Toolkit for state management\n - Axios for HTTP\n - Tailwind CSS for styling\n - Radix UI for accessible components\n \n ---\n \n ## Implementation Phases\n \n ### ✅ Phase 1: Project Setup (COMPLETED)\n - [x] Initialize Vite + React + TypeScript project\n - [x] Install dependencies (Redux Toolkit, Axios, Tailwind, Radix UI, react-markdown, react-syntax-highlighter, lucide-react)\n - [x] Configure Tailwind CSS with CSS variables for theming\n - [x] Set up project structure (`src/types`, `src/store`, `src/services`, `src/components`, `src/lib`)\n - [x] Create `vite-env.d.ts` for Vite environment type declarations\n - [x] Create `.env.example` with all configuration options\n - [x] Create `.gitignore`\n \n ### ✅ Phase 2: UI Shell & Configuration (COMPLETED)\n - [x] Create Redux store (`src/store/index.ts`)\n - [x] Implement `configSlice.ts` — env var defaults + localStorage runtime overrides\n - [x] Implement `chatSlice.ts` — messages, streaming state\n - [x] Implement `prsSlice.ts` — selected PR, files, comments, reviews\n - [x] Create typed Redux hooks (`src/store/hooks.ts`)\n - [x] Create `SettingsDialog.tsx` — runtime config override with demo mode toggle\n - [x] Create main `App.tsx` layout (sidebar + chat + PR viewer panels)\n - [x] Dark mode toggle in top bar\n - [x] Collapsible sidebar and PR viewer panels\n \n ### ✅ Phase 3: Chat Interface (COMPLETED)\n - [x] Build `ChatWindow.tsx` with message display\n - [x] User/assistant message bubbles with avatars\n - [x] Markdown rendering with `react-markdown` + `remark-gfm`\n - [x] Code syntax highlighting with `react-syntax-highlighter`\n - [x] Streaming response display (animated cursor)\n - [x] Auto-scroll to latest message\n - [x] Multi-line textarea input (auto-resize)\n - [x] Enter to send, Shift+Enter for new line\n - [x] Suggestion chips on empty state\n - [x] Clear conversation button\n - [x] Error display in message bubbles\n \n ### ✅ Phase 4: LLM Integration (COMPLETED)\n - [x] Implement `LLMService` class in `src/services/llm.ts`\n - [x] OpenAI v1 API support (`/chat/completions`)\n - [x] LiteLLM Proxy support (same API format)\n - [x] Streaming via Server-Sent Events (SSE)\n - [x] `buildSystemPrompt()` — injects full PR context (metadata, diffs, comments, reviews)\n - [x] Connect LLM service to `ChatWindow` with streaming dispatch\n - [x] Error handling for API failures\n \n ### ✅ Phase 5: Dummy Data & Demo Mode (COMPLETED)\n - [x] Create `src/services/dummyData.ts` with realistic sample PR\n   - Sample PR: JWT authentication feature (8 files, realistic diffs)\n   - Sample comments, review comments, and reviews\n - [x] Build `PRViewer.tsx` with:\n   - PR metadata header (state badge, author, branch, stats)\n   - Tabs: Files, Comments, Reviews\n   - Collapsible file items with diff view\n   - Diff syntax highlighting (green/red/blue lines)\n   - Status badges per file (added/modified/removed)\n - [x] Build `Sidebar.tsx` with demo mode toggle\n - [x] Auto-load dummy PR on startup in demo mode\n - [x] Demo mode toggle in sidebar and Settings dialog\n \n ### ✅ Phase 6: GitHub Integration (COMPLETED)\n - [x] Implement `GitHubService` class in `src/services/github.ts`\n - [x] PAT (Bearer token) authentication\n - [x] Support for github.com (`https://api.github.com`)\n - [x] Support for GHES (`https://<host>/api/v3`)\n - [x] Methods: `listRepositories`, `searchRepositories`, `listPullRequests`, `getPullRequest`, `getPRFiles`, `getPRComments`, `getPRReviewComments`, `getPRReviews`, `validateToken`\n - [x] Token validation method\n \n ### ✅ Phase 7: Polish (COMPLETED)\n - [x] Add loading states and loading indicators for GitHub API calls\n - [x] Add error handling for GitHub API failures (rate limiting, 404, auth errors)\n - [x] Polish UI/UX (animations, transitions)\n - [x] GitHub mode UI — allow entering repo/PR manually\n - [x] Context window management for very large PRs\n \n ---\n \n ## Documentation (COMPLETED)\n - [x] `README.md` — User-facing docs: quick start, configuration, LLM setup, GitHub setup, troubleshooting\n - [x] `agents.md` — Developer/agent docs: project structure, architecture, common tasks\n - [x] `.env.example` — Annotated environment variable reference\n \n ---\n \n ## Configuration\n \n ### Environment Variables (with defaults)\n ```\n VITE_GITHUB_PAT=          # GitHub Personal Access Token\n VITE_LLM_API_KEY=         # LLM API Key\n VITE_GITHUB_INSTANCE=     # \"github.com\" or URL for GHES\n VITE_LLM_BACKEND=         # \"openai\" or \"litellm\"\n VITE_LLM_ENDPOINT=        # API endpoint URL\n VITE_LLM_MODEL=           # Model name\n VITE_DEMO_MODE=           # \"true\" or \"false\"\n ```\n \n ### Runtime Override\n Settings dialog allows overriding env vars at runtime (persisted to localStorage).\n \n ---\n \n ## Architecture\n \n ### Services\n ```\n src/services/\n ├── github.ts      # Fetch PRs, details, diffs, comments (supports GHES)\n ├── llm.ts         # Unified interface for OpenAI v1 API + LiteLLM Proxy\n └── dummyData.ts   # Sample PR data for demo mode\n ```\n \n ### Redux Store\n ```\n src/store/\n ├── index.ts              # Store configuration\n ├── hooks.ts              # Typed useAppDispatch / useAppSelector\n └── slices/\n     ├── configSlice.ts    # App config (env defaults + runtime overrides)\n     ├── prsSlice.ts       # Current PR data\n     └── chatSlice.ts      # Messages + streaming state\n ```\n \n ### Components\n ```\n src/components/\n ├── SettingsDialog.tsx   # Runtime config override\n ├── Sidebar.tsx          # Repo/PR navigation (or demo mode toggle)\n ├── ChatWindow.tsx       # Chat messages + input\n └── PRViewer.tsx         # File diffs, metadata\n ```\n \n ---\n \n ## Data Types\n \n ### GitHub PR\n ```typescript\n interface PullRequest {\n   id: number;\n   number: number;\n   title: string;\n   body: string | null;\n   state: 'open' | 'closed';\n   merged: boolean;\n   merged_at: string | null;\n   user: GitHubUser;\n   created_at: string;\n   updated_at: string;\n   head: { ref: string; sha: string; repo: { full_name: string } | null };\n   base: { ref: string; sha: string; repo: { full_name: string } };\n   url: string;\n   html_url: string;\n   diff_url: string;\n   additions: number;\n   deletions: number;\n   changed_files: number;\n   comments: number;\n   review_comments: number;\n   commits: number;\n   labels: Array<{ id: number; name: string; color: string }>;\n   requested_reviewers: GitHubUser[];\n }\n ```\n \n ### Chat Message\n ```typescript\n interface ChatMessage {\n   id: string;\n   role: 'user' | 'assistant' | 'system';\n   content: string;\n   timestamp: number;\n   isStreaming?: boolean;\n   error?: string;\n }\n ```\n \n ### App Config\n ```typescript\n interface AppConfig {\n   githubPat: string;\n   llmApiKey: string;\n   githubInstance: string;\n   llmBackend: 'openai' | 'litellm';\n   llmEndpoint: string;\n   llmModel: string;\n   demoMode: boolean;\n }\n ```\n \n ---\n \n ## Error Handling\n \n ### LLM API Errors\n - Invalid API key: Error shown in message bubble\n - Rate limiting: Error shown in message bubble\n - Network errors: Error shown in message bubble\n - Streaming errors: Graceful fallback with error message\n \n ### GitHub API Errors (when enabled)\n - Invalid PAT: Prompt to update token\n - Rate limiting: Show remaining requests\n - Not found (404): Repository/PR not found\n \n ---\n \n ### ⏳ Phase 8: Code Quality & UX Improvements (PENDING)\n \n Identified during initial code review. These are non-blocking improvements to address after the Phase 7 polish work.\n \n #### Quality\n - [x] **ESLint v9 flat config** (`eslint.config.js`) — Added repository-level flat config so `npm run lint` works with ESLint 9.\n - [x] **`getPRFiles` pagination** (`src/services/github.ts:96`) — The GitHub API caps file lists at 100 per page. PRs with >100 changed files silently return incomplete data. Add pagination (loop until `response.data.length < perPage`) or at minimum show a warning banner in `PRViewer` when the file count equals the page limit.\n - [x] **Stable React keys in `DiffView`** (`src/components/PRViewer.tsx:41`) — Diff lines currently use array index as `key`. Replace with a content-based key (e.g. `` `${i}-${line.slice(0, 8)}` ``) to prevent React reusing DOM nodes incorrectly when switching between files.\n \n #### UX\n - [x] **Persist dark mode preference** (`src/App.tsx:10`) — Dark mode state resets on every page reload. Initialise from `localStorage` and respect the OS `prefers-color-scheme` media query:\n   ```ts\n   const [darkMode, setDarkMode] = useState(\n     () => localStorage.getItem('darkMode') === 'true'\n       || window.matchMedia('(prefers-color-scheme: dark)').matches\n   );\n   ```\n   Also persist the toggle: `localStorage.setItem('darkMode', String(!darkMode))` inside `toggleDarkMode`.\n - [x] **Wire up the Refresh button** (`src/components/Sidebar.tsx:111`) — The refresh `<button>` in the sidebar is rendered in GitHub mode but has no `onClick` handler. Either connect it to a `fetchPullRequests` thunk (part of Phase 7 GitHub UI work) or hide it with `{false && ...}` until that feature is ready, to avoid confusing users with a dead control.\n \n ---\n \n ## OpenSpec Alignment Notes (2026-03-14)\n \n - `openspec/changes/add-pr-summary-tab/tasks.md` was updated to capture quick-orientation behavior decisions from explore mode.\n - Summary behavior target: 2-4 line orientation section, adaptive `Focus Areas` with bounds `0..4`, and valid success output when focus areas are omitted for simple PRs.\n - Synced delta spec `openspec/changes/add-pr-summary-tab/specs/pr-review-summary/spec.md` into new main spec `openspec/specs/pr-review-summary/spec.md`.\n - Added change scaffold `openspec/changes/update-pr-review-summary-ui-readability/` with completed proposal, design, spec delta, and tasks artifacts for summary UI readability improvements.\n - Refined `update-pr-review-summary-ui-readability` scope to panelized Summary display: Orientation and each Focus Area render as separate cards styled like Comments/Reviews, with blue/yellow title accents and no spec contract changes.\n \n ---\n \n ## ✅ Phase 9: PR Summary Tab (COMPLETED)\n \n - [x] Extend `AppConfig` with summary fields: `summaryEnabled`, `summaryPrompt`, `summaryCommands`\n - [x] Add/export `DEFAULT_SUMMARY_PROMPT` and keep reset behavior prompt-only\n - [x] Add PR commits API loading (`getPRCommits`) and Redux state wiring\n - [x] Add summary lifecycle state in `prsSlice` (`status`, `content`, `generatedAt`, `error`)\n - [x] Implement summary orchestration utilities:\n   - per-PR+head+prompt cache keying\n   - sessionStorage read/write cache\n   - one-per-minute per-PR-head rate limiting\n   - empty textual diff detection\n - [x] Extend LLM service with structured summary prompt assembly (orientation + adaptive focus areas)\n - [x] Add Summary tab UI in `PRViewer` with loading/success/empty/error states and timestamp footer\n - [x] Wire summary generation on PR selection/load and keep summary separate from chat history/context\n - [x] Add/expand tests for config, GitHub service, PR slice, summary utilities, LLM prompt, Settings UI, and Summary tab rendering\n - [x] Update README and agent guidance for summary behavior, fallback states, and output contract\n \n ---\n \n ## OpenSpec Implementation Updates (2026-03-14)\n \n - [x] Completed OpenSpec change `update-pr-review-summary-ui-readability` implementation tasks (8/8) for panelized Summary tab readability updates.\n - [x] Updated Summary success rendering in `src/components/PRViewer.tsx` to show an `Orientation` panel and per-item `Focus Area N` panels with blue/yellow title accents.\n - [x] Kept summary generation flow and fallback state semantics unchanged (loading/empty/error behavior preserved).\n - [x] Updated `src/components/PRViewer.summary.test.tsx` assertions for orientation-only and orientation+focus-area panelized rendering.\n - [x] Validation run completed with `npm run lint && npm run build && npm run test`.\n \n ## OpenSpec Explore Decision Updates (2026-03-16)\n \n - [x] Clarified `repository-watcher` UX scope: `repo-pr-list` renders in the left `PR Review` pane (not center chat area or right PR viewer pane).\n - [x] Captured sidebar navigator behavior: controls/watchlist view and repo list view with explicit Back action.\n - [x] Captured `Load PR` behavior parity with demo mode: when PR number is provided, show a list containing one selected PR.\n - [x] Updated change artifacts (`proposal.md`, `design.md`, `tasks.md`, `specs/repo-pr-list/spec.md`, `specs/watched-repos/spec.md`) to reflect the decision.\n \n ## OpenSpec Implementation Updates (2026-03-16)\n \n - [x] Implemented `repository-watcher` change tasks end-to-end.\n - [x] Added watched repository state and persistence via `src/store/slices/watchedReposSlice.ts`.\n - [x] Added repository PR list loading in `src/store/slices/prsSlice.ts` using existing `listPullRequests()` integration.\n - [x] Added sidebar repo-list UI mode with Back navigation and new `src/components/PRList.tsx` component.\n - [x] Updated sidebar to support optional PR number flow (`Load PR` vs `Load All PRs`) and watchlist interactions.\n - [x] Added tests for watched repos, repository PR list loading, and sidebar list selection flows.\n - [x] Validation run completed with `npm run lint && npm run build && npm run test`.\n \n ## OpenSpec Spec Sync Updates (2026-03-16)\n \n - [x] Synced change `repository-watcher` delta specs into new main specs for `repo-pr-list` and `watched-repos`.\n - [x] Created `openspec/specs/repo-pr-list/spec.md` from `openspec/changes/repository-watcher/specs/repo-pr-list/spec.md`.\n - [x] Created `openspec/specs/watched-repos/spec.md` from `openspec/changes/repository-watcher/specs/watched-repos/spec.md`.\n \n ---\n \n ## Code Review Hardening Tasks (2026-03-17)\n \n - [x] Task 1: Add stale-response guards in `prsSlice` so older PR resource responses cannot overwrite newer selection state.\n - [x] Task 2: Add regression tests for rapid PR switching race in `src/store/slices/prsSlice.test.ts`.\n - [x] Task 3: Add `Dialog.Description` in `src/components/SettingsDialog.tsx` to satisfy Radix dialog accessibility contract.\n - [x] Task 4: Update settings dialog tests to assert description semantics and eliminate warning output.\n - [x] Task 5: Add chat stream request cancellation (`AbortController`) in `src/components/ChatWindow.tsx` and `src/services/llm.ts`.\n - [x] Task 6: Add tests for stream cancellation behavior and UI streaming state cleanup.\n \n ## Distribution and Release Automation (2026-03-17)\n \n - [x] Added multi-stage Docker image build with static asset runtime (`Dockerfile`) and SPA-safe nginx config (`nginx.conf`).\n - [x] Added `.dockerignore` and npm helper scripts (`docker:build`, `docker:run`) for local image usage.\n - [x] Added release-triggered GHCR publish workflow (`.github/workflows/docker-release.yml`) with semver-distance tagging (`vX.Y.Z-N`) and fallback (`v0.0.0-N`).\n - [x] Updated CI workflow (`.github/workflows/build.yml`) to run lint, tests, and production build.\n - [x] Updated `README.md` with local Docker usage, GHCR usage, tagging semantics, and distribution alternatives.\n \n ## LLM Key Warning Cleanup (2026-03-18)\n \n - [x] Verified non-OK LLM provider responses (including 4xx) are thrown by `LLMService` and surfaced in chat error bubbles.\n - [x] Removed chat footer warning that required configuring an LLM key in settings.\n - [x] Added tests to lock behavior for optional API key UI and 4xx error surfacing.\n \n ## Frontend Bundle Split Pass 1 (2026-03-18)\n \n - [x] Extracted assistant markdown + syntax highlighting rendering into lazy-loaded `src/components/AssistantMarkdown.tsx`.\n - [x] Updated `ChatWindow` to load assistant markdown renderer via `React.lazy` and `Suspense`.\n - [x] Added lightweight fallback UI in assistant bubbles while markdown chunk loads.\n \n ## Frontend Bundle Split Follow-ups (OPEN)\n \n - [ ] Pass 2: Lazy-load PR summary markdown rendering path in `src/components/PRViewer.tsx` (`SummaryPanel`) to reduce initial bundle size further.\n - [ ] Split syntax highlighting payload in `src/components/AssistantMarkdown.tsx` (language/style loading strategy) to shrink lazy chunk size.\n - [ ] Evaluate `vite.config.ts` manual chunking (`build.rollupOptions.output.manualChunks`) for stable vendor chunk boundaries and improved cacheability.\n \n ## Effect Migration - Phase 1 (COMPLETED 2026-03-19)\n \n Goal: introduce Effect on one narrow PR-loading path without changing app architecture or user-visible behavior.\n \n - [x] Add `effect` dependency and create `src/effect/runtime.ts` with a single shared runtime helper (`runEffect`).\n - [x] Define a small typed error model for the pilot path in `src/effect/errors.ts` (GitHub API error passthrough + unexpected error wrapper).\n - [x] Implement one Effect workflow in `src/effect/loadPullRequestContext.ts` that composes existing GitHub service calls (PR, files, comments, review comments, reviews, commits) with timeout/retry policy.\n - [x] Wire `loadPullRequestContext` into existing thunk flow in `src/store/slices/prsSlice.ts` via `runEffect`, keeping reducers/selectors/state shape unchanged.\n - [x] Add focused tests for success/failure/timeout parity with current behavior in `src/store/slices/prsSlice.test.ts` (or adjacent Effect unit tests).\n - [x] Update docs (`README.md` + `plans/plan.md`) with scope boundaries: \"Effect used for pilot orchestration only; no full migration yet.\"\n \n Exit criteria:\n - One PR-loading path uses Effect end-to-end.\n - Existing UI behavior and Redux state contracts remain stable.\n - Lint, test, and type/build checks pass.\n \n ## Effect Migration - Phase 1.5 (COMPLETED 2026-03-19)\n \n - [x] Unified GitHub thunk error mapping through `src/effect/errors.ts::toRejectedErrorData` for legacy PR thunks in `src/store/slices/prsSlice.ts`.\n - [x] Reused the same mapper in `src/store/slices/watchedReposSlice.ts` with context-specific fallback message.\n - [x] Removed duplicated slice-local `toRejectedError` helpers to keep rejected payload behavior consistent across legacy and Effect-backed paths.\n \n ## Effect Migration - Phase 1.6 (COMPLETED 2026-03-19)\n \n - [x] Removed redundant per-resource PR-loading thunks from `src/store/slices/prsSlice.ts` (`fetchPullRequest`, `fetchPRFiles`, `fetchPRComments`, `fetchPRReviewComments`, `fetchPRReviews`, `fetchPRCommits`).\n - [x] Removed obsolete per-resource reducer handlers and retained unified `fetchPullRequestContext` loading state handling.\n - [x] Updated tests/docs to use the single PR context loading entrypoint.\n \n ## Effect Migration - Phase 1.7 (COMPLETED 2026-03-19)\n \n - [x] Refined Effect retry behavior in `src/effect/loadPullRequestContext.ts` to retry only transient failures (`TimeoutError`, `NETWORK_ERROR`, `RATE_LIMITED`).\n - [x] Added Effect unit tests to verify deterministic errors are not retried and transient failures are retried.\n \n ## Docker Release Workflow Runtime Update (COMPLETED 2026-03-20)\n \n - [x] Updated `.github/workflows/docker-release.yml` action majors to Node 24-compatible versions: `actions/checkout@v5`, `docker/setup-buildx-action@v4`, `docker/login-action@v4`, `docker/build-push-action@v7`.\n - [x] Added workflow-level opt-in `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` for early compatibility with GitHub Actions runtime migration.\n - [x] Validation run completed with `npm run lint -- --max-warnings=0 && npm run build && npm run test`.\n \n ## Docker Release Pull Command Output (COMPLETED 2026-03-20)\n \n - [x] Added a post-publish step in `.github/workflows/docker-release.yml` that prints the exact `docker pull` commands for both release and SHA tags in workflow logs.\n - [x] Added the same pull commands to `$GITHUB_STEP_SUMMARY` so they are easy to copy from the run summary page.\n \n ## OpenSpec Proposal Updates (2026-03-20)\n \n - [x] Created change `openspec/changes/add-diff-intelligence-layer/` with proposal, design, capability specs, and implementation tasks.\n - [x] Added new capability spec delta `openspec/changes/add-diff-intelligence-layer/specs/diff-intelligence/spec.md`.\n - [x] Added `pr-review-summary` delta for diff-grounded summary references in `openspec/changes/add-diff-intelligence-layer/specs/pr-review-summary/spec.md`.\n - [x] Created change `openspec/changes/add-ci-and-code-scanning-signal-fusion/` with proposal, design, capability specs, and implementation tasks.\n - [x] Added new capability spec delta `openspec/changes/add-ci-and-code-scanning-signal-fusion/specs/pr-signal-fusion/spec.md`.\n - [x] Added `pr-review-summary` delta for CI/code-scanning signal-aware summary guidance in `openspec/changes/add-ci-and-code-scanning-signal-fusion/specs/pr-review-summary/spec.md`.\n \n ## OpenSpec Consistency Pass (2026-03-26)\n \n - [x] Aligned `add-ci-and-code-scanning-signal-fusion` proposal/design/spec/tasks wording around channel-aware signal fusion (summary richer, chat compact).\n - [x] Added explicit `pr-signal-fusion` requirements for code-scanning fetch, head-SHA invalidation, bounded deterministic top-N highlights, and raw-payload exclusion.\n - [x] Updated summary spec delta to include signal-state indicators and bounded normalized signal context language.\n - [x] Expanded tasks with ranking/capping/semantic-alignment verification coverage.\n - [x] Cleaned proposal capability taxonomy to avoid duplicate `pr-signal-fusion` classification across new/modified sections.\n - [x] Normalized terminology in signal-fusion specs to consistently use \"signal context\" instead of mixed \"signal data/context\" phrasing.\n \n ## OpenSpec Spec Sync Updates (2026-04-14)\n \n - [x] Attempted to invoke `openspec-sync-specs` skill for `add-diff-intelligence-layer`; skill is not available in this workspace.\n - [x] Synced new main spec `openspec/specs/diff-intelligence/spec.md` from `openspec/changes/add-diff-intelligence-layer/specs/diff-intelligence/spec.md`.\n - [x] Synced `Summary Output Contract` updates from `openspec/changes/add-diff-intelligence-layer/specs/pr-review-summary/spec.md` into `openspec/specs/pr-review-summary/spec.md`.\n \n ## OpenSpec Implementation Updates (2026-04-14)\n \n - [x] Implemented change `add-ci-and-code-scanning-signal-fusion` tasks end-to-end (20/20 complete).\n - [x] Added/extended normalized signal contracts, GitHub signal endpoint normalization, and explicit unavailable/error source-state semantics.\n - [x] Wired signal loading into PR context orchestration and connected signal snapshots into both summary and chat prompt construction.\n - [x] Added `Signals` tab rendering in `src/components/PRViewer.tsx` with loading/success/unavailable/error/empty states and deterministic highlight ordering.\n - [x] Added test coverage for service mapping, signal prompt snapshots, slice lifecycle, and signals UI rendering.\n - [x] Validation run completed with `npm run lint -- --max-warnings=0`, `npm run build`, and `npm run test`.\n \n ## Streaming Compatibility Fixes (2026-04-14)\n \n - [x] Improved `LLMService.chatStream()` parsing in `src/services/llm.ts` to support provider variants (`delta.content` strings, content-part arrays, and reasoning-style deltas).\n - [x] Added non-stream fallback in `src/components/ChatWindow.tsx` when a stream completes with no visible output.\n - [x] Added/updated tests in `src/services/llm.test.ts` and `src/components/ChatWindow.test.tsx` for alternate stream payload shapes and empty-stream fallback behavior.\n - [x] Validation run completed with `npm run lint -- --max-warnings=0`, `npm run build`, and `npm run test`.\n",
+              "additions": 1,
+              "deletions": 0,
+              "status": "modified"
+            }
+          ]
+        },
+        "id": "msg_d93259a9b001i3Adu2ObYFmnST",
+        "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "Ensure x86 and arm64 docker images are built with the release Github action",
+          "id": "prt_d93259a9c001WQ1BGRqQ1PCnZp",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d93259a9b001i3Adu2ObYFmnST"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d93259a9b001i3Adu2ObYFmnST",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.02662975,
+        "tokens": {
+          "total": 13649,
+          "input": 13425,
+          "output": 85,
+          "reasoning": 139,
+          "cache": {
+            "write": 0,
+            "read": 0
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776290208422,
+          "completed": 1776290213379
+        },
+        "finish": "tool-calls",
+        "id": "msg_d93259aa6001jlwwXK0MHtYeHi",
+        "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E"
+      },
+      "parts": [
+        {
+          "snapshot": "3183100b7da24587c0c66299e3a52cf7806ed902",
+          "type": "step-start",
+          "id": "prt_d93259f55001JLp6ZPXlRT31CI",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d93259aa6001jlwwXK0MHtYeHi"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776290209800,
+            "end": 1776290212910
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_0fcaa7c648ebc8e60169e009a1ad788199abaac4be657df02b",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d9325a008001acmDWDBUee7Huj",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d93259aa6001jlwwXK0MHtYeHi"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_uxzij1uU0NiiJBmpHfZ3r18c",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": ".github/workflows/*.yml",
+              "path": "/Users/mark/sandbox/personal/pr-review-chatbot"
+            },
+            "output": "/Users/mark/sandbox/personal/pr-review-chatbot/.github/workflows/build.yml\n/Users/mark/sandbox/personal/pr-review-chatbot/.github/workflows/docker-release.yml\n/Users/mark/sandbox/personal/pr-review-chatbot/.github/workflows/opencode.yml",
+            "metadata": {
+              "count": 3,
+              "truncated": false
+            },
+            "title": "",
+            "time": {
+              "start": 1776290212917,
+              "end": 1776290212938
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_0fcaa7c648ebc8e60169e009a4c87c8199ac3a2417e92b8dd9"
+            }
+          },
+          "id": "prt_d9325ac30001j6TwGgljUundM1",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d93259aa6001jlwwXK0MHtYeHi"
+        },
+        {
+          "type": "tool",
+          "tool": "glob",
+          "callID": "call_xkH6UgcF64NjBRpc228t8GO6",
+          "state": {
+            "status": "completed",
+            "input": {
+              "pattern": "plans/*",
+              "path": "/Users/mark/sandbox/personal/pr-review-chatbot"
+            },
+            "output": "/Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md",
+            "metadata": {
+              "count": 1,
+              "truncated": false
+            },
+            "title": "",
+            "time": {
+              "start": 1776290212936,
+              "end": 1776290212947
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_0fcaa7c648ebc8e60169e009a4c8948199bef54ffa287bc2e7"
+            }
+          },
+          "id": "prt_d9325ac37001M7wHJI6Q3Y2wu7",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d93259aa6001jlwwXK0MHtYeHi"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "3183100b7da24587c0c66299e3a52cf7806ed902",
+          "type": "step-finish",
+          "tokens": {
+            "total": 13649,
+            "input": 13425,
+            "output": 85,
+            "reasoning": 139,
+            "cache": {
+              "write": 0,
+              "read": 0
+            }
+          },
+          "cost": 0.02662975,
+          "id": "prt_d9325adbc001Jc74qi05BaILem",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d93259aa6001jlwwXK0MHtYeHi"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d93259a9b001i3Adu2ObYFmnST",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0042749,
+        "tokens": {
+          "total": 13856,
+          "input": 174,
+          "output": 100,
+          "reasoning": 14,
+          "cache": {
+            "write": 0,
+            "read": 13568
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776290213379,
+          "completed": 1776290215913
+        },
+        "finish": "tool-calls",
+        "id": "msg_d9325ae03002ExpcpODA2HM4h5",
+        "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E"
+      },
+      "parts": [
+        {
+          "snapshot": "3183100b7da24587c0c66299e3a52cf7806ed902",
+          "type": "step-start",
+          "id": "prt_d9325b1a7001RAL8Hhzc6TTAOY",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d9325ae03002ExpcpODA2HM4h5"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776290214428,
+            "end": 1776290215536
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_0cdab04e1a8ab2d60169e009a64c788198a7b1c92a21b21686",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d9325b21c001k63MW8EM1qWLWc",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d9325ae03002ExpcpODA2HM4h5"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_NH26tpHUx4aP8Ad0aSMEGEXx",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/Users/mark/sandbox/personal/pr-review-chatbot/.github/workflows/docker-release.yml",
+              "offset": 1,
+              "limit": 400
+            },
+            "output": "<path>/Users/mark/sandbox/personal/pr-review-chatbot/.github/workflows/docker-release.yml</path>\n<type>file</type>\n<content>\n1: name: Docker Release\n2: \n3: on:\n4:   release:\n5:     types:\n6:       - published\n7: \n8: permissions:\n9:   contents: read\n10:   packages: write\n11: \n12: jobs:\n13:   publish:\n14:     name: Build and Publish Docker Image\n15:     runs-on: ubuntu-latest\n16:     env:\n17:       FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: \"true\"\n18: \n19:     steps:\n20:       - name: Checkout\n21:         uses: actions/checkout@v5\n22:         with:\n23:           fetch-depth: 0\n24: \n25:       - name: Set up Docker Buildx\n26:         uses: docker/setup-buildx-action@v4\n27: \n28:       - name: Log in to GHCR\n29:         uses: docker/login-action@v4\n30:         with:\n31:           registry: ghcr.io\n32:           username: ${{ github.actor }}\n33:           password: ${{ secrets.GITHUB_TOKEN }}\n34: \n35:       - name: Compute Docker tags\n36:         id: version\n37:         shell: bash\n38:         run: |\n39:           set -euo pipefail\n40: \n41:           image=\"ghcr.io/${GITHUB_REPOSITORY,,}\"\n42:           last_semver_tag=\"$(git describe --tags --abbrev=0 --match 'v[0-9]*.[0-9]*.[0-9]*' 2>/dev/null || true)\"\n43: \n44:           if [ -n \"$last_semver_tag\" ]; then\n45:             distance=\"$(git rev-list \"${last_semver_tag}..HEAD\" --count)\"\n46:             base_tag=\"$last_semver_tag\"\n47:           else\n48:             distance=\"$(git rev-list HEAD --count)\"\n49:             base_tag=\"v0.0.0\"\n50:           fi\n51: \n52:           version_tag=\"${base_tag}-${distance}\"\n53:           sha_tag=\"sha-${GITHUB_SHA::7}\"\n54: \n55:           echo \"image=$image\" >> \"$GITHUB_OUTPUT\"\n56:           echo \"version_tag=$version_tag\" >> \"$GITHUB_OUTPUT\"\n57:           echo \"sha_tag=$sha_tag\" >> \"$GITHUB_OUTPUT\"\n58: \n59:       - name: Build and push image\n60:         uses: docker/build-push-action@v7\n61:         with:\n62:           context: .\n63:           file: ./Dockerfile\n64:           push: true\n65:           tags: |\n66:             ${{ steps.version.outputs.image }}:${{ steps.version.outputs.version_tag }}\n67:             ${{ steps.version.outputs.image }}:${{ steps.version.outputs.sha_tag }}\n68:           labels: |\n69:             org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}\n70:             org.opencontainers.image.revision=${{ github.sha }}\n71:             org.opencontainers.image.version=${{ steps.version.outputs.version_tag }}\n72: \n73:       - name: Print pull commands\n74:         shell: bash\n75:         run: |\n76:           set -euo pipefail\n77: \n78:           image=\"${{ steps.version.outputs.image }}\"\n79:           version_tag=\"${{ steps.version.outputs.version_tag }}\"\n80:           sha_tag=\"${{ steps.version.outputs.sha_tag }}\"\n81: \n82:           echo \"Published Docker image tags:\"\n83:           echo \"- ${image}:${version_tag}\"\n84:           echo \"- ${image}:${sha_tag}\"\n85:           echo\n86:           echo \"Pull commands:\"\n87:           echo \"docker pull ${image}:${version_tag}\"\n88:           echo \"docker pull ${image}:${sha_tag}\"\n89: \n90:           {\n91:             echo \"## Docker image published\"\n92:             echo\n93:             echo \"\\`\\`\\`bash\"\n94:             echo \"docker pull ${image}:${version_tag}\"\n95:             echo \"docker pull ${image}:${sha_tag}\"\n96:             echo \"\\`\\`\\`\"\n97:           } >> \"$GITHUB_STEP_SUMMARY\"\n\n(End of file - total 97 lines)\n</content>",
+            "metadata": {
+              "preview": "name: Docker Release\n\non:\n  release:\n    types:\n      - published\n\npermissions:\n  contents: read\n  packages: write\n\njobs:\n  publish:\n    name: Build and Publish Docker Image\n    runs-on: ubuntu-latest\n    env:\n      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: \"true\"\n\n    steps:\n      - name: Checkout",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": ".github/workflows/docker-release.yml",
+            "time": {
+              "start": 1776290215543,
+              "end": 1776290215568
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_0cdab04e1a8ab2d60169e009a767a48198bfd61a8af8126e94"
+            }
+          },
+          "id": "prt_d9325b673001gPmxj9g1aw0iYm",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d9325ae03002ExpcpODA2HM4h5"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_9IkwqIAsl3FX1IYT2cj4LXkH",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md",
+              "offset": 1,
+              "limit": 400
+            },
+            "output": "<path>/Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md</path>\n<type>file</type>\n<content>\n1: # PR Review Chatbot - Implementation Plan\n2: \n3: ## Current Work (Apr 2026)\n4: - [x] Align CI and Docker builder runtime with GitHub's Node 24 minimum guidance\n5: - [x] Pin project engine requirement to Node >=24 in package metadata\n6: - [x] Enforce Node engine checks during npm install with engine-strict\n7: - [x] Stabilize ChatWindow non-stream fallback test timing for slower CI runners\n8: - [x] Fix summary citation navigation so line citations preserve `focusedFileLine`\n9: - [x] Make summary citation-to-panel mapping deterministic (orientation vs per-focus-area)\n10: - [x] Add regression tests for line navigation and per-panel citation scoping\n11: - [x] Remove Tailwind/esbuild `file:` CSS warnings by avoiding literal `[file:...]` tokens in prompt source strings\n12: - [x] Reduce build chunk sizes by splitting vendor bundles and slimming syntax highlighter payload\n13: \n14: ## Priority: UI and LLM Integration First\n15: **Key Change**: Use dummy data for PR content to allow immediate interaction with the LLM without needing GitHub API credentials. GitHub integration can be added later.\n16: \n17: ---\n18: \n19: ## Tech Stack\n20: - Vite + React 18 + TypeScript\n21: - Redux Toolkit for state management\n22: - Axios for HTTP\n23: - Tailwind CSS for styling\n24: - Radix UI for accessible components\n25: \n26: ---\n27: \n28: ## Implementation Phases\n29: \n30: ### ✅ Phase 1: Project Setup (COMPLETED)\n31: - [x] Initialize Vite + React + TypeScript project\n32: - [x] Install dependencies (Redux Toolkit, Axios, Tailwind, Radix UI, react-markdown, react-syntax-highlighter, lucide-react)\n33: - [x] Configure Tailwind CSS with CSS variables for theming\n34: - [x] Set up project structure (`src/types`, `src/store`, `src/services`, `src/components`, `src/lib`)\n35: - [x] Create `vite-env.d.ts` for Vite environment type declarations\n36: - [x] Create `.env.example` with all configuration options\n37: - [x] Create `.gitignore`\n38: \n39: ### ✅ Phase 2: UI Shell & Configuration (COMPLETED)\n40: - [x] Create Redux store (`src/store/index.ts`)\n41: - [x] Implement `configSlice.ts` — env var defaults + localStorage runtime overrides\n42: - [x] Implement `chatSlice.ts` — messages, streaming state\n43: - [x] Implement `prsSlice.ts` — selected PR, files, comments, reviews\n44: - [x] Create typed Redux hooks (`src/store/hooks.ts`)\n45: - [x] Create `SettingsDialog.tsx` — runtime config override with demo mode toggle\n46: - [x] Create main `App.tsx` layout (sidebar + chat + PR viewer panels)\n47: - [x] Dark mode toggle in top bar\n48: - [x] Collapsible sidebar and PR viewer panels\n49: \n50: ### ✅ Phase 3: Chat Interface (COMPLETED)\n51: - [x] Build `ChatWindow.tsx` with message display\n52: - [x] User/assistant message bubbles with avatars\n53: - [x] Markdown rendering with `react-markdown` + `remark-gfm`\n54: - [x] Code syntax highlighting with `react-syntax-highlighter`\n55: - [x] Streaming response display (animated cursor)\n56: - [x] Auto-scroll to latest message\n57: - [x] Multi-line textarea input (auto-resize)\n58: - [x] Enter to send, Shift+Enter for new line\n59: - [x] Suggestion chips on empty state\n60: - [x] Clear conversation button\n61: - [x] Error display in message bubbles\n62: \n63: ### ✅ Phase 4: LLM Integration (COMPLETED)\n64: - [x] Implement `LLMService` class in `src/services/llm.ts`\n65: - [x] OpenAI v1 API support (`/chat/completions`)\n66: - [x] LiteLLM Proxy support (same API format)\n67: - [x] Streaming via Server-Sent Events (SSE)\n68: - [x] `buildSystemPrompt()` — injects full PR context (metadata, diffs, comments, reviews)\n69: - [x] Connect LLM service to `ChatWindow` with streaming dispatch\n70: - [x] Error handling for API failures\n71: \n72: ### ✅ Phase 5: Dummy Data & Demo Mode (COMPLETED)\n73: - [x] Create `src/services/dummyData.ts` with realistic sample PR\n74:   - Sample PR: JWT authentication feature (8 files, realistic diffs)\n75:   - Sample comments, review comments, and reviews\n76: - [x] Build `PRViewer.tsx` with:\n77:   - PR metadata header (state badge, author, branch, stats)\n78:   - Tabs: Files, Comments, Reviews\n79:   - Collapsible file items with diff view\n80:   - Diff syntax highlighting (green/red/blue lines)\n81:   - Status badges per file (added/modified/removed)\n82: - [x] Build `Sidebar.tsx` with demo mode toggle\n83: - [x] Auto-load dummy PR on startup in demo mode\n84: - [x] Demo mode toggle in sidebar and Settings dialog\n85: \n86: ### ✅ Phase 6: GitHub Integration (COMPLETED)\n87: - [x] Implement `GitHubService` class in `src/services/github.ts`\n88: - [x] PAT (Bearer token) authentication\n89: - [x] Support for github.com (`https://api.github.com`)\n90: - [x] Support for GHES (`https://<host>/api/v3`)\n91: - [x] Methods: `listRepositories`, `searchRepositories`, `listPullRequests`, `getPullRequest`, `getPRFiles`, `getPRComments`, `getPRReviewComments`, `getPRReviews`, `validateToken`\n92: - [x] Token validation method\n93: \n94: ### ✅ Phase 7: Polish (COMPLETED)\n95: - [x] Add loading states and loading indicators for GitHub API calls\n96: - [x] Add error handling for GitHub API failures (rate limiting, 404, auth errors)\n97: - [x] Polish UI/UX (animations, transitions)\n98: - [x] GitHub mode UI — allow entering repo/PR manually\n99: - [x] Context window management for very large PRs\n100: \n101: ---\n102: \n103: ## Documentation (COMPLETED)\n104: - [x] `README.md` — User-facing docs: quick start, configuration, LLM setup, GitHub setup, troubleshooting\n105: - [x] `agents.md` — Developer/agent docs: project structure, architecture, common tasks\n106: - [x] `.env.example` — Annotated environment variable reference\n107: \n108: ---\n109: \n110: ## Configuration\n111: \n112: ### Environment Variables (with defaults)\n113: ```\n114: VITE_GITHUB_PAT=          # GitHub Personal Access Token\n115: VITE_LLM_API_KEY=         # LLM API Key\n116: VITE_GITHUB_INSTANCE=     # \"github.com\" or URL for GHES\n117: VITE_LLM_BACKEND=         # \"openai\" or \"litellm\"\n118: VITE_LLM_ENDPOINT=        # API endpoint URL\n119: VITE_LLM_MODEL=           # Model name\n120: VITE_DEMO_MODE=           # \"true\" or \"false\"\n121: ```\n122: \n123: ### Runtime Override\n124: Settings dialog allows overriding env vars at runtime (persisted to localStorage).\n125: \n126: ---\n127: \n128: ## Architecture\n129: \n130: ### Services\n131: ```\n132: src/services/\n133: ├── github.ts      # Fetch PRs, details, diffs, comments (supports GHES)\n134: ├── llm.ts         # Unified interface for OpenAI v1 API + LiteLLM Proxy\n135: └── dummyData.ts   # Sample PR data for demo mode\n136: ```\n137: \n138: ### Redux Store\n139: ```\n140: src/store/\n141: ├── index.ts              # Store configuration\n142: ├── hooks.ts              # Typed useAppDispatch / useAppSelector\n143: └── slices/\n144:     ├── configSlice.ts    # App config (env defaults + runtime overrides)\n145:     ├── prsSlice.ts       # Current PR data\n146:     └── chatSlice.ts      # Messages + streaming state\n147: ```\n148: \n149: ### Components\n150: ```\n151: src/components/\n152: ├── SettingsDialog.tsx   # Runtime config override\n153: ├── Sidebar.tsx          # Repo/PR navigation (or demo mode toggle)\n154: ├── ChatWindow.tsx       # Chat messages + input\n155: └── PRViewer.tsx         # File diffs, metadata\n156: ```\n157: \n158: ---\n159: \n160: ## Data Types\n161: \n162: ### GitHub PR\n163: ```typescript\n164: interface PullRequest {\n165:   id: number;\n166:   number: number;\n167:   title: string;\n168:   body: string | null;\n169:   state: 'open' | 'closed';\n170:   merged: boolean;\n171:   merged_at: string | null;\n172:   user: GitHubUser;\n173:   created_at: string;\n174:   updated_at: string;\n175:   head: { ref: string; sha: string; repo: { full_name: string } | null };\n176:   base: { ref: string; sha: string; repo: { full_name: string } };\n177:   url: string;\n178:   html_url: string;\n179:   diff_url: string;\n180:   additions: number;\n181:   deletions: number;\n182:   changed_files: number;\n183:   comments: number;\n184:   review_comments: number;\n185:   commits: number;\n186:   labels: Array<{ id: number; name: string; color: string }>;\n187:   requested_reviewers: GitHubUser[];\n188: }\n189: ```\n190: \n191: ### Chat Message\n192: ```typescript\n193: interface ChatMessage {\n194:   id: string;\n195:   role: 'user' | 'assistant' | 'system';\n196:   content: string;\n197:   timestamp: number;\n198:   isStreaming?: boolean;\n199:   error?: string;\n200: }\n201: ```\n202: \n203: ### App Config\n204: ```typescript\n205: interface AppConfig {\n206:   githubPat: string;\n207:   llmApiKey: string;\n208:   githubInstance: string;\n209:   llmBackend: 'openai' | 'litellm';\n210:   llmEndpoint: string;\n211:   llmModel: string;\n212:   demoMode: boolean;\n213: }\n214: ```\n215: \n216: ---\n217: \n218: ## Error Handling\n219: \n220: ### LLM API Errors\n221: - Invalid API key: Error shown in message bubble\n222: - Rate limiting: Error shown in message bubble\n223: - Network errors: Error shown in message bubble\n224: - Streaming errors: Graceful fallback with error message\n225: \n226: ### GitHub API Errors (when enabled)\n227: - Invalid PAT: Prompt to update token\n228: - Rate limiting: Show remaining requests\n229: - Not found (404): Repository/PR not found\n230: \n231: ---\n232: \n233: ### ⏳ Phase 8: Code Quality & UX Improvements (PENDING)\n234: \n235: Identified during initial code review. These are non-blocking improvements to address after the Phase 7 polish work.\n236: \n237: #### Quality\n238: - [x] **ESLint v9 flat config** (`eslint.config.js`) — Added repository-level flat config so `npm run lint` works with ESLint 9.\n239: - [x] **`getPRFiles` pagination** (`src/services/github.ts:96`) — The GitHub API caps file lists at 100 per page. PRs with >100 changed files silently return incomplete data. Add pagination (loop until `response.data.length < perPage`) or at minimum show a warning banner in `PRViewer` when the file count equals the page limit.\n240: - [x] **Stable React keys in `DiffView`** (`src/components/PRViewer.tsx:41`) — Diff lines currently use array index as `key`. Replace with a content-based key (e.g. `` `${i}-${line.slice(0, 8)}` ``) to prevent React reusing DOM nodes incorrectly when switching between files.\n241: \n242: #### UX\n243: - [x] **Persist dark mode preference** (`src/App.tsx:10`) — Dark mode state resets on every page reload. Initialise from `localStorage` and respect the OS `prefers-color-scheme` media query:\n244:   ```ts\n245:   const [darkMode, setDarkMode] = useState(\n246:     () => localStorage.getItem('darkMode') === 'true'\n247:       || window.matchMedia('(prefers-color-scheme: dark)').matches\n248:   );\n249:   ```\n250:   Also persist the toggle: `localStorage.setItem('darkMode', String(!darkMode))` inside `toggleDarkMode`.\n251: - [x] **Wire up the Refresh button** (`src/components/Sidebar.tsx:111`) — The refresh `<button>` in the sidebar is rendered in GitHub mode but has no `onClick` handler. Either connect it to a `fetchPullRequests` thunk (part of Phase 7 GitHub UI work) or hide it with `{false && ...}` until that feature is ready, to avoid confusing users with a dead control.\n252: \n253: ---\n254: \n255: ## OpenSpec Alignment Notes (2026-03-14)\n256: \n257: - `openspec/changes/add-pr-summary-tab/tasks.md` was updated to capture quick-orientation behavior decisions from explore mode.\n258: - Summary behavior target: 2-4 line orientation section, adaptive `Focus Areas` with bounds `0..4`, and valid success output when focus areas are omitted for simple PRs.\n259: - Synced delta spec `openspec/changes/add-pr-summary-tab/specs/pr-review-summary/spec.md` into new main spec `openspec/specs/pr-review-summary/spec.md`.\n260: - Added change scaffold `openspec/changes/update-pr-review-summary-ui-readability/` with completed proposal, design, spec delta, and tasks artifacts for summary UI readability improvements.\n261: - Refined `update-pr-review-summary-ui-readability` scope to panelized Summary display: Orientation and each Focus Area render as separate cards styled like Comments/Reviews, with blue/yellow title accents and no spec contract changes.\n262: \n263: ---\n264: \n265: ## ✅ Phase 9: PR Summary Tab (COMPLETED)\n266: \n267: - [x] Extend `AppConfig` with summary fields: `summaryEnabled`, `summaryPrompt`, `summaryCommands`\n268: - [x] Add/export `DEFAULT_SUMMARY_PROMPT` and keep reset behavior prompt-only\n269: - [x] Add PR commits API loading (`getPRCommits`) and Redux state wiring\n270: - [x] Add summary lifecycle state in `prsSlice` (`status`, `content`, `generatedAt`, `error`)\n271: - [x] Implement summary orchestration utilities:\n272:   - per-PR+head+prompt cache keying\n273:   - sessionStorage read/write cache\n274:   - one-per-minute per-PR-head rate limiting\n275:   - empty textual diff detection\n276: - [x] Extend LLM service with structured summary prompt assembly (orientation + adaptive focus areas)\n277: - [x] Add Summary tab UI in `PRViewer` with loading/success/empty/error states and timestamp footer\n278: - [x] Wire summary generation on PR selection/load and keep summary separate from chat history/context\n279: - [x] Add/expand tests for config, GitHub service, PR slice, summary utilities, LLM prompt, Settings UI, and Summary tab rendering\n280: - [x] Update README and agent guidance for summary behavior, fallback states, and output contract\n281: \n282: ---\n283: \n284: ## OpenSpec Implementation Updates (2026-03-14)\n285: \n286: - [x] Completed OpenSpec change `update-pr-review-summary-ui-readability` implementation tasks (8/8) for panelized Summary tab readability updates.\n287: - [x] Updated Summary success rendering in `src/components/PRViewer.tsx` to show an `Orientation` panel and per-item `Focus Area N` panels with blue/yellow title accents.\n288: - [x] Kept summary generation flow and fallback state semantics unchanged (loading/empty/error behavior preserved).\n289: - [x] Updated `src/components/PRViewer.summary.test.tsx` assertions for orientation-only and orientation+focus-area panelized rendering.\n290: - [x] Validation run completed with `npm run lint && npm run build && npm run test`.\n291: \n292: ## OpenSpec Explore Decision Updates (2026-03-16)\n293: \n294: - [x] Clarified `repository-watcher` UX scope: `repo-pr-list` renders in the left `PR Review` pane (not center chat area or right PR viewer pane).\n295: - [x] Captured sidebar navigator behavior: controls/watchlist view and repo list view with explicit Back action.\n296: - [x] Captured `Load PR` behavior parity with demo mode: when PR number is provided, show a list containing one selected PR.\n297: - [x] Updated change artifacts (`proposal.md`, `design.md`, `tasks.md`, `specs/repo-pr-list/spec.md`, `specs/watched-repos/spec.md`) to reflect the decision.\n298: \n299: ## OpenSpec Implementation Updates (2026-03-16)\n300: \n301: - [x] Implemented `repository-watcher` change tasks end-to-end.\n302: - [x] Added watched repository state and persistence via `src/store/slices/watchedReposSlice.ts`.\n303: - [x] Added repository PR list loading in `src/store/slices/prsSlice.ts` using existing `listPullRequests()` integration.\n304: - [x] Added sidebar repo-list UI mode with Back navigation and new `src/components/PRList.tsx` component.\n305: - [x] Updated sidebar to support optional PR number flow (`Load PR` vs `Load All PRs`) and watchlist interactions.\n306: - [x] Added tests for watched repos, repository PR list loading, and sidebar list selection flows.\n307: - [x] Validation run completed with `npm run lint && npm run build && npm run test`.\n308: \n309: ## OpenSpec Spec Sync Updates (2026-03-16)\n310: \n311: - [x] Synced change `repository-watcher` delta specs into new main specs for `repo-pr-list` and `watched-repos`.\n312: - [x] Created `openspec/specs/repo-pr-list/spec.md` from `openspec/changes/repository-watcher/specs/repo-pr-list/spec.md`.\n313: - [x] Created `openspec/specs/watched-repos/spec.md` from `openspec/changes/repository-watcher/specs/watched-repos/spec.md`.\n314: \n315: ---\n316: \n317: ## Code Review Hardening Tasks (2026-03-17)\n318: \n319: - [x] Task 1: Add stale-response guards in `prsSlice` so older PR resource responses cannot overwrite newer selection state.\n320: - [x] Task 2: Add regression tests for rapid PR switching race in `src/store/slices/prsSlice.test.ts`.\n321: - [x] Task 3: Add `Dialog.Description` in `src/components/SettingsDialog.tsx` to satisfy Radix dialog accessibility contract.\n322: - [x] Task 4: Update settings dialog tests to assert description semantics and eliminate warning output.\n323: - [x] Task 5: Add chat stream request cancellation (`AbortController`) in `src/components/ChatWindow.tsx` and `src/services/llm.ts`.\n324: - [x] Task 6: Add tests for stream cancellation behavior and UI streaming state cleanup.\n325: \n326: ## Distribution and Release Automation (2026-03-17)\n327: \n328: - [x] Added multi-stage Docker image build with static asset runtime (`Dockerfile`) and SPA-safe nginx config (`nginx.conf`).\n329: - [x] Added `.dockerignore` and npm helper scripts (`docker:build`, `docker:run`) for local image usage.\n330: - [x] Added release-triggered GHCR publish workflow (`.github/workflows/docker-release.yml`) with semver-distance tagging (`vX.Y.Z-N`) and fallback (`v0.0.0-N`).\n331: - [x] Updated CI workflow (`.github/workflows/build.yml`) to run lint, tests, and production build.\n332: - [x] Updated `README.md` with local Docker usage, GHCR usage, tagging semantics, and distribution alternatives.\n333: \n334: ## LLM Key Warning Cleanup (2026-03-18)\n335: \n336: - [x] Verified non-OK LLM provider responses (including 4xx) are thrown by `LLMService` and surfaced in chat error bubbles.\n337: - [x] Removed chat footer warning that required configuring an LLM key in settings.\n338: - [x] Added tests to lock behavior for optional API key UI and 4xx error surfacing.\n339: \n340: ## Frontend Bundle Split Pass 1 (2026-03-18)\n341: \n342: - [x] Extracted assistant markdown + syntax highlighting rendering into lazy-loaded `src/components/AssistantMarkdown.tsx`.\n343: - [x] Updated `ChatWindow` to load assistant markdown renderer via `React.lazy` and `Suspense`.\n344: - [x] Added lightweight fallback UI in assistant bubbles while markdown chunk loads.\n345: \n346: ## Frontend Bundle Split Follow-ups (OPEN)\n347: \n348: - [ ] Pass 2: Lazy-load PR summary markdown rendering path in `src/components/PRViewer.tsx` (`SummaryPanel`) to reduce initial bundle size further.\n349: - [ ] Split syntax highlighting payload in `src/components/AssistantMarkdown.tsx` (language/style loading strategy) to shrink lazy chunk size.\n350: - [ ] Evaluate `vite.config.ts` manual chunking (`build.rollupOptions.output.manualChunks`) for stable vendor chunk boundaries and improved cacheability.\n351: \n352: ## Effect Migration - Phase 1 (COMPLETED 2026-03-19)\n353: \n354: Goal: introduce Effect on one narrow PR-loading path without changing app architecture or user-visible behavior.\n355: \n356: - [x] Add `effect` dependency and create `src/effect/runtime.ts` with a single shared runtime helper (`runEffect`).\n357: - [x] Define a small typed error model for the pilot path in `src/effect/errors.ts` (GitHub API error passthrough + unexpected error wrapper).\n358: - [x] Implement one Effect workflow in `src/effect/loadPullRequestContext.ts` that composes existing GitHub service calls (PR, files, comments, review comments, reviews, commits) with timeout/retry policy.\n359: - [x] Wire `loadPullRequestContext` into existing thunk flow in `src/store/slices/prsSlice.ts` via `runEffect`, keeping reducers/selectors/state shape unchanged.\n360: - [x] Add focused tests for success/failure/timeout parity with current behavior in `src/store/slices/prsSlice.test.ts` (or adjacent Effect unit tests).\n361: - [x] Update docs (`README.md` + `plans/plan.md`) with scope boundaries: \"Effect used for pilot orchestration only; no full migration yet.\"\n362: \n363: Exit criteria:\n364: - One PR-loading path uses Effect end-to-end.\n365: - Existing UI behavior and Redux state contracts remain stable.\n366: - Lint, test, and type/build checks pass.\n367: \n368: ## Effect Migration - Phase 1.5 (COMPLETED 2026-03-19)\n369: \n370: - [x] Unified GitHub thunk error mapping through `src/effect/errors.ts::toRejectedErrorData` for legacy PR thunks in `src/store/slices/prsSlice.ts`.\n371: - [x] Reused the same mapper in `src/store/slices/watchedReposSlice.ts` with context-specific fallback message.\n372: - [x] Removed duplicated slice-local `toRejectedError` helpers to keep rejected payload behavior consistent across legacy and Effect-backed paths.\n373: \n374: ## Effect Migration - Phase 1.6 (COMPLETED 2026-03-19)\n375: \n376: - [x] Removed redundant per-resource PR-loading thunks from `src/store/slices/prsSlice.ts` (`fetchPullRequest`, `fetchPRFiles`, `fetchPRComments`, `fetchPRReviewComments`, `fetchPRReviews`, `fetchPRCommits`).\n377: - [x] Removed obsolete per-resource reducer handlers and retained unified `fetchPullRequestContext` loading state handling.\n378: - [x] Updated tests/docs to use the single PR context loading entrypoint.\n379: \n380: ## Effect Migration - Phase 1.7 (COMPLETED 2026-03-19)\n381: \n382: - [x] Refined Effect retry behavior in `src/effect/loadPullRequestContext.ts` to retry only transient failures (`TimeoutError`, `NETWORK_ERROR`, `RATE_LIMITED`).\n383: - [x] Added Effect unit tests to verify deterministic errors are not retried and transient failures are retried.\n384: \n385: ## Docker Release Workflow Runtime Update (COMPLETED 2026-03-20)\n386: \n387: - [x] Updated `.github/workflows/docker-release.yml` action majors to Node 24-compatible versions: `actions/checkout@v5`, `docker/setup-buildx-action@v4`, `docker/login-action@v4`, `docker/build-push-action@v7`.\n388: - [x] Added workflow-level opt-in `FORCE_JAVASCRIPT_ACTIONS_TO_NODE24=true` for early compatibility with GitHub Actions runtime migration.\n389: - [x] Validation run completed with `npm run lint -- --max-warnings=0 && npm run build && npm run test`.\n390: \n391: ## Docker Release Pull Command Output (COMPLETED 2026-03-20)\n392: \n393: - [x] Added a post-publish step in `.github/workflows/docker-release.yml` that prints the exact `docker pull` commands for both release and SHA tags in workflow logs.\n394: - [x] Added the same pull commands to `$GITHUB_STEP_SUMMARY` so they are easy to copy from the run summary page.\n395: \n396: ## OpenSpec Proposal Updates (2026-03-20)\n397: \n398: - [x] Created change `openspec/changes/add-diff-intelligence-layer/` with proposal, design, capability specs, and implementation tasks.\n399: - [x] Added new capability spec delta `openspec/changes/add-diff-intelligence-layer/specs/diff-intelligence/spec.md`.\n400: - [x] Added `pr-review-summary` delta for diff-grounded summary references in `openspec/changes/add-diff-intelligence-layer/specs/pr-review-summary/spec.md`.\n\n(Showing lines 1-400 of 434. Use offset=401 to continue.)\n</content>",
+            "metadata": {
+              "preview": "# PR Review Chatbot - Implementation Plan\n\n## Current Work (Apr 2026)\n- [x] Align CI and Docker builder runtime with GitHub's Node 24 minimum guidance\n- [x] Pin project engine requirement to Node >=24 in package metadata\n- [x] Enforce Node engine checks during npm install with engine-strict\n- [x] Stabilize ChatWindow non-stream fallback test timing for slower CI runners\n- [x] Fix summary citation navigation so line citations preserve `focusedFileLine`\n- [x] Make summary citation-to-panel mapping deterministic (orientation vs per-focus-area)\n- [x] Add regression tests for line navigation and per-panel citation scoping\n- [x] Remove Tailwind/esbuild `file:` CSS warnings by avoiding literal `[file:...]` tokens in prompt source strings\n- [x] Reduce build chunk sizes by splitting vendor bundles and slimming syntax highlighter payload\n\n## Priority: UI and LLM Integration First\n**Key Change**: Use dummy data for PR content to allow immediate interaction with the LLM without needing GitHub API credentials. GitHub integration can be added later.\n\n---\n\n## Tech Stack\n- Vite + React 18 + TypeScript",
+              "truncated": true,
+              "loaded": []
+            },
+            "title": "plans/plan.md",
+            "time": {
+              "start": 1776290215565,
+              "end": 1776290215571
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_0cdab04e1a8ab2d60169e009a767b48198895b7e8b614092a4"
+            }
+          },
+          "id": "prt_d9325b67a0010PIuwwEOMc28a5",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d9325ae03002ExpcpODA2HM4h5"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "3183100b7da24587c0c66299e3a52cf7806ed902",
+          "type": "step-finish",
+          "tokens": {
+            "total": 13856,
+            "input": 174,
+            "output": 100,
+            "reasoning": 14,
+            "cache": {
+              "write": 0,
+              "read": 13568
+            }
+          },
+          "cost": 0.0042749,
+          "id": "prt_d9325b77d0011TgJ4ykay6CQaD",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d9325ae03002ExpcpODA2HM4h5"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d93259a9b001i3Adu2ObYFmnST",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0376075,
+        "tokens": {
+          "total": 21021,
+          "input": 20954,
+          "output": 44,
+          "reasoning": 23,
+          "cache": {
+            "write": 0,
+            "read": 0
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776290215915,
+          "completed": 1776290218368
+        },
+        "finish": "tool-calls",
+        "id": "msg_d9325b7eb001wMeq6ZPfej2R0o",
+        "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E"
+      },
+      "parts": [
+        {
+          "snapshot": "3183100b7da24587c0c66299e3a52cf7806ed902",
+          "type": "step-start",
+          "id": "prt_d9325bc51001XqUss5Epg1Y9XH",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d9325b7eb001wMeq6ZPfej2R0o"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776290217250,
+            "end": 1776290218061
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_03067e2a95aebf540169e009a9211c819aae69e75933597161",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d9325bd22001GzrGcia8YvySwp",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d9325b7eb001wMeq6ZPfej2R0o"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_T4eEnObBzwI4GqJ3IPNokYPq",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md",
+              "offset": 401,
+              "limit": 80
+            },
+            "output": "<path>/Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md</path>\n<type>file</type>\n<content>\n401: - [x] Created change `openspec/changes/add-ci-and-code-scanning-signal-fusion/` with proposal, design, capability specs, and implementation tasks.\n402: - [x] Added new capability spec delta `openspec/changes/add-ci-and-code-scanning-signal-fusion/specs/pr-signal-fusion/spec.md`.\n403: - [x] Added `pr-review-summary` delta for CI/code-scanning signal-aware summary guidance in `openspec/changes/add-ci-and-code-scanning-signal-fusion/specs/pr-review-summary/spec.md`.\n404: \n405: ## OpenSpec Consistency Pass (2026-03-26)\n406: \n407: - [x] Aligned `add-ci-and-code-scanning-signal-fusion` proposal/design/spec/tasks wording around channel-aware signal fusion (summary richer, chat compact).\n408: - [x] Added explicit `pr-signal-fusion` requirements for code-scanning fetch, head-SHA invalidation, bounded deterministic top-N highlights, and raw-payload exclusion.\n409: - [x] Updated summary spec delta to include signal-state indicators and bounded normalized signal context language.\n410: - [x] Expanded tasks with ranking/capping/semantic-alignment verification coverage.\n411: - [x] Cleaned proposal capability taxonomy to avoid duplicate `pr-signal-fusion` classification across new/modified sections.\n412: - [x] Normalized terminology in signal-fusion specs to consistently use \"signal context\" instead of mixed \"signal data/context\" phrasing.\n413: \n414: ## OpenSpec Spec Sync Updates (2026-04-14)\n415: \n416: - [x] Attempted to invoke `openspec-sync-specs` skill for `add-diff-intelligence-layer`; skill is not available in this workspace.\n417: - [x] Synced new main spec `openspec/specs/diff-intelligence/spec.md` from `openspec/changes/add-diff-intelligence-layer/specs/diff-intelligence/spec.md`.\n418: - [x] Synced `Summary Output Contract` updates from `openspec/changes/add-diff-intelligence-layer/specs/pr-review-summary/spec.md` into `openspec/specs/pr-review-summary/spec.md`.\n419: \n420: ## OpenSpec Implementation Updates (2026-04-14)\n421: \n422: - [x] Implemented change `add-ci-and-code-scanning-signal-fusion` tasks end-to-end (20/20 complete).\n423: - [x] Added/extended normalized signal contracts, GitHub signal endpoint normalization, and explicit unavailable/error source-state semantics.\n424: - [x] Wired signal loading into PR context orchestration and connected signal snapshots into both summary and chat prompt construction.\n425: - [x] Added `Signals` tab rendering in `src/components/PRViewer.tsx` with loading/success/unavailable/error/empty states and deterministic highlight ordering.\n426: - [x] Added test coverage for service mapping, signal prompt snapshots, slice lifecycle, and signals UI rendering.\n427: - [x] Validation run completed with `npm run lint -- --max-warnings=0`, `npm run build`, and `npm run test`.\n428: \n429: ## Streaming Compatibility Fixes (2026-04-14)\n430: \n431: - [x] Improved `LLMService.chatStream()` parsing in `src/services/llm.ts` to support provider variants (`delta.content` strings, content-part arrays, and reasoning-style deltas).\n432: - [x] Added non-stream fallback in `src/components/ChatWindow.tsx` when a stream completes with no visible output.\n433: - [x] Added/updated tests in `src/services/llm.test.ts` and `src/components/ChatWindow.test.tsx` for alternate stream payload shapes and empty-stream fallback behavior.\n434: - [x] Validation run completed with `npm run lint -- --max-warnings=0`, `npm run build`, and `npm run test`.\n\n(End of file - total 434 lines)\n</content>",
+            "metadata": {
+              "preview": "- [x] Created change `openspec/changes/add-ci-and-code-scanning-signal-fusion/` with proposal, design, capability specs, and implementation tasks.\n- [x] Added new capability spec delta `openspec/changes/add-ci-and-code-scanning-signal-fusion/specs/pr-signal-fusion/spec.md`.\n- [x] Added `pr-review-summary` delta for CI/code-scanning signal-aware summary guidance in `openspec/changes/add-ci-and-code-scanning-signal-fusion/specs/pr-review-summary/spec.md`.\n\n## OpenSpec Consistency Pass (2026-03-26)\n\n- [x] Aligned `add-ci-and-code-scanning-signal-fusion` proposal/design/spec/tasks wording around channel-aware signal fusion (summary richer, chat compact).\n- [x] Added explicit `pr-signal-fusion` requirements for code-scanning fetch, head-SHA invalidation, bounded deterministic top-N highlights, and raw-payload exclusion.\n- [x] Updated summary spec delta to include signal-state indicators and bounded normalized signal context language.\n- [x] Expanded tasks with ranking/capping/semantic-alignment verification coverage.\n- [x] Cleaned proposal capability taxonomy to avoid duplicate `pr-signal-fusion` classification across new/modified sections.\n- [x] Normalized terminology in signal-fusion specs to consistently use \"signal context\" instead of mixed \"signal data/context\" phrasing.\n\n## OpenSpec Spec Sync Updates (2026-04-14)\n\n- [x] Attempted to invoke `openspec-sync-specs` skill for `add-diff-intelligence-layer`; skill is not available in this workspace.\n- [x] Synced new main spec `openspec/specs/diff-intelligence/spec.md` from `openspec/changes/add-diff-intelligence-layer/specs/diff-intelligence/spec.md`.\n- [x] Synced `Summary Output Contract` updates from `openspec/changes/add-diff-intelligence-layer/specs/pr-review-summary/spec.md` into `openspec/specs/pr-review-summary/spec.md`.\n\n## OpenSpec Implementation Updates (2026-04-14)",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "plans/plan.md",
+            "time": {
+              "start": 1776290218202,
+              "end": 1776290218206
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_03067e2a95aebf540169e009a9d830819aaa46f99f3679f2fb"
+            }
+          },
+          "id": "prt_d9325c04e001maazaTwvj0iC6X",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d9325b7eb001wMeq6ZPfej2R0o"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "3183100b7da24587c0c66299e3a52cf7806ed902",
+          "type": "step-finish",
+          "tokens": {
+            "total": 21021,
+            "input": 20954,
+            "output": 44,
+            "reasoning": 23,
+            "cache": {
+              "write": 0,
+              "read": 0
+            }
+          },
+          "cost": 0.0376075,
+          "id": "prt_d9325c145001VJdPHdAA31s0EG",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d9325b7eb001wMeq6ZPfej2R0o"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d93259a9b001i3Adu2ObYFmnST",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.01148945,
+        "tokens": {
+          "total": 22340,
+          "input": 1047,
+          "output": 43,
+          "reasoning": 386,
+          "cache": {
+            "write": 0,
+            "read": 20864
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776290218368,
+          "completed": 1776290226694
+        },
+        "finish": "tool-calls",
+        "id": "msg_d9325c180002obEodEiQksX16g",
+        "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E"
+      },
+      "parts": [
+        {
+          "snapshot": "3183100b7da24587c0c66299e3a52cf7806ed902",
+          "type": "step-start",
+          "id": "prt_d9325c4c8001T28AU1lspwScnv",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d9325c180002obEodEiQksX16g"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776290219352,
+            "end": 1776290226458
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_00363b01cc8a348e0169e009ab3a18819bb2e01ece6e86817b",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d9325c558001IvTAkbJLrMWASZ",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d9325c180002obEodEiQksX16g"
+        },
+        {
+          "type": "tool",
+          "tool": "read",
+          "callID": "call_FhJ2Sxxc6aVqZKWgfznrczFm",
+          "state": {
+            "status": "completed",
+            "input": {
+              "filePath": "/Users/mark/sandbox/personal/pr-review-chatbot/AGENTS.md",
+              "offset": 1,
+              "limit": 260
+            },
+            "output": "<path>/Users/mark/sandbox/personal/pr-review-chatbot/AGENTS.md</path>\n<type>file</type>\n<content>\n1: # PR Review Chatbot - Agent Instructions\n2: \n3: ## Project Overview\n4: \n5: This is a standalone React + TypeScript webapp that acts as a chatbot interface for reviewing and asking questions about GitHub Pull Requests. It uses an LLM (via OpenAI v1 API or LiteLLM Proxy) to answer questions about PR content.\n6: \n7: ## Tech Stack\n8: \n9: - **Vite** + **React 18** + **TypeScript**\n10: - **Redux Toolkit** for state management\n11: - **Tailwind CSS** for styling\n12: - **Radix UI** for accessible components\n13: - **Axios** for HTTP (GitHub API)\n14: - **Effect** for phase-1 PR context orchestration\n15: - **react-markdown** + **react-syntax-highlighter** for message rendering\n16: \n17: ## Project Structure\n18: \n19: ```\n20: src/\n21: ├── App.tsx                    # Root component with layout\n22: ├── main.tsx                   # Entry point with Redux Provider\n23: ├── index.css                  # Tailwind + CSS variables\n24: ├── vite-env.d.ts              # Vite environment type declarations\n25: ├── types/\n26: │   └── index.ts               # All TypeScript interfaces\n27: ├── store/\n28: │   ├── index.ts               # Redux store configuration\n29: │   ├── hooks.ts               # Typed useAppDispatch / useAppSelector\n30: │   └── slices/\n31: │       ├── configSlice.ts     # App config (env vars + localStorage overrides)\n32: │       ├── chatSlice.ts       # Chat messages + streaming state\n33: │       ├── prsSlice.ts        # Selected PR data + repo PR lists + commits + summary lifecycle state\n34: │       └── watchedReposSlice.ts # Watched repositories + PR count badges (localStorage)\n35: ├── services/\n36: │   ├── llm.ts                 # LLM service (OpenAI v1 API + LiteLLM, streaming)\n37: │   ├── github.ts              # GitHub API service (github.com + GHES)\n38: │   ├── summary.ts             # Summary cache/rate-limit/empty-diff utilities\n39: │   └── dummyData.ts           # Sample PR data for demo mode\n40: ├── components/\n41: │   ├── Sidebar.tsx            # Demo toggle + watchlist + controls/list sidebar views\n42: │   ├── PRList.tsx             # Sidebar repository PR list view with back navigation\n43: │   ├── ChatWindow.tsx         # Chat interface with streaming\n44: │   ├── PRViewer.tsx           # PR details, summary tab, diffs, comments, reviews\n45: │   └── SettingsDialog.tsx     # Runtime configuration override + summary controls\n46: └── lib/\n47:     └── utils.ts               # cn(), formatDate(), generateId()\n48: ```\n49: \n50: ## Key Features\n51: \n52: ### Demo Mode (Default)\n53: - Pre-loaded with a sample JWT authentication PR\n54: - No GitHub credentials required\n55: - Toggle in sidebar or Settings dialog\n56: - Allows immediate LLM interaction\n57: \n58: ### LLM Integration\n59: - Supports **OpenAI v1 API** and **LiteLLM Proxy** (same API format)\n60: - Streaming responses via Server-Sent Events\n61: - PR context injected as system prompt (PR metadata, diffs, comments, reviews)\n62: - Configurable endpoint, model, and API key\n63: - API key is optional for providers/endpoints that do not require auth\n64: - HTTP API failures (including provider 4xx errors) are surfaced in assistant message bubbles\n65: - Assistant markdown rendering (markdown + syntax highlighting) is lazy-loaded to reduce initial bundle cost; chat shows a lightweight fallback while that chunk loads\n66: - Separate summary prompt assembly path (`buildSummaryPrompt`) for orientation-first PR kickoff summaries\n67: \n68: ### GitHub Integration\n69: - PAT (Personal Access Token) authentication\n70: - Supports **github.com** and **GitHub Enterprise Server (GHES)**\n71: - GHES base URL: `https://<host>/api/v3`\n72: - Manual GitHub mode input in sidebar: `owner/repo` + optional PR number\n73: - Sidebar supports `Load PR` (single selected list item) and `Load All PRs` (repository list)\n74: - Watch repositories in sidebar and display open PR count badges\n75: - Fetches: PR metadata, file diffs, issue comments, review comments, reviews, commit messages\n76: - Refresh actions re-fetch currently selected PR, repository lists, and watched repo PR counts\n77: - User-friendly GitHub API errors (auth, not found, rate limit, network)\n78: \n79: ### Settings\n80: - Runtime override of all configuration\n81: - Persisted to `localStorage`\n82: - Defaults from environment variables (`VITE_*`)\n83: - Includes summary controls (`summaryEnabled`, editable `summaryPrompt`, optional `summaryCommands`, reset prompt)\n84: \n85: ### PR Summary Flow\n86: - Summary generation triggers on PR selection/load when `summaryEnabled` is true\n87: - Summary state is isolated from chat state (`prsSlice.summary`)\n88: - Fallback states:\n89:   - `Nothing to Summarize` when no textual diffs exist\n90:   - `Unable to generate summary` on generation failure\n91: - Uses session-scoped cache and one-per-minute per-PR-head rate limit\n92: - Summary output contract:\n93:   - 2-4 line orientation section\n94:   - adaptive `Focus Areas` (`0..4`)\n95:   - each focus area includes where/why/what-to-verify\n96: \n97: ## Environment Variables\n98: \n99: ```bash\n100: VITE_GITHUB_PAT=          # GitHub Personal Access Token\n101: VITE_LLM_API_KEY=         # LLM API Key\n102: VITE_GITHUB_INSTANCE=github.com  # \"github.com\" or GHES hostname\n103: VITE_LLM_BACKEND=openai   # \"openai\" or \"litellm\"\n104: VITE_LLM_ENDPOINT=https://api.openai.com/v1\n105: VITE_LLM_MODEL=gpt-4o\n106: VITE_DEMO_MODE=true\n107: VITE_SUMMARY_ENABLED=true\n108: VITE_SUMMARY_COMMANDS=\n109: ```\n110: \n111: ## Development\n112: \n113: ```bash\n114: npm install       # Install dependencies\n115: npm run dev       # Start dev server (http://localhost:5173)\n116: npm run lint      # Run ESLint (flat config in eslint.config.js)\n117: npm run build     # TypeScript check + production build\n118: npm run preview   # Preview production build\n119: npm run docker:build # Build Docker image locally\n120: npm run docker:run   # Run Docker image locally on :8080\n121: ```\n122: \n123: ## CI/CD and Distribution\n124: \n125: - CI workflow: `.github/workflows/build.yml`\n126:   - Runs `npm ci`, `npm run lint`, `npm test`, and `npm run build` on pushes/PRs to `main`.\n127: - Docker release workflow: `.github/workflows/docker-release.yml`\n128:   - Triggers on GitHub Release `published`.\n129:   - Publishes image to `ghcr.io/<owner>/<repo>`.\n130:   - Computes image tags as semver-distance:\n131:     - primary: `vX.Y.Z-N` (latest reachable semver tag + commit distance)\n132:     - fallback: `v0.0.0-N` when no semver tags exist\n133:     - traceability: `sha-<shortsha>`\n134: - Docker runtime setup:\n135:   - `Dockerfile` uses multi-stage Node build + nginx runtime.\n136:   - `nginx.conf` serves SPA routes via `try_files ... /index.html`.\n137:   - `.dockerignore` excludes local build, VCS, and env artifacts from build context.\n138: \n139: ## Common Tasks for AI Agents\n140: \n141: ### Adding a new Redux slice\n142: 1. Create `src/store/slices/<name>Slice.ts` following the pattern in existing slices\n143: 2. Add the reducer to `src/store/index.ts`\n144: 3. Export typed selectors using `useAppSelector`\n145: \n146: ### Adding a new component\n147: 1. Create `src/components/<Name>.tsx`\n148: 2. Use `useAppSelector` and `useAppDispatch` from `src/store/hooks.ts`\n149: 3. Use `cn()` from `src/lib/utils.ts` for conditional class names\n150: 4. Follow Tailwind CSS + CSS variable pattern for theming\n151: \n152: ### Modifying the LLM system prompt\n153: - Edit `buildSystemPrompt()` in [`src/services/llm.ts`](src/services/llm.ts)\n154: - The method receives a `PRContext` object with `pr`, `files`, `comments`, `reviewComments`, `reviews`\n155: - Prompt construction uses a deterministic character budget for very large PRs and emits an omission summary when some diffs are excluded\n156: \n157: ### Modifying summary behavior\n158: - Summary orchestration policy lives in [`src/services/summary.ts`](src/services/summary.ts)\n159: - Summary state transitions and async generation thunk live in [`src/store/slices/prsSlice.ts`](src/store/slices/prsSlice.ts)\n160: - Summary prompt contract lives in `buildSummaryPrompt()` in [`src/services/llm.ts`](src/services/llm.ts)\n161: - Summary UI rendering lives in [`src/components/PRViewer.tsx`](src/components/PRViewer.tsx)\n162: \n163: ### Adding GitHub API endpoints\n164: - Add methods to the `GitHubService` class in [`src/services/github.ts`](src/services/github.ts)\n165: - The service automatically handles github.com vs GHES URL routing\n166: - Prefer using the centralized GitHub error parsing (`parseGitHubError`) and `GitHubApiError` for consistent UI-friendly failures\n167: - For thunk rejected payloads, prefer `toRejectedErrorData` in `src/effect/errors.ts` to keep all slice paths consistent\n168: \n169: ### GitHub data loading flow\n170: - `prsSlice` uses Effect-backed full-context loading for PR selection:\n171:   - `fetchPullRequestContext` (uses `src/effect/loadPullRequestContext.ts` via `runEffect`)\n172: - Retry policy in `loadPullRequestContext` is transient-only (timeouts/network/rate-limit) to avoid retrying deterministic failures like 404/auth errors\n173: - Use `loadingByResource` and `errorByResource` for UI state; legacy aggregate `isLoading` and `error` are still populated for compatibility\n174: \n175: ### Active OpenSpec context\n176: - Current proposed (not yet implemented) changes:\n177:   - `openspec/changes/add-diff-intelligence-layer`\n178:   - `openspec/changes/add-ci-and-code-scanning-signal-fusion`\n179: - Main baseline specs relevant to these proposals:\n180:   - `openspec/specs/pr-review-summary/spec.md`\n181:   - `openspec/specs/repo-pr-list/spec.md`\n182:   - `openspec/specs/watched-repos/spec.md`\n183: - Proposal intents:\n184:   - diff intelligence: grounded claim citations with click-to-diff navigation\n185:   - signal fusion: CI/check/code-scanning context for reviewer prioritization and summary enrichment\n186: \n187: ### Modifying dummy data\n188: - Edit [`src/services/dummyData.ts`](src/services/dummyData.ts)\n189: - The `dummyPRContext` export is used by `ChatWindow` and `Sidebar` in demo mode\n190: \n191: ## Architecture Notes\n192: \n193: ### State Flow\n194: ```\n195: User types message\n196:   → ChatWindow dispatches addMessage (user)\n197:   → ChatWindow dispatches addMessage (assistant, isStreaming: true)\n198:   → LLMService.chatStream() yields chunks\n199:   → ChatWindow dispatches appendStreamingContent for each chunk\n200:   → ChatWindow dispatches finalizeStreamingMessage when done\n201: ```\n202: \n203: ### Config Priority\n204: ```\n205: localStorage override > environment variable > hardcoded default\n206: ```\n207: \n208: ### GHES URL Construction\n209: ```typescript\n210: // github.com → https://api.github.com\n211: // mycompany.com → https://mycompany.com/api/v3\n212: ```\n213: \n214: ## Known Limitations / Future Work\n215: \n216: - No pagination for PR lists\n217: - No OAuth flow (PAT only)\n218: - No conversation persistence across page reloads\n\n(End of file - total 218 lines)\n</content>",
+            "metadata": {
+              "preview": "# PR Review Chatbot - Agent Instructions\n\n## Project Overview\n\nThis is a standalone React + TypeScript webapp that acts as a chatbot interface for reviewing and asking questions about GitHub Pull Requests. It uses an LLM (via OpenAI v1 API or LiteLLM Proxy) to answer questions about PR content.\n\n## Tech Stack\n\n- **Vite** + **React 18** + **TypeScript**\n- **Redux Toolkit** for state management\n- **Tailwind CSS** for styling\n- **Radix UI** for accessible components\n- **Axios** for HTTP (GitHub API)\n- **Effect** for phase-1 PR context orchestration\n- **react-markdown** + **react-syntax-highlighter** for message rendering\n\n## Project Structure\n\n```\nsrc/",
+              "truncated": false,
+              "loaded": []
+            },
+            "title": "AGENTS.md",
+            "time": {
+              "start": 1776290226552,
+              "end": 1776290226555
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_00363b01cc8a348e0169e009b24590819ba2c2f09f1c8a73fc"
+            }
+          },
+          "id": "prt_d9325e11c001wqHSs1q5E5JpMB",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d9325c180002obEodEiQksX16g"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "3183100b7da24587c0c66299e3a52cf7806ed902",
+          "type": "step-finish",
+          "tokens": {
+            "total": 22340,
+            "input": 1047,
+            "output": 43,
+            "reasoning": 386,
+            "cache": {
+              "write": 0,
+              "read": 20864
+            }
+          },
+          "cost": 0.01148945,
+          "id": "prt_d9325e1c9001Cl6Cjr0UuPJoSc",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d9325c180002obEodEiQksX16g"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d93259a9b001i3Adu2ObYFmnST",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0135093,
+        "tokens": {
+          "total": 25546,
+          "input": 3246,
+          "output": 231,
+          "reasoning": 53,
+          "cache": {
+            "write": 0,
+            "read": 22016
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776290226695,
+          "completed": 1776290231388
+        },
+        "finish": "tool-calls",
+        "id": "msg_d9325e207001JzmPYtoVIX01Ev",
+        "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E"
+      },
+      "parts": [
+        {
+          "snapshot": "3183100b7da24587c0c66299e3a52cf7806ed902",
+          "type": "step-start",
+          "id": "prt_d9325e5e9001bb6eJErw7kB8ot",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d9325e207001JzmPYtoVIX01Ev"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776290228044,
+            "end": 1776290229120
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_015f46d07b430c140169e009b3eb24819b967051972c68a7c8",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d9325e74c00197Cn3RnNHn8OFZ",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d9325e207001JzmPYtoVIX01Ev"
+        },
+        {
+          "type": "tool",
+          "tool": "apply_patch",
+          "callID": "call_lKQpoXOGBbMQxsDD8zGLmxnS",
+          "state": {
+            "status": "completed",
+            "input": {
+              "patchText": "*** Begin Patch\n*** Update File: /Users/mark/sandbox/personal/pr-review-chatbot/.github/workflows/docker-release.yml\n@@\n       - name: Checkout\n         uses: actions/checkout@v5\n         with:\n           fetch-depth: 0\n \n+      - name: Set up QEMU\n+        uses: docker/setup-qemu-action@v3\n+\n       - name: Set up Docker Buildx\n         uses: docker/setup-buildx-action@v4\n@@\n       - name: Build and push image\n         uses: docker/build-push-action@v7\n         with:\n           context: .\n           file: ./Dockerfile\n           push: true\n+          platforms: linux/amd64,linux/arm64\n           tags: |\n             ${{ steps.version.outputs.image }}:${{ steps.version.outputs.version_tag }}\n             ${{ steps.version.outputs.image }}:${{ steps.version.outputs.sha_tag }}\n*** End Patch"
+            },
+            "output": "Success. Updated the following files:\nM .github/workflows/docker-release.yml",
+            "metadata": {
+              "diff": "Index: /Users/mark/sandbox/personal/pr-review-chatbot/.github/workflows/docker-release.yml\n===================================================================\n--- /Users/mark/sandbox/personal/pr-review-chatbot/.github/workflows/docker-release.yml\n+++ /Users/mark/sandbox/personal/pr-review-chatbot/.github/workflows/docker-release.yml\n@@ -21,8 +21,11 @@\n   uses: actions/checkout@v5\n   with:\n     fetch-depth: 0\n \n+- name: Set up QEMU\n+  uses: docker/setup-qemu-action@v3\n+\n - name: Set up Docker Buildx\n   uses: docker/setup-buildx-action@v4\n \n - name: Log in to GHCR\n@@ -61,8 +64,9 @@\n   with:\n     context: .\n     file: ./Dockerfile\n     push: true\n+    platforms: linux/amd64,linux/arm64\n     tags: |\n       ${{ steps.version.outputs.image }}:${{ steps.version.outputs.version_tag }}\n       ${{ steps.version.outputs.image }}:${{ steps.version.outputs.sha_tag }}\n     labels: |\n\n",
+              "files": [
+                {
+                  "filePath": "/Users/mark/sandbox/personal/pr-review-chatbot/.github/workflows/docker-release.yml",
+                  "relativePath": ".github/workflows/docker-release.yml",
+                  "type": "update",
+                  "patch": "Index: /Users/mark/sandbox/personal/pr-review-chatbot/.github/workflows/docker-release.yml\n===================================================================\n--- /Users/mark/sandbox/personal/pr-review-chatbot/.github/workflows/docker-release.yml\n+++ /Users/mark/sandbox/personal/pr-review-chatbot/.github/workflows/docker-release.yml\n@@ -21,8 +21,11 @@\n   uses: actions/checkout@v5\n   with:\n     fetch-depth: 0\n \n+- name: Set up QEMU\n+  uses: docker/setup-qemu-action@v3\n+\n - name: Set up Docker Buildx\n   uses: docker/setup-buildx-action@v4\n \n - name: Log in to GHCR\n@@ -61,8 +64,9 @@\n   with:\n     context: .\n     file: ./Dockerfile\n     push: true\n+    platforms: linux/amd64,linux/arm64\n     tags: |\n       ${{ steps.version.outputs.image }}:${{ steps.version.outputs.version_tag }}\n       ${{ steps.version.outputs.image }}:${{ steps.version.outputs.sha_tag }}\n     labels: |\n",
+                  "additions": 4,
+                  "deletions": 0
+                }
+              ],
+              "diagnostics": {
+                "/Users/mark/sandbox/personal/pr-review-chatbot/.github/workflows/build.yml": [],
+                "/Users/mark/sandbox/personal/pr-review-chatbot/.github/workflows/docker-release.yml": [],
+                "/Users/mark/sandbox/personal/pr-review-chatbot/.github/workflows/opencode.yml": []
+              },
+              "truncated": false
+            },
+            "title": "Success. Updated the following files:\nM .github/workflows/docker-release.yml",
+            "time": {
+              "start": 1776290230933,
+              "end": 1776290231300
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_015f46d07b430c140169e009b4e954819ba8e279f373de56e9"
+            }
+          },
+          "id": "prt_d9325eb81001fl4CcV21DwR1oc",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d9325e207001JzmPYtoVIX01Ev"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "6f15cd363a71abd585fddfd8c0e03b1e0fdd5e86",
+          "type": "step-finish",
+          "tokens": {
+            "total": 25546,
+            "input": 3246,
+            "output": 231,
+            "reasoning": 53,
+            "cache": {
+              "write": 0,
+              "read": 22016
+            }
+          },
+          "cost": 0.0135093,
+          "id": "prt_d9325f405001zTUp761UJsZoE3",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d9325e207001JzmPYtoVIX01Ev"
+        },
+        {
+          "type": "patch",
+          "hash": "3183100b7da24587c0c66299e3a52cf7806ed902",
+          "files": [
+            "/Users/mark/sandbox/personal/pr-review-chatbot/.github/workflows/docker-release.yml"
+          ],
+          "id": "prt_d9325f45b001XVyTf7nfOjHq5X",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d9325e207001JzmPYtoVIX01Ev"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d93259a9b001i3Adu2ObYFmnST",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0077826,
+        "tokens": {
+          "total": 25797,
+          "input": 100,
+          "output": 189,
+          "reasoning": 36,
+          "cache": {
+            "write": 0,
+            "read": 25472
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776290231389,
+          "completed": 1776290234955
+        },
+        "finish": "tool-calls",
+        "id": "msg_d9325f45d00133SEKv6fTkr4vS",
+        "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E"
+      },
+      "parts": [
+        {
+          "snapshot": "6f15cd363a71abd585fddfd8c0e03b1e0fdd5e86",
+          "type": "step-start",
+          "id": "prt_d9325f91c001GqgPBTA3h6QKW6",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d9325f45d00133SEKv6fTkr4vS"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776290232606,
+            "end": 1776290233421
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_0dd3d95b77db03740169e009b859ec8199a2f3292411ca6c60",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d9325f91e001TdmY9ziXchirjY",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d9325f45d00133SEKv6fTkr4vS"
+        },
+        {
+          "type": "tool",
+          "tool": "apply_patch",
+          "callID": "call_k8eujXZdLNlXPWYauJ6v5ujf",
+          "state": {
+            "status": "completed",
+            "input": {
+              "patchText": "*** Begin Patch\n*** Update File: /Users/mark/sandbox/personal/pr-review-chatbot/AGENTS.md\n@@\n - Docker release workflow: `.github/workflows/docker-release.yml`\n   - Triggers on GitHub Release `published`.\n   - Publishes image to `ghcr.io/<owner>/<repo>`.\n+  - Builds and publishes a multi-arch manifest for `linux/amd64` and `linux/arm64`.\n   - Computes image tags as semver-distance:\n     - primary: `vX.Y.Z-N` (latest reachable semver tag + commit distance)\n     - fallback: `v0.0.0-N` when no semver tags exist\n     - traceability: `sha-<shortsha>`\n*** End Patch"
+            },
+            "output": "Success. Updated the following files:\nM AGENTS.md",
+            "metadata": {
+              "diff": "Index: /Users/mark/sandbox/personal/pr-review-chatbot/AGENTS.md\n===================================================================\n--- /Users/mark/sandbox/personal/pr-review-chatbot/AGENTS.md\n+++ /Users/mark/sandbox/personal/pr-review-chatbot/AGENTS.md\n@@ -126,8 +126,9 @@\n   - Runs `npm ci`, `npm run lint`, `npm test`, and `npm run build` on pushes/PRs to `main`.\n - Docker release workflow: `.github/workflows/docker-release.yml`\n   - Triggers on GitHub Release `published`.\n   - Publishes image to `ghcr.io/<owner>/<repo>`.\n+  - Builds and publishes a multi-arch manifest for `linux/amd64` and `linux/arm64`.\n   - Computes image tags as semver-distance:\n     - primary: `vX.Y.Z-N` (latest reachable semver tag + commit distance)\n     - fallback: `v0.0.0-N` when no semver tags exist\n     - traceability: `sha-<shortsha>`\n\n",
+              "files": [
+                {
+                  "filePath": "/Users/mark/sandbox/personal/pr-review-chatbot/AGENTS.md",
+                  "relativePath": "AGENTS.md",
+                  "type": "update",
+                  "patch": "Index: /Users/mark/sandbox/personal/pr-review-chatbot/AGENTS.md\n===================================================================\n--- /Users/mark/sandbox/personal/pr-review-chatbot/AGENTS.md\n+++ /Users/mark/sandbox/personal/pr-review-chatbot/AGENTS.md\n@@ -126,8 +126,9 @@\n   - Runs `npm ci`, `npm run lint`, `npm test`, and `npm run build` on pushes/PRs to `main`.\n - Docker release workflow: `.github/workflows/docker-release.yml`\n   - Triggers on GitHub Release `published`.\n   - Publishes image to `ghcr.io/<owner>/<repo>`.\n+  - Builds and publishes a multi-arch manifest for `linux/amd64` and `linux/arm64`.\n   - Computes image tags as semver-distance:\n     - primary: `vX.Y.Z-N` (latest reachable semver tag + commit distance)\n     - fallback: `v0.0.0-N` when no semver tags exist\n     - traceability: `sha-<shortsha>`\n",
+                  "additions": 1,
+                  "deletions": 0
+                }
+              ],
+              "diagnostics": {
+                "/Users/mark/sandbox/personal/pr-review-chatbot/.github/workflows/build.yml": [],
+                "/Users/mark/sandbox/personal/pr-review-chatbot/.github/workflows/docker-release.yml": [],
+                "/Users/mark/sandbox/personal/pr-review-chatbot/.github/workflows/opencode.yml": []
+              },
+              "truncated": false
+            },
+            "title": "Success. Updated the following files:\nM AGENTS.md",
+            "time": {
+              "start": 1776290234799,
+              "end": 1776290234802
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_0dd3d95b77db03740169e009b9378881999b741b25aa2fd7c7"
+            }
+          },
+          "id": "prt_d9325fc4e001WNNsHQCupXRiFo",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d9325f45d00133SEKv6fTkr4vS"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "5fc7be3664e69333169e9e049e41a0390af5aa78",
+          "type": "step-finish",
+          "tokens": {
+            "total": 25797,
+            "input": 100,
+            "output": 189,
+            "reasoning": 36,
+            "cache": {
+              "write": 0,
+              "read": 25472
+            }
+          },
+          "cost": 0.0077826,
+          "id": "prt_d93260200001Kxt9PahqBvURVj",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d9325f45d00133SEKv6fTkr4vS"
+        },
+        {
+          "type": "patch",
+          "hash": "6f15cd363a71abd585fddfd8c0e03b1e0fdd5e86",
+          "files": [
+            "/Users/mark/sandbox/personal/pr-review-chatbot/agents.md"
+          ],
+          "id": "prt_d9326024a0014wbYztZvbie2DU",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d9325f45d00133SEKv6fTkr4vS"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d93259a9b001i3Adu2ObYFmnST",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.02886205,
+        "tokens": {
+          "total": 25999,
+          "input": 14067,
+          "output": 156,
+          "reasoning": 0,
+          "cache": {
+            "write": 0,
+            "read": 11776
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776290234955,
+          "completed": 1776290238406
+        },
+        "finish": "tool-calls",
+        "id": "msg_d9326024b002KmAPH0E00A9Jta",
+        "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E"
+      },
+      "parts": [
+        {
+          "snapshot": "5fc7be3664e69333169e9e049e41a0390af5aa78",
+          "type": "step-start",
+          "id": "prt_d93260656001xO7MA32H7100an",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d9326024b002KmAPH0E00A9Jta"
+        },
+        {
+          "type": "tool",
+          "tool": "apply_patch",
+          "callID": "call_R8JFnM8XoUvwXI5ETl6lKafV",
+          "state": {
+            "status": "completed",
+            "input": {
+              "patchText": "*** Begin Patch\n*** Update File: /Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n@@\n ## Current Work (Apr 2026)\n+- [x] Ensure release Docker workflow publishes a multi-arch manifest for linux/amd64 and linux/arm64\n - [x] Align CI and Docker builder runtime with GitHub's Node 24 minimum guidance\n - [x] Pin project engine requirement to Node >=24 in package metadata\n - [x] Enforce Node engine checks during npm install with engine-strict\n - [x] Stabilize ChatWindow non-stream fallback test timing for slower CI runners\n*** End Patch"
+            },
+            "output": "Success. Updated the following files:\nM plans/plan.md",
+            "metadata": {
+              "diff": "Index: /Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n===================================================================\n--- /Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n+++ /Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n@@ -1,7 +1,8 @@\n # PR Review Chatbot - Implementation Plan\n \n ## Current Work (Apr 2026)\n+- [x] Ensure release Docker workflow publishes a multi-arch manifest for linux/amd64 and linux/arm64\n - [x] Align CI and Docker builder runtime with GitHub's Node 24 minimum guidance\n - [x] Pin project engine requirement to Node >=24 in package metadata\n - [x] Enforce Node engine checks during npm install with engine-strict\n - [x] Stabilize ChatWindow non-stream fallback test timing for slower CI runners\n\n",
+              "files": [
+                {
+                  "filePath": "/Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md",
+                  "relativePath": "plans/plan.md",
+                  "type": "update",
+                  "patch": "Index: /Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n===================================================================\n--- /Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n+++ /Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md\n@@ -1,7 +1,8 @@\n # PR Review Chatbot - Implementation Plan\n \n ## Current Work (Apr 2026)\n+- [x] Ensure release Docker workflow publishes a multi-arch manifest for linux/amd64 and linux/arm64\n - [x] Align CI and Docker builder runtime with GitHub's Node 24 minimum guidance\n - [x] Pin project engine requirement to Node >=24 in package metadata\n - [x] Enforce Node engine checks during npm install with engine-strict\n - [x] Stabilize ChatWindow non-stream fallback test timing for slower CI runners\n",
+                  "additions": 1,
+                  "deletions": 0
+                }
+              ],
+              "diagnostics": {
+                "/Users/mark/sandbox/personal/pr-review-chatbot/.github/workflows/build.yml": [],
+                "/Users/mark/sandbox/personal/pr-review-chatbot/.github/workflows/docker-release.yml": [],
+                "/Users/mark/sandbox/personal/pr-review-chatbot/.github/workflows/opencode.yml": []
+              },
+              "truncated": false
+            },
+            "title": "Success. Updated the following files:\nM plans/plan.md",
+            "time": {
+              "start": 1776290238240,
+              "end": 1776290238246
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_03d62e56daf3592f0169e009bc95bc81998ee66ad125d5aee7"
+            }
+          },
+          "id": "prt_d93260980001LdimxH5gKfhsPl",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d9326024b002KmAPH0E00A9Jta"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "22eed4d39874d2f221f2d079485edd4010cd9d6f",
+          "type": "step-finish",
+          "tokens": {
+            "total": 25999,
+            "input": 14067,
+            "output": 156,
+            "reasoning": 0,
+            "cache": {
+              "write": 0,
+              "read": 11776
+            }
+          },
+          "cost": 0.02886205,
+          "id": "prt_d93260f79001DZmzclZJlXmwWL",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d9326024b002KmAPH0E00A9Jta"
+        },
+        {
+          "type": "patch",
+          "hash": "5fc7be3664e69333169e9e049e41a0390af5aa78",
+          "files": [
+            "/Users/mark/sandbox/personal/pr-review-chatbot/plans/plan.md"
+          ],
+          "id": "prt_d93260fc5001xMkxAbyfO2T3a1",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d9326024b002KmAPH0E00A9Jta"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d93259a9b001i3Adu2ObYFmnST",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.0063133,
+        "tokens": {
+          "total": 26129,
+          "input": 166,
+          "output": 70,
+          "reasoning": 37,
+          "cache": {
+            "write": 0,
+            "read": 25856
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776290238407,
+          "completed": 1776290247665
+        },
+        "finish": "tool-calls",
+        "id": "msg_d93260fc70015WLjzfMx9s465R",
+        "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E"
+      },
+      "parts": [
+        {
+          "snapshot": "22eed4d39874d2f221f2d079485edd4010cd9d6f",
+          "type": "step-start",
+          "id": "prt_d932613eb001W6nk1LkBzbQkdW",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d93260fc70015WLjzfMx9s465R"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776290239779,
+            "end": 1776290240281
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_0abcab588014a9170169e009bf4c48819bbdf7b60a7be3ca0f",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d93261523001T3zBX3l6Q0TQCs",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d93260fc70015WLjzfMx9s465R"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_gI756KafEe1GrgOCEt0Ha6ue",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "npm run lint -- --max-warnings=0 && npm run build && npm run test",
+              "timeout": 1200000,
+              "workdir": "/Users/mark/sandbox/personal/pr-review-chatbot",
+              "description": "Run lint, build, and test checks"
+            },
+            "output": "\n> pr-review-chatbot@0.1.0 lint\n> eslint . --max-warnings=0\n\n\n> pr-review-chatbot@0.1.0 build\n> tsc -b && vite build\n\nvite v6.4.2 building for production...\ntransforming...\n✓ 3652 modules transformed.\nrendering chunks...\ncomputing gzip size...\ndist/index.html                              0.80 kB │ gzip:  0.38 kB\ndist/assets/index-DCvGqkrz.css              27.40 kB │ gzip:  5.64 kB\ndist/assets/AssistantMarkdown-COrmFfre.js    1.21 kB │ gzip:  0.58 kB\ndist/assets/vendor-ui-ByjvM8nW.js           66.57 kB │ gzip: 20.86 kB\ndist/assets/index-CO_d9FjQ.js              102.78 kB │ gzip: 27.83 kB\ndist/assets/vendor-react-CjUgeahb.js       143.50 kB │ gzip: 45.98 kB\ndist/assets/vendor-data-hKgeB7CD.js        188.14 kB │ gzip: 64.56 kB\ndist/assets/vendor-markdown-CX4V4cVy.js    240.90 kB │ gzip: 74.59 kB\n✓ built in 1.99s\n\n> pr-review-chatbot@0.1.0 test\n> vitest run\n\n\n RUN  v4.1.4 /Users/mark/sandbox/personal/pr-review-chatbot\n\n(node:19966) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:19964) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:19971) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:19969) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:19967) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:19965) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:19979) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:19981) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n\n Test Files  18 passed (18)\n      Tests  161 passed (161)\n   Start at  22:57:25\n   Duration  1.83s (transform 909ms, setup 761ms, import 3.49s, tests 2.36s, environment 6.10s)\n\n",
+            "metadata": {
+              "output": "\n> pr-review-chatbot@0.1.0 lint\n> eslint . --max-warnings=0\n\n\n> pr-review-chatbot@0.1.0 build\n> tsc -b && vite build\n\nvite v6.4.2 building for production...\ntransforming...\n✓ 3652 modules transformed.\nrendering chunks...\ncomputing gzip size...\ndist/index.html                              0.80 kB │ gzip:  0.38 kB\ndist/assets/index-DCvGqkrz.css              27.40 kB │ gzip:  5.64 kB\ndist/assets/AssistantMarkdown-COrmFfre.js    1.21 kB │ gzip:  0.58 kB\ndist/assets/vendor-ui-ByjvM8nW.js           66.57 kB │ gzip: 20.86 kB\ndist/assets/index-CO_d9FjQ.js              102.78 kB │ gzip: 27.83 kB\ndist/assets/vendor-react-CjUgeahb.js       143.50 kB │ gzip: 45.98 kB\ndist/assets/vendor-data-hKgeB7CD.js        188.14 kB │ gzip: 64.56 kB\ndist/assets/vendor-markdown-CX4V4cVy.js    240.90 kB │ gzip: 74.59 kB\n✓ built in 1.99s\n\n> pr-review-chatbot@0.1.0 test\n> vitest run\n\n\n RUN  v4.1.4 /Users/mark/sandbox/personal/pr-review-chatbot\n\n(node:19966) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:19964) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:19971) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:19969) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:19967) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:19965) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:19979) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n(node:19981) Warning: `--localstorage-file` was provided without a valid path\n(Use `node --trace-warnings ...` to show where the warning was created)\n\n Test Files  18 passed (18)\n      Tests  161 passed (161)\n   Start at  22:57:25\n   Duration  1.83s (transform 909ms, setup 761ms, import 3.49s, tests 2.36s, environment 6.10s)\n\n",
+              "exit": 0,
+              "description": "Run lint, build, and test checks",
+              "truncated": false
+            },
+            "title": "Run lint, build, and test checks",
+            "time": {
+              "start": 1776290247555,
+              "end": 1776290247613
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_0abcab588014a9170169e009c010e8819b99ed8ee037845f5c"
+            }
+          },
+          "id": "prt_d9326171a001pJRL8buh9LO65o",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d93260fc70015WLjzfMx9s465R"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "22eed4d39874d2f221f2d079485edd4010cd9d6f",
+          "type": "step-finish",
+          "tokens": {
+            "total": 26129,
+            "input": 166,
+            "output": 70,
+            "reasoning": 37,
+            "cache": {
+              "write": 0,
+              "read": 25856
+            }
+          },
+          "cost": 0.0063133,
+          "id": "prt_d932633bd002c2NK9RCz0LD6GT",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d93260fc70015WLjzfMx9s465R"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d93259a9b001i3Adu2ObYFmnST",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.00941045,
+        "tokens": {
+          "total": 27097,
+          "input": 875,
+          "output": 186,
+          "reasoning": 52,
+          "cache": {
+            "write": 0,
+            "read": 25984
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776290247666,
+          "completed": 1776290251527
+        },
+        "finish": "stop",
+        "id": "msg_d932633f2001a1CRwwDM88e8DR",
+        "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E"
+      },
+      "parts": [
+        {
+          "snapshot": "22eed4d39874d2f221f2d079485edd4010cd9d6f",
+          "type": "step-start",
+          "id": "prt_d9326384c001k7VQXvddITP1Ju",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d932633f2001a1CRwwDM88e8DR"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776290248792,
+            "end": 1776290249497
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_0ba1742790dd273b0169e009c88b888193b919f4d6fc7245ec",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d93263858001qcd1oEjllXsEb1",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d932633f2001a1CRwwDM88e8DR"
+        },
+        {
+          "type": "text",
+          "text": "Done — release workflow now builds and publishes both x86 and ARM64 images.\n\n- Updated `.github/workflows/docker-release.yml:25` to add `docker/setup-qemu-action@v3`, which enables cross-architecture emulation on the GitHub runner.\n- Updated `.github/workflows/docker-release.yml:68` to set `platforms: linux/amd64,linux/arm64` on `docker/build-push-action@v7`, so the pushed tag is a multi-arch manifest.\n- Synced agent/docs note in `AGENTS.md:130` to reflect that release publishes a multi-arch manifest.\n- Updated tracking plan in `plans/plan.md:4` with the completed multi-arch release workflow item.\n- Validation passed locally with `npm run lint -- --max-warnings=0 && npm run build && npm run test` (all green).",
+          "time": {
+            "start": 1776290249499,
+            "end": 1776290251378
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "msg_0ba1742790dd273b0169e009c95770819383a7eb3c7879479b",
+              "phase": "final_answer"
+            }
+          },
+          "id": "prt_d93263b1b001PJweuToPNCkFiK",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d932633f2001a1CRwwDM88e8DR"
+        },
+        {
+          "reason": "stop",
+          "snapshot": "22eed4d39874d2f221f2d079485edd4010cd9d6f",
+          "type": "step-finish",
+          "tokens": {
+            "total": 27097,
+            "input": 875,
+            "output": 186,
+            "reasoning": 52,
+            "cache": {
+              "write": 0,
+              "read": 25984
+            }
+          },
+          "cost": 0.00941045,
+          "id": "prt_d932642c1001Cyml2RCm7ADNgS",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d932633f2001a1CRwwDM88e8DR"
+        }
+      ]
+    },
+    {
+      "info": {
+        "role": "user",
+        "time": {
+          "created": 1776290303677
+        },
+        "agent": "build",
+        "model": {
+          "providerID": "opencode",
+          "modelID": "gpt-5.3-codex"
+        },
+        "summary": {
+          "diffs": []
+        },
+        "id": "msg_d93270eb8001bsADjN9Nur9EBM",
+        "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E"
+      },
+      "parts": [
+        {
+          "type": "text",
+          "text": "check in the changes",
+          "id": "prt_d93270eb8002cL0Pf8MgcZeqsZ",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d93270eb8001bsADjN9Nur9EBM"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d93270eb8001bsADjN9Nur9EBM",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0.02929185,
+        "tokens": {
+          "total": 26647,
+          "input": 13039,
+          "output": 163,
+          "reasoning": 133,
+          "cache": {
+            "write": 0,
+            "read": 13312
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776290303683,
+          "completed": 1776290308862
+        },
+        "finish": "tool-calls",
+        "id": "msg_d93270ec3001At1SL6uzT6EpsG",
+        "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E"
+      },
+      "parts": [
+        {
+          "snapshot": "22eed4d39874d2f221f2d079485edd4010cd9d6f",
+          "type": "step-start",
+          "id": "prt_d93271331001IbYBzdz3SPuhYH",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d93270ec3001At1SL6uzT6EpsG"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776290305065,
+            "end": 1776290308398
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_06d316d9096aacd30169e00a00ed6081939b7548dcca346e6e",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d9327142900138yNVB7ZBU7uoX",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d93270ec3001At1SL6uzT6EpsG"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_hDgbvjFVZJN0aEYg7jeFHbMC",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git status --short",
+              "timeout": 120000,
+              "workdir": "/Users/mark/sandbox/personal/pr-review-chatbot",
+              "description": "Shows concise working tree status"
+            },
+            "output": " M .github/workflows/docker-release.yml\n M agents.md\n M plans/plan.md\n",
+            "metadata": {
+              "output": " M .github/workflows/docker-release.yml\n M agents.md\n M plans/plan.md\n",
+              "exit": 0,
+              "description": "Shows concise working tree status",
+              "truncated": false
+            },
+            "title": "Shows concise working tree status",
+            "time": {
+              "start": 1776290308491,
+              "end": 1776290308492
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_06d316d9096aacd30169e00a0438a48193ba3d8048316ff6bb"
+            }
+          },
+          "id": "prt_d93272134001wX4gduNl7YggVe",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d93270ec3001At1SL6uzT6EpsG"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_Bj3OBqaVsVzEjNQ64sJEYMou",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git diff -- .",
+              "timeout": 120000,
+              "workdir": "/Users/mark/sandbox/personal/pr-review-chatbot",
+              "description": "Shows unstaged and staged diff"
+            },
+            "output": "diff --git a/.github/workflows/docker-release.yml b/.github/workflows/docker-release.yml\nindex 84fa8fb..1046d29 100644\n--- a/.github/workflows/docker-release.yml\n+++ b/.github/workflows/docker-release.yml\n@@ -22,6 +22,9 @@ jobs:\n         with:\n           fetch-depth: 0\n \n+      - name: Set up QEMU\n+        uses: docker/setup-qemu-action@v3\n+\n       - name: Set up Docker Buildx\n         uses: docker/setup-buildx-action@v4\n \n@@ -62,6 +65,7 @@ jobs:\n           context: .\n           file: ./Dockerfile\n           push: true\n+          platforms: linux/amd64,linux/arm64\n           tags: |\n             ${{ steps.version.outputs.image }}:${{ steps.version.outputs.version_tag }}\n             ${{ steps.version.outputs.image }}:${{ steps.version.outputs.sha_tag }}\ndiff --git a/agents.md b/agents.md\nindex 84e3c16..227439d 100644\n--- a/agents.md\n+++ b/agents.md\n@@ -127,6 +127,7 @@ npm run docker:run   # Run Docker image locally on :8080\n - Docker release workflow: `.github/workflows/docker-release.yml`\n   - Triggers on GitHub Release `published`.\n   - Publishes image to `ghcr.io/<owner>/<repo>`.\n+  - Builds and publishes a multi-arch manifest for `linux/amd64` and `linux/arm64`.\n   - Computes image tags as semver-distance:\n     - primary: `vX.Y.Z-N` (latest reachable semver tag + commit distance)\n     - fallback: `v0.0.0-N` when no semver tags exist\ndiff --git a/plans/plan.md b/plans/plan.md\nindex e906e4b..f0ceb15 100644\n--- a/plans/plan.md\n+++ b/plans/plan.md\n@@ -1,6 +1,7 @@\n # PR Review Chatbot - Implementation Plan\n \n ## Current Work (Apr 2026)\n+- [x] Ensure release Docker workflow publishes a multi-arch manifest for linux/amd64 and linux/arm64\n - [x] Align CI and Docker builder runtime with GitHub's Node 24 minimum guidance\n - [x] Pin project engine requirement to Node >=24 in package metadata\n - [x] Enforce Node engine checks during npm install with engine-strict\n",
+            "metadata": {
+              "output": "diff --git a/.github/workflows/docker-release.yml b/.github/workflows/docker-release.yml\nindex 84fa8fb..1046d29 100644\n--- a/.github/workflows/docker-release.yml\n+++ b/.github/workflows/docker-release.yml\n@@ -22,6 +22,9 @@ jobs:\n         with:\n           fetch-depth: 0\n \n+      - name: Set up QEMU\n+        uses: docker/setup-qemu-action@v3\n+\n       - name: Set up Docker Buildx\n         uses: docker/setup-buildx-action@v4\n \n@@ -62,6 +65,7 @@ jobs:\n           context: .\n           file: ./Dockerfile\n           push: true\n+          platforms: linux/amd64,linux/arm64\n           tags: |\n             ${{ steps.version.outputs.image }}:${{ steps.version.outputs.version_tag }}\n             ${{ steps.version.outputs.image }}:${{ steps.version.outputs.sha_tag }}\ndiff --git a/agents.md b/agents.md\nindex 84e3c16..227439d 100644\n--- a/agents.md\n+++ b/agents.md\n@@ -127,6 +127,7 @@ npm run docker:run   # Run Docker image locally on :8080\n - Docker release workflow: `.github/workflows/docker-release.yml`\n   - Triggers on GitHub Release `published`.\n   - Publishes image to `ghcr.io/<owner>/<repo>`.\n+  - Builds and publishes a multi-arch manifest for `linux/amd64` and `linux/arm64`.\n   - Computes image tags as semver-distance:\n     - primary: `vX.Y.Z-N` (latest reachable semver tag + commit distance)\n     - fallback: `v0.0.0-N` when no semver tags exist\ndiff --git a/plans/plan.md b/plans/plan.md\nindex e906e4b..f0ceb15 100644\n--- a/plans/plan.md\n+++ b/plans/plan.md\n@@ -1,6 +1,7 @@\n # PR Review Chatbot - Implementation Plan\n \n ## Current Work (Apr 2026)\n+- [x] Ensure release Docker workflow publishes a multi-arch manifest for linux/amd64 and linux/arm64\n - [x] Align CI and Docker builder runtime with GitHub's Node 24 minimum guidance\n - [x] Pin project engine requirement to Node >=24 in package metadata\n - [x] Enforce Node engine checks during npm install with engine-strict\n",
+              "exit": 0,
+              "description": "Shows unstaged and staged diff",
+              "truncated": false
+            },
+            "title": "Shows unstaged and staged diff",
+            "time": {
+              "start": 1776290308490,
+              "end": 1776290308491
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_06d316d9096aacd30169e00a0438bc8193902592688a2fd9b1"
+            }
+          },
+          "id": "prt_d93272148001KqjxN11YZ3rYVu",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d93270ec3001At1SL6uzT6EpsG"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_DCfqy0D25m8u4moY0BdLFW60",
+          "state": {
+            "status": "completed",
+            "input": {
+              "command": "git log --oneline -10",
+              "timeout": 120000,
+              "workdir": "/Users/mark/sandbox/personal/pr-review-chatbot",
+              "description": "Shows recent commit messages"
+            },
+            "output": "dfbeec1 fix(chat): stabilize non-stream fallback test in CI\n11830f3 chore(ci): align runtime and tooling to Node 24\n401fca2 fix(review): preserve citation navigation and reduce bundle overhead\nbe02981 fix(chat): handle LM Studio streaming payload variants\n3155c67 chore(openspec): archive completed signal fusion change\n3b7a0e2 feat(review): fuse CI and scanning signals into review flow\nd0aa40b feat(review): add citation-aware PR summaries and chat responses\nef692c8 Updates Openspec for Opencode and Pi\nfdb8518 spec(openspec): align signal-fusion artifact contracts\na2af26b spec(openspec): propose diff intelligence and signal fusion features\n",
+            "metadata": {
+              "output": "dfbeec1 fix(chat): stabilize non-stream fallback test in CI\n11830f3 chore(ci): align runtime and tooling to Node 24\n401fca2 fix(review): preserve citation navigation and reduce bundle overhead\nbe02981 fix(chat): handle LM Studio streaming payload variants\n3155c67 chore(openspec): archive completed signal fusion change\n3b7a0e2 feat(review): fuse CI and scanning signals into review flow\nd0aa40b feat(review): add citation-aware PR summaries and chat responses\nef692c8 Updates Openspec for Opencode and Pi\nfdb8518 spec(openspec): align signal-fusion artifact contracts\na2af26b spec(openspec): propose diff intelligence and signal fusion features\n",
+              "exit": 0,
+              "description": "Shows recent commit messages",
+              "truncated": false
+            },
+            "title": "Shows recent commit messages",
+            "time": {
+              "start": 1776290308610,
+              "end": 1776290308611
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_06d316d9096aacd30169e00a0438c48193be76449d4acc648d"
+            }
+          },
+          "id": "prt_d932721d0001U3QQKbU47QLZH0",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d93270ec3001At1SL6uzT6EpsG"
+        },
+        {
+          "reason": "tool-calls",
+          "snapshot": "22eed4d39874d2f221f2d079485edd4010cd9d6f",
+          "type": "step-finish",
+          "tokens": {
+            "total": 26647,
+            "input": 13039,
+            "output": 163,
+            "reasoning": 133,
+            "cache": {
+              "write": 0,
+              "read": 13312
+            }
+          },
+          "cost": 0.02929185,
+          "id": "prt_d932722c3001EhmdWGT7WoQQoy",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d93270ec3001At1SL6uzT6EpsG"
+        }
+      ]
+    },
+    {
+      "info": {
+        "parentID": "msg_d93270eb8001bsADjN9Nur9EBM",
+        "role": "assistant",
+        "mode": "build",
+        "agent": "build",
+        "path": {
+          "cwd": "/Users/mark/sandbox/personal/pr-review-chatbot",
+          "root": "/Users/mark/sandbox/personal/pr-review-chatbot"
+        },
+        "cost": 0,
+        "tokens": {
+          "input": 0,
+          "output": 0,
+          "reasoning": 0,
+          "cache": {
+            "read": 0,
+            "write": 0
+          }
+        },
+        "modelID": "gpt-5.3-codex",
+        "providerID": "opencode",
+        "time": {
+          "created": 1776290308863
+        },
+        "id": "msg_d932722ff001ufJXpUutqYOfWx",
+        "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E"
+      },
+      "parts": [
+        {
+          "snapshot": "22eed4d39874d2f221f2d079485edd4010cd9d6f",
+          "type": "step-start",
+          "id": "prt_d932729ea001XTQ37GtL5nhi5W",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d932722ff001ufJXpUutqYOfWx"
+        },
+        {
+          "type": "reasoning",
+          "text": "",
+          "time": {
+            "start": 1776290310939,
+            "end": 1776290312714
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "rs_0ac7db1d8b4c97550169e00a065b1081999e23582921a9fd03",
+              "reasoningEncryptedContent": "REDACTED"
+            }
+          },
+          "id": "prt_d93272b1b001Eyn0akebgxejjm",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d932722ff001ufJXpUutqYOfWx"
+        },
+        {
+          "type": "tool",
+          "tool": "bash",
+          "callID": "call_TzHLVuqf69OnKMwAvDId2alk",
+          "state": {
+            "metadata": {
+              "output": "",
+              "description": "Stage files, create commit, verify clean status"
+            },
+            "status": "running",
+            "input": {
+              "command": "git add .github/workflows/docker-release.yml agents.md plans/plan.md && git commit -m \"chore(release): publish multi-arch Docker images\" -m \"Ensure release builds push a single manifest that supports both linux/amd64 and linux/arm64 pulls.\" && git status --short",
+              "timeout": 120000,
+              "workdir": "/Users/mark/sandbox/personal/pr-review-chatbot",
+              "description": "Stage files, create commit, verify clean status"
+            },
+            "time": {
+              "start": 1776290313544
+            }
+          },
+          "metadata": {
+            "openai": {
+              "itemId": "fc_0ac7db1d8b4c97550169e00a089244819986ec4515e034ddce"
+            }
+          },
+          "id": "prt_d9327320c001G6cHqYTxCsmX5h",
+          "sessionID": "ses_26cda6568ffeUTmy4vYnVc4I1E",
+          "messageID": "msg_d932722ff001ufJXpUutqYOfWx"
+        }
+      ]
+    }
+  ]
+}
