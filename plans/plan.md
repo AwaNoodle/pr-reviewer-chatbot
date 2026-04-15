@@ -1,6 +1,7 @@
 # PR Review Chatbot - Implementation Plan
 
 ## Current Work (Apr 2026)
+- [x] Ensure release Docker workflow publishes a multi-arch manifest for linux/amd64 and linux/arm64
 - [x] Align CI and Docker builder runtime with GitHub's Node 24 minimum guidance
 - [x] Pin project engine requirement to Node >=24 in package metadata
 - [x] Enforce Node engine checks during npm install with engine-strict

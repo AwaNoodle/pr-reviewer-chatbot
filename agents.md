@@ -127,6 +127,7 @@ npm run docker:run   # Run Docker image locally on :8080
 - Docker release workflow: `.github/workflows/docker-release.yml`
   - Triggers on GitHub Release `published`.
   - Publishes image to `ghcr.io/<owner>/<repo>`.
+  - Builds and publishes a multi-arch manifest for `linux/amd64` and `linux/arm64`.
   - Computes image tags as semver-distance:
     - primary: `vX.Y.Z-N` (latest reachable semver tag + commit distance)
     - fallback: `v0.0.0-N` when no semver tags exist
